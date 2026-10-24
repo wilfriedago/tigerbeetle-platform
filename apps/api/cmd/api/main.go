@@ -40,13 +40,19 @@ func run(args []string, stdout io.Writer) error {
 	flags.SetOutput(stdout)
 	showVersion := flags.Bool("version", false, "print the version and exit")
 	probeURL := flags.String("probe", "", "GET this URL, exit 0 on a 2xx answer (container healthcheck)")
+
 	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		return err
 	}
+
 	if *showVersion {
 		_, err := fmt.Fprintf(stdout, "%s %s\n", serviceName, version)
 		return err
 	}
+
 	if *probeURL != "" {
 		return probe(context.Background(), *probeURL, 5*time.Second)
 	}
@@ -59,16 +65,19 @@ func run(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
+
 	level, err := cfg.Level()
 	if err != nil {
 		return err
 	}
+
 	logger := logging.New(stdout, level).With(slog.String("service", serviceName), slog.String("version", version))
 
 	metadata, err := postgres.New(ctx, cfg.PostgresURL)
 	if err != nil {
 		return err
 	}
+
 	defer metadata.Close()
 
 	if cfg.MigrateOnStart {
@@ -85,10 +94,12 @@ func run(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
+
 	ledgerStore, err := tigerbeetle.New(cfg.TigerBeetleClusterID, addresses)
 	if err != nil {
 		return err
 	}
+
 	defer ledgerStore.Close()
 
 	status := app.NewStatus(ledgerStore, metadata, cfg.ReadinessTimeout)
@@ -106,9 +117,12 @@ func run(args []string, stdout io.Writer) error {
 		ShutdownTimeout: cfg.ShutdownTimeout,
 		Logger:          logger,
 	})
+
 	if err != nil && !errors.Is(err, context.Canceled) {
 		return err
 	}
+
 	logger.InfoContext(ctx, "stopped")
+
 	return nil
 }

@@ -7,16 +7,16 @@ import (
 )
 
 // MaxAddressLength bounds account addresses. Addresses are keys in Postgres only; TigerBeetle
-// accounts are identified by 128-bit IDs (decision 9).
+// accounts are identified by 128-bit IDs (ADR-0006).
 const MaxAddressLength = 255
 
 // World is the conventional counterpart for money entering or leaving the ledger. It has no
-// balance limit (decision 5).
+// balance limit (ADR-0006).
 const World Address = "world"
 
 var addressPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)*$`)
 
-// Address is a hierarchical account name such as "users:1234:wallet" (decision 2). Segments are
+// Address is a hierarchical account name such as "users:1234:wallet" (ADR-0004). Segments are
 // separated by colons; prefixes such as "users:" drive aggregated balances and account rules.
 type Address string
 

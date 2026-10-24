@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
@@ -80,7 +81,8 @@ type statusRecorder struct {
 }
 
 func (s *statusRecorder) WriteHeader(code int) {
-	if s.status == 0 {
+	// 1xx responses are informational; the final status is the first non-1xx code.
+	if s.status == 0 && code >= http.StatusOK {
 		s.status = code
 	}
 	s.ResponseWriter.WriteHeader(code)
@@ -120,6 +122,10 @@ func recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
+				// http.ErrAbortHandler is net/http's own way to abort a response; pass it on.
+				if err, ok := rec.(error); ok && errors.Is(err, http.ErrAbortHandler) {
+					panic(rec)
+				}
 				loggerFrom(r.Context()).ErrorContext(r.Context(), "panic",
 					slog.Any("panic", rec),
 					slog.String("stack", string(debug.Stack())))

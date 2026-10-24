@@ -8,7 +8,7 @@ import (
 
 // ToDomainID converts a TigerBeetle identifier to the domain representation. The client stores
 // its 128-bit numbers little-endian (least significant byte first); the domain and Postgres uuid
-// columns use big-endian so byte order equals numeric order (decision 11).
+// columns use big-endian so byte order equals numeric order (ADR-0002).
 func ToDomainID(id tb.Uint128) ledger.ID {
 	return ledger.ID(reverse(id.Bytes()))
 }

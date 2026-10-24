@@ -23,7 +23,14 @@ type Client struct {
 	// indefinitely. Ready therefore runs at most one probe at a time and lets concurrent callers
 	// share it, so a cluster outage cannot pile up goroutines behind the readiness endpoint.
 	mu       sync.Mutex
-	inflight chan error
+	inflight *probe
+}
+
+// probe is one in-flight Nop round trip. done is closed once err is set, so any number of
+// waiters can read the same outcome.
+type probe struct {
+	done chan struct{}
+	err  error
 }
 
 // New creates a client for the cluster. It does not fail when the cluster is unreachable; the
@@ -44,30 +51,24 @@ func (c *Client) Close() {
 // Ready sends a no-op request to the cluster and waits for the reply or the context deadline.
 func (c *Client) Ready(ctx context.Context) error {
 	c.mu.Lock()
-	probe := c.inflight
-	if probe == nil {
-		probe = make(chan error, 1)
-		c.inflight = probe
+	p := c.inflight
+	if p == nil {
+		p = &probe{done: make(chan struct{})}
+		c.inflight = p
 		go func() {
-			err := c.tb.Nop()
+			p.err = c.tb.Nop()
 			c.mu.Lock()
 			c.inflight = nil
 			c.mu.Unlock()
-			probe <- err
-			close(probe)
+			close(p.done)
 		}()
 	}
 	c.mu.Unlock()
 
 	select {
-	case err, ok := <-probe:
-		if !ok {
-			// The probe was consumed by another waiter after we picked it up; it answered, so the
-			// cluster was reachable a moment ago.
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("tigerbeetle: nop: %w", mapClientError(err))
+	case <-p.done:
+		if p.err != nil {
+			return fmt.Errorf("tigerbeetle: nop: %w", mapClientError(p.err))
 		}
 		return nil
 	case <-ctx.Done():
@@ -75,7 +76,7 @@ func (c *Client) Ready(ctx context.Context) error {
 	}
 }
 
-// NewID mints a time-ordered 128-bit identifier with the client's helper (decision 9).
+// NewID mints a time-ordered 128-bit identifier with the client's helper (ADR-0006).
 func (c *Client) NewID() ledger.ID {
 	return ToDomainID(tb.ID())
 }

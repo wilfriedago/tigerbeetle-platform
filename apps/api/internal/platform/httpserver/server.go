@@ -29,7 +29,9 @@ func Run(ctx context.Context, opts Options) error {
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      60 * time.Second,
 		IdleTimeout:       120 * time.Second,
-		BaseContext:       func(net.Listener) context.Context { return ctx },
+		// Requests must outlive the shutdown signal so they can finish during the drain; the
+		// deadline for that drain is enforced by Shutdown below, not by cancelling ctx.
+		BaseContext: func(net.Listener) context.Context { return context.WithoutCancel(ctx) },
 	}
 
 	var lc net.ListenConfig

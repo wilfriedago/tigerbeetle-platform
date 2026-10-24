@@ -14,5 +14,5 @@ sql:
         emit_pointers_for_null_types: true
         emit_empty_slices: true
         emit_methods_with_db_argument: false
-        # Type mapping: uuid columns (128-bit TigerBeetle IDs, decision 11) become pgtype.UUID and
+        # Type mapping: uuid columns (128-bit TigerBeetle IDs, ADR-0002) become pgtype.UUID and
         # jsonb columns become []byte, both sqlc defaults for pgx/v5, so no overrides are needed.

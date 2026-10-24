@@ -85,6 +85,21 @@ func toLedger(row gen.Ledger) (ledger.Ledger, error) {
 	return ledger.Ledger{Name: row.Name, Metadata: metadata, CreatedAt: row.CreatedAt.Time.UTC()}, nil
 }
 
+// isOutageClass reports whether a SQLSTATE belongs to a class that means the server could not
+// serve us rather than that our SQL was wrong: 08 connection exception, 53 insufficient
+// resources, 57 operator intervention (shutdown, crash), 58 system error.
+func isOutageClass(code string) bool {
+	if len(code) < 2 {
+		return false
+	}
+	switch code[:2] {
+	case "08", "53", "57", "58":
+		return true
+	default:
+		return false
+	}
+}
+
 // mapError translates driver errors into domain errors. The original error stays wrapped for
 // logs; the HTTP adapter only ever shows the domain error to clients.
 func mapError(err error) error {
@@ -94,6 +109,8 @@ func mapError(err error) error {
 		return fmt.Errorf("%w: %w", ledger.ErrNotFound, err)
 	case errors.As(err, &pgErr) && pgErr.Code == uniqueViolation:
 		return fmt.Errorf("%w: %w", ledger.ErrAlreadyExists, err)
+	case errors.As(err, &pgErr) && isOutageClass(pgErr.Code):
+		return fmt.Errorf("%w: %w", ledger.ErrUnavailable, err)
 	case errors.As(err, &pgErr):
 		// Any other SQLSTATE means the server answered; it is a bug, not an outage.
 		return err

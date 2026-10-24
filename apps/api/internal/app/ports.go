@@ -7,7 +7,7 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
 )
 
-// LedgerStore is the TigerBeetle port: the only store of balances and transfers (decision 1).
+// LedgerStore is the TigerBeetle port: the only store of balances and transfers (ADR-0002).
 // Account and transfer operations will be added here as the ledger use cases arrive.
 type LedgerStore interface {
 	// Ready performs a round trip to the cluster and fails when it does not answer before the
@@ -16,7 +16,7 @@ type LedgerStore interface {
 }
 
 // MetadataStore is the Postgres port: names, metadata, idempotency records and the outbox
-// (decision 1). It never stores a balance.
+// (ADR-0002). It never stores a balance.
 type MetadataStore interface {
 	Ready(ctx context.Context) error
 	// CreateLedger inserts a ledger and returns ledger.ErrAlreadyExists on a name collision.
@@ -37,7 +37,7 @@ type ClockFunc func() time.Time
 func (f ClockFunc) Now() time.Time { return f() }
 
 // IDGenerator mints time-ordered 128-bit identifiers. The TigerBeetle adapter implements it with
-// the client's ID() helper (decision 9).
+// the client's ID() helper (ADR-0006).
 type IDGenerator interface {
 	NewID() ledger.ID
 }

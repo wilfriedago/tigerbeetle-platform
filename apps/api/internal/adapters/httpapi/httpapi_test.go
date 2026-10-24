@@ -208,8 +208,9 @@ func TestProblemFor(t *testing.T) {
 		if p.Status != tt.wantStatus {
 			t.Errorf("problemFor(%v).Status = %d, want %d", tt.err, p.Status, tt.wantStatus)
 		}
-		if p.Detail != nil && strings.Contains(*p.Detail, "unique constraint") {
-			t.Errorf("problemFor leaked the driver error: %q", *p.Detail)
+		// Domain-mapped problems carry no detail at all: the wrapped driver text must not leak.
+		if p.Detail != nil {
+			t.Errorf("problemFor(%v) set Detail %q; driver text must not reach clients", tt.err, *p.Detail)
 		}
 	}
 }

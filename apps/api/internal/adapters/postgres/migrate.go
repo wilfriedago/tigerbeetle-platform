@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v3/lock"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/migrations"
 )
@@ -20,7 +21,13 @@ func (s *Store) Migrate(ctx context.Context, logger *slog.Logger) error {
 	db := stdlib.OpenDBFromPool(s.pool)
 	defer func() { _ = db.Close() }()
 
-	provider, err := goose.NewProvider(goose.DialectPostgres, db, migrations.FS)
+	// A Postgres advisory lock serialises replicas that start at the same time with
+	// MIGRATE_ON_START, so only one applies a migration and the others wait.
+	locker, err := lock.NewPostgresSessionLocker()
+	if err != nil {
+		return fmt.Errorf("postgres: migrations: %w", err)
+	}
+	provider, err := goose.NewProvider(goose.DialectPostgres, db, migrations.FS, goose.WithSessionLocker(locker))
 	if err != nil {
 		return fmt.Errorf("postgres: migrations: %w", err)
 	}

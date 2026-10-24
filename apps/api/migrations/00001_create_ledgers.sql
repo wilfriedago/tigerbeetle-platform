@@ -1,6 +1,6 @@
 -- +goose Up
--- A ledger is a namespace for accounts and transactions (decision 2). Postgres holds its name and
--- metadata only; balances live in TigerBeetle (decision 1).
+-- A ledger is a namespace for accounts and transactions (ADR-0004). Postgres holds its name and
+-- metadata only; balances live in TigerBeetle (ADR-0002).
 CREATE TABLE ledgers (
     name text PRIMARY KEY,
     metadata jsonb NOT NULL DEFAULT '{}'::jsonb,

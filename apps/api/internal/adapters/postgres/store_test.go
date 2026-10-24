@@ -22,6 +22,8 @@ func TestMapError(t *testing.T) {
 		{name: "no rows", err: pgx.ErrNoRows, want: ledger.ErrNotFound},
 		{name: "unique violation", err: &pgconn.PgError{Code: uniqueViolation}, want: ledger.ErrAlreadyExists},
 		{name: "timeout", err: context.DeadlineExceeded, want: ledger.ErrUnavailable},
+		{name: "connection failure sqlstate", err: &pgconn.PgError{Code: "08006"}, want: ledger.ErrUnavailable},
+		{name: "admin shutdown sqlstate", err: &pgconn.PgError{Code: "57P01"}, want: ledger.ErrUnavailable},
 		{name: "network", err: errOther, want: ledger.ErrUnavailable},
 	}
 	for _, tt := range tests {

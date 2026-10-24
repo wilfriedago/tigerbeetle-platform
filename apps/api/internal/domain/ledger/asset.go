@@ -7,12 +7,12 @@ import (
 )
 
 // MaxAssetScale bounds the number of decimal places an asset can declare. Amounts are integers in
-// the smallest unit (decision 11), and TigerBeetle stores them as unsigned 128-bit numbers.
+// the smallest unit (ADR-0002), and TigerBeetle stores them as unsigned 128-bit numbers.
 const MaxAssetScale = 18
 
 var assetPattern = regexp.MustCompile(`^([A-Z][A-Z0-9]{1,15})(?:/(\d{1,2}))?$`)
 
-// Asset is a currency or unit with its scale, written as "XOF/0" or "EUR/2" (decision 3). Each
+// Asset is a currency or unit with its scale, written as "XOF/0" or "EUR/2" (ADR-0005). Each
 // (ledger, asset) pair maps to its own TigerBeetle ledger number, so the scale is fixed once the
 // asset is used and "EUR/2" and "EUR/3" are different assets.
 type Asset struct {

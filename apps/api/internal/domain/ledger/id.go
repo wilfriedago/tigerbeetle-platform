@@ -7,7 +7,7 @@ import (
 
 // ID is a 128-bit identifier in big-endian byte order, so that comparing the bytes compares the
 // numbers and time-ordered IDs stay time-ordered when stored in a Postgres uuid column
-// (decision 11). TigerBeetle's client uses little-endian bytes; the tigerbeetle adapter converts.
+// (ADR-0002). TigerBeetle's client uses little-endian bytes; the tigerbeetle adapter converts.
 type ID [16]byte
 
 // ParseID reads the 32-character hexadecimal form produced by String.

@@ -91,7 +91,7 @@ func TestClientIntegration(t *testing.T) {
 		t.Fatalf("Ready: %v", err)
 	}
 
-	// Concurrent probes share one in-flight request and all succeed.
+	// Concurrent probes all succeed (they share one in-flight request; see Client.Ready).
 	errs := make(chan error, 5)
 	for range 5 {
 		go func() { errs <- client.Ready(ctx) }()

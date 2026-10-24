@@ -10,8 +10,8 @@ import (
 // letter or digit, up to 63 characters.
 var ledgerNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,62}$`)
 
-// Ledger is a namespace for accounts and transactions (decision 2). Postgres stores the name and
-// metadata; the money inside the ledger lives in TigerBeetle (decision 1).
+// Ledger is a namespace for accounts and transactions (ADR-0004). Postgres stores the name and
+// metadata; the money inside the ledger lives in TigerBeetle (ADR-0002).
 type Ledger struct {
 	Name      string
 	Metadata  map[string]string

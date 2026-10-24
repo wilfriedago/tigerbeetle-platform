@@ -38,7 +38,10 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("config: %w", err)
 	}
-	return cfg, cfg.validate()
+	if err := cfg.validate(); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
 }
 
 // Parse reads the given variables instead of the process environment. Tests use it.
@@ -47,20 +50,26 @@ func Parse(environ map[string]string) (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("config: %w", err)
 	}
-	return cfg, cfg.validate()
+	if err := cfg.validate(); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
 }
 
-func (c Config) validate() error {
+// validate checks cross-field rules and normalises list values in place.
+func (c *Config) validate() error {
 	if _, err := c.Level(); err != nil {
 		return err
 	}
 	if c.ShutdownTimeout <= 0 || c.ReadinessTimeout <= 0 {
 		return fmt.Errorf("config: SHUTDOWN_TIMEOUT and READINESS_TIMEOUT must be positive")
 	}
-	for _, addr := range c.TigerBeetleAddresses {
-		if strings.TrimSpace(addr) == "" {
+	for i, addr := range c.TigerBeetleAddresses {
+		addr = strings.TrimSpace(addr)
+		if addr == "" {
 			return fmt.Errorf("config: TIGERBEETLE_ADDRESSES contains an empty address")
 		}
+		c.TigerBeetleAddresses[i] = addr
 	}
 	return nil
 }
