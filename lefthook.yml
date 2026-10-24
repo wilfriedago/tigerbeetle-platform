@@ -1,0 +1,30 @@
+# Git hooks. Installed by `pnpm install` (lefthook postinstall) or `pnpm lefthook install`.
+# Schema: https://lefthook.dev/schema.json
+
+pre-commit:
+  parallel: false
+  jobs:
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css}"
+      run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+
+    - name: go format
+      root: apps/api/
+      glob: "*.go"
+      run: PATH="$(go env GOPATH)/bin:$PATH" golangci-lint fmt {staged_files}
+      stage_fixed: true
+
+    - name: go lint
+      root: apps/api/
+      glob: "*.go"
+      run: PATH="$(go env GOPATH)/bin:$PATH" golangci-lint run ./...
+
+    - name: openapi lint
+      glob: "packages/openapi/**/*.yaml"
+      run: pnpm --filter @tigerbeetle-platform/openapi lint
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}

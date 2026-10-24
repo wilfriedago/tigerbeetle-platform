@@ -1,0 +1,35 @@
+{
+  "name": "tigerbeetle-platform",
+  "version": "0.0.0",
+  "private": true,
+  "description": "An open-source platform that makes TigerBeetle approachable: a Formance-style ledger API, a web console and, later, a posting-rule DSL.",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
+  "engines": {
+    "node": ">=24.0.0 <25",
+    "pnpm": ">=12.0.0 <13"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "turbo run format",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "generate": "turbo run generate",
+    "stack:up": "docker compose --project-directory . -f deploy/compose/compose.yaml up --build --detach --wait",
+    "stack:down": "docker compose --project-directory . -f deploy/compose/compose.yaml down",
+    "stack:logs": "docker compose --project-directory . -f deploy/compose/compose.yaml logs --follow",
+    "stack:reset": "docker compose --project-directory . -f deploy/compose/compose.yaml down --volumes",
+    "tools:install": "scripts/install-tools.sh",
+    "versions:check": "scripts/check-versions.sh"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.2",
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "lefthook": "2.2.2",
+    "turbo": "2.11.10"
+  }
+}

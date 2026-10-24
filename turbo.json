@@ -1,0 +1,72 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "globalEnv": ["CI"],
+  "tasks": {
+    "generate": {
+      "dependsOn": ["^generate"],
+      "outputs": []
+    },
+    "build": {
+      "dependsOn": ["^build", "generate"],
+      "outputs": ["dist/**", "bin/**"]
+    },
+    "lint": {
+      "dependsOn": ["^generate"]
+    },
+    "format": {
+      "cache": false
+    },
+    "typecheck": {
+      "dependsOn": ["^generate"]
+    },
+    "test": {
+      "dependsOn": ["^generate"]
+    },
+    "test:integration": {
+      "dependsOn": ["^generate"],
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "api#generate": {
+      "dependsOn": ["@tigerbeetle-platform/openapi#generate"],
+      "inputs": [
+        "sqlc.yaml",
+        "oapi-codegen.yaml",
+        "go.mod",
+        "go.sum",
+        "migrations/**",
+        "queries/**"
+      ],
+      "outputs": ["internal/adapters/httpapi/gen/**", "internal/adapters/postgres/gen/**"]
+    },
+    "api#build": {
+      "dependsOn": ["api#generate"],
+      "inputs": [
+        "**/*.go",
+        "go.mod",
+        "go.sum",
+        "migrations/**",
+        "queries/**",
+        "sqlc.yaml",
+        "oapi-codegen.yaml"
+      ],
+      "outputs": ["bin/**"]
+    },
+    "api#lint": {
+      "dependsOn": ["api#generate"],
+      "inputs": ["**/*.go", "go.mod", "go.sum", ".golangci.yml", "migrations/**", "queries/**"]
+    },
+    "api#test": {
+      "dependsOn": ["api#generate"],
+      "inputs": ["**/*.go", "go.mod", "go.sum", "migrations/**", "queries/**"]
+    },
+    "api#test:integration": {
+      "dependsOn": ["api#generate"],
+      "inputs": ["**/*.go", "go.mod", "go.sum", "migrations/**", "queries/**"],
+      "cache": false
+    }
+  }
+}

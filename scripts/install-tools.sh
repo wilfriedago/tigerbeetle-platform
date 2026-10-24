@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Installs the pinned developer tools that are not managed by go.mod or package.json.
+# Used locally (pnpm tools:install) and in CI. Binaries land in $(go env GOPATH)/bin.
+#
+# Versions are pinned here and bumped by Renovate (see renovate.json customManagers).
+set -euo pipefail
+
+# renovate: datasource=github-releases depName=golangci/golangci-lint
+GOLANGCI_LINT_VERSION="v2.15.0"
+# renovate: datasource=github-releases depName=sqlc-dev/sqlc
+SQLC_VERSION="v1.31.1"
+# renovate: datasource=go depName=golang.org/x/vuln
+GOVULNCHECK_VERSION="v1.9.0"
+
+bin_dir="$(go env GOPATH)/bin"
+mkdir -p "$bin_dir"
+
+os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+arch="$(uname -m)"
+case "$arch" in
+  x86_64) arch="amd64" ;;
+  aarch64 | arm64) arch="arm64" ;;
+  *)
+    echo "unsupported architecture: $arch" >&2
+    exit 1
+    ;;
+esac
+
+installed_version() {
+  # Prints the version of an installed binary, or nothing when it is missing.
+  if command -v "$1" >/dev/null 2>&1; then "$1" "${@:2}" 2>/dev/null | head -n 1; fi
+}
+
+echo "==> golangci-lint ${GOLANGCI_LINT_VERSION}"
+if [[ "$(installed_version golangci-lint version --short)" == "${GOLANGCI_LINT_VERSION#v}" ]]; then
+  echo "    already installed"
+else
+  curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b "$bin_dir" "$GOLANGCI_LINT_VERSION"
+fi
+
+echo "==> sqlc ${SQLC_VERSION}"
+if [[ "$(installed_version sqlc version)" == "$SQLC_VERSION" ]]; then
+  echo "    already installed"
+else
+  # sqlc publishes no checksum file, so the archive digests are pinned here. Update them together
+  # with SQLC_VERSION (sha256sum of each sqlc_<ver>_<os>_<arch>.tar.gz release asset).
+  case "${os}_${arch}" in
+    darwin_amd64) sqlc_sha256="c5af76772e3785d21663a62697056b383f07629979b1bd25b93872e73dbd519b" ;;
+    darwin_arm64) sqlc_sha256="21602158c99eb1f2bae197a66abfb1941d1e9e50b23125bb193349c6b1acc71e" ;;
+    linux_amd64) sqlc_sha256="497ae4fcdfa64c5b0c311ffe4c2bd991e43991e82e5367792ed78bc2dca27354" ;;
+    linux_arm64) sqlc_sha256="b7cae247740d0c51a1e657479e5b2d21e6fef428f596682a01bc55bf4ab8a23d" ;;
+    *)
+      echo "no pinned sqlc checksum for ${os}_${arch}" >&2
+      exit 1
+      ;;
+  esac
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  archive="sqlc_${SQLC_VERSION#v}_${os}_${arch}.tar.gz"
+  curl -sSfL "https://github.com/sqlc-dev/sqlc/releases/download/${SQLC_VERSION}/${archive}" -o "${tmp}/${archive}"
+  echo "${sqlc_sha256}  ${tmp}/${archive}" | sha256sum -c - >/dev/null
+  tar -xzf "${tmp}/${archive}" -C "$tmp" sqlc
+  install -m 0755 "${tmp}/sqlc" "${bin_dir}/sqlc"
+fi
+
+echo "==> govulncheck ${GOVULNCHECK_VERSION}"
+GOFLAGS= go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
+
+echo
+echo "Tools installed in ${bin_dir}. Make sure it is on your PATH."

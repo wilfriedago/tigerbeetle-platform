@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+apps/api/bin/
+.turbo/
+
+# Local environment, never committed
+.env
+.env.*
+!.env.example
+
+# Tooling caches and logs
+*.log
+coverage/
+*.out
+
+# Editors, OS and local design references
+.DS_Store
+.design/
+.idea/
+.vscode/*
+!.vscode/extensions.json
