@@ -1,0 +1,129 @@
+# Local development stack: TigerBeetle, Postgres, the API and the console.
+# Run from the repository root with `pnpm stack:up` (docker compose --project-directory . ...),
+# so variables come from the root .env (see .env.example) and build contexts resolve correctly.
+#
+# Image tags here are the pinned versions of the stack. scripts/check-versions.sh and the Go
+# integration tests read them from this file, so bump them here only.
+name: tigerbeetle-platform
+
+services:
+  # One-time format of the TigerBeetle data file, skipped when it already exists. The image's
+  # entrypoint is the tigerbeetle binary, so a shell is needed for the test.
+  tigerbeetle-format:
+    image: ghcr.io/tigerbeetle/tigerbeetle:0.17.9
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        test -f /data/0_0.tigerbeetle ||
+        exec /tigerbeetle format --cluster=0 --replica=0 --replica-count=1 /data/0_0.tigerbeetle
+    # Docker 25+ blocks io_uring by default; TigerBeetle needs it (docs: operating/deploying/docker).
+    security_opt:
+      - seccomp=unconfined
+    # Lets the replica lock its memory on Docker for Mac.
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - tigerbeetle-data:/data
+
+  tigerbeetle:
+    image: ghcr.io/tigerbeetle/tigerbeetle:0.17.9
+    # --cache-grid keeps memory small in development without --development, which would also
+    # shrink the batch size and change request limits compared with production.
+    command: ["start", "--addresses=0.0.0.0:3000", "--cache-grid=256MiB", "/data/0_0.tigerbeetle"]
+    security_opt:
+      - seccomp=unconfined
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - tigerbeetle-data:/data
+    ports:
+      - "${TIGERBEETLE_PORT:-3000}:3000"
+    depends_on:
+      tigerbeetle-format:
+        condition: service_completed_successfully
+    healthcheck:
+      # The image ships busybox, so nc is available; the replica accepts TCP once it is up.
+      test: ["CMD", "nc", "-z", "127.0.0.1", "3000"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  postgres:
+    image: postgres:18.6-trixie
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ledger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
+      POSTGRES_DB: ${POSTGRES_DB:-ledger}
+    volumes:
+      # Postgres 18 images moved the volume from /var/lib/postgresql/data to /var/lib/postgresql.
+      # Mounting the old path would leave the cluster outside the volume and lose it on recreate.
+      - postgres-data:/var/lib/postgresql
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      # -h 127.0.0.1 forces TCP: during initialisation the server only listens on the unix socket,
+      # and a socket check would report healthy too early.
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-ledger} -d ${POSTGRES_DB:-ledger}",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    environment:
+      API_ADDR: ":8080"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_URL: postgres://${POSTGRES_USER:-ledger}:${POSTGRES_PASSWORD:-ledger}@postgres:5432/${POSTGRES_DB:-ledger}?sslmode=disable
+      TIGERBEETLE_CLUSTER_ID: "0"
+      TIGERBEETLE_ADDRESSES: tigerbeetle:3000
+      MIGRATE_ON_START: "true"
+      SHUTDOWN_TIMEOUT: ${SHUTDOWN_TIMEOUT:-10s}
+      READINESS_TIMEOUT: ${READINESS_TIMEOUT:-2s}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    # The TigerBeetle Go client embeds the same io_uring-based I/O as the server, so the api
+    # container needs the seccomp override too; without it the client fails to initialise.
+    security_opt:
+      - seccomp=unconfined
+    depends_on:
+      postgres:
+        condition: service_healthy
+      tigerbeetle:
+        condition: service_healthy
+    healthcheck:
+      # The runtime image has no shell or curl; the binary probes itself.
+      test: ["CMD", "/app/api", "-probe", "http://127.0.0.1:8080/readyz"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  console:
+    build:
+      context: .
+      dockerfile: deploy/compose/console.Dockerfile
+    environment:
+      # The Vite dev server proxies /api to the API inside the compose network, so the browser
+      # only ever talks to the console origin and no CORS configuration is needed.
+      API_PROXY_TARGET: http://api:8080
+    ports:
+      - "${CONSOLE_PORT:-5173}:5173"
+    volumes:
+      # Live reload for the console and the client without rebuilding the image.
+      - ./apps/console/src:/workspace/apps/console/src
+      - ./packages/api-client/src:/workspace/packages/api-client/src
+    depends_on:
+      api:
+        condition: service_started
+
+volumes:
+  tigerbeetle-data:
+  postgres-data:
