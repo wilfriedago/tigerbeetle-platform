@@ -1,0 +1,66 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "timezone": "Africa/Porto-Novo",
+  "schedule": ["before 6am on monday"],
+  "rangeStrategy": "pin",
+  "postUpdateOptions": ["gomodTidy"],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "TigerBeetle client and server must move together: one PR, never auto-merged. scripts/check-versions.sh fails CI if they drift.",
+      "groupName": "tigerbeetle",
+      "matchPackageNames": [
+        "github.com/tigerbeetle/tigerbeetle-go",
+        "ghcr.io/tigerbeetle/tigerbeetle"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "Keep React, its DOM renderer and their types on the same minor.",
+      "groupName": "react",
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"]
+    },
+    {
+      "description": "commitlint packages release together.",
+      "groupName": "commitlint",
+      "matchPackageNames": ["/^@commitlint//"]
+    },
+    {
+      "description": "TypeScript 5 is pinned in packages/openapi because openapi-typescript needs its compiler API.",
+      "matchFileNames": ["packages/openapi/package.json"],
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<6"
+    },
+    {
+      "description": "Docker images: pin to exact tags, follow Debian 13 variants only.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["golang", "postgres", "node"],
+      "versioning": "docker",
+      "allowedVersions": "/trixie/"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Tool versions pinned in scripts/install-tools.sh.",
+      "managerFilePatterns": ["/^scripts/install-tools\\.sh$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\n[A-Z_]+_VERSION=\"(?<currentValue>[^\"]+)\""
+      ]
+    },
+    {
+      "customType": "regex",
+      "description": "pnpm version installed in the console dev image.",
+      "managerFilePatterns": ["/^deploy/compose/console\\.Dockerfile$/"],
+      "matchStrings": ["npm install --global pnpm@(?<currentValue>[0-9.]+)"],
+      "depNameTemplate": "pnpm",
+      "datasourceTemplate": "npm"
+    }
+  ]
+}
