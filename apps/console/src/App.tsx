@@ -58,7 +58,7 @@ function StatusPanel({ state, onRefresh }: { state: State; onRefresh: () => void
   if (state.kind === "error") {
     return (
       <section className="card error">
-        <h2>API unreachable</h2>
+        <h2>Request failed</h2>
         <p>{state.message}</p>
         {state.requestId ? <p className="muted">Request ID: {state.requestId}</p> : null}
         <button type="button" onClick={onRefresh}>

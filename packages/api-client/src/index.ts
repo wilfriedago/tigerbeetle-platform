@@ -1,4 +1,4 @@
-import ky, { HTTPError, type KyInstance, type Options as KyOptions } from "ky";
+import ky, { type KyInstance, type Options as KyOptions, type KyResponse } from "ky";
 import type { Info, Liveness, Problem, Readiness } from "./schema";
 
 export type {
@@ -24,7 +24,7 @@ export interface ClientOptions {
   timeoutMs?: number;
   /** Retries for idempotent requests on network errors and 5xx answers. */
   retries?: number;
-  /** Generates the request ID. Defaults to crypto.randomUUID(). */
+  /** Generates the request ID. Defaults to a random 128-bit hex string. */
   requestId?: () => string;
 }
 
@@ -39,6 +39,19 @@ export class ApiError extends Error {
     this.name = "ApiError";
     this.problem = problem;
     this.status = problem.status;
+    this.requestId = requestId;
+  }
+}
+
+/** Thrown when the API answers with a non-2xx status that is not a problem document. */
+export class HttpStatusError extends Error {
+  readonly status: number;
+  readonly requestId: string | undefined;
+
+  constructor(status: number, statusText: string, requestId: string | undefined) {
+    super(`unexpected status ${status} ${statusText}`.trim());
+    this.name = "HttpStatusError";
+    this.status = status;
     this.requestId = requestId;
   }
 }
@@ -64,17 +77,32 @@ function isProblem(value: unknown): value is Problem {
 }
 
 /**
- * Builds a typed client. Every request carries a fresh X-Request-Id, retries idempotent calls
- * and turns problem+json answers into ApiError.
+ * Random request ID that also works outside secure contexts (plain http on a LAN address),
+ * where crypto.randomUUID is not available but getRandomValues is.
+ */
+export function randomRequestId(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Builds a typed client. Every request carries a fresh X-Request-Id, idempotent calls are
+ * retried, and problem+json answers become ApiError.
+ *
+ * ky's own HTTPError path reads the body before any hook runs, so error bodies are decoded here
+ * instead: HTTP errors are not thrown by ky (throwHttpErrors: false) and `decode` inspects the
+ * status itself.
  */
 export function createClient(options: ClientOptions): ApiClient {
-  const requestId = options.requestId ?? (() => crypto.randomUUID());
+  const requestId = options.requestId ?? randomRequestId;
 
   const kyOptions: KyOptions = {
     // ky resolves relative inputs such as "v1/_info" against baseUrl; the trailing slash keeps
     // the last path segment of a base like "/api".
     baseUrl: options.baseUrl.endsWith("/") ? options.baseUrl : `${options.baseUrl}/`,
     timeout: options.timeoutMs ?? 10_000,
+    throwHttpErrors: false,
     retry: {
       limit: options.retries ?? 2,
       methods: ["get", "head", "options"],
@@ -87,22 +115,6 @@ export function createClient(options: ClientOptions): ApiClient {
           request.headers.set("Accept", "application/json, application/problem+json");
         },
       ],
-      beforeError: [
-        async ({ error }) => {
-          if (!(error instanceof HTTPError)) {
-            return error;
-          }
-          const { response } = error;
-          const contentType = response.headers.get("content-type") ?? "";
-          if (contentType.includes("application/problem+json")) {
-            const body: unknown = await response.clone().json();
-            if (isProblem(body)) {
-              return new ApiError(body, response.headers.get(REQUEST_ID_HEADER) ?? undefined);
-            }
-          }
-          return error;
-        },
-      ],
     },
   };
   if (options.fetch) {
@@ -110,20 +122,29 @@ export function createClient(options: ClientOptions): ApiClient {
   }
   const http = ky.create(kyOptions);
 
+  async function decode<T>(
+    response: KyResponse,
+    acceptStatuses: readonly number[] = [],
+  ): Promise<T> {
+    if (response.ok || acceptStatuses.includes(response.status)) {
+      return (await response.json()) as T;
+    }
+    const id = response.headers.get(REQUEST_ID_HEADER) ?? undefined;
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/problem+json")) {
+      const body: unknown = await response.json();
+      if (isProblem(body)) {
+        throw new ApiError(body, id);
+      }
+    }
+    throw new HttpStatusError(response.status, response.statusText, id);
+  }
+
   return {
     http,
-    getLiveness: () => http.get("healthz").json<Liveness>(),
-    getReadiness: async () => {
-      try {
-        return await http.get("readyz", { retry: 0 }).json<Readiness>();
-      } catch (error) {
-        // 503 is a valid readiness answer, not a failure of the call.
-        if (error instanceof HTTPError && error.response.status === 503) {
-          return (await error.response.json()) as Readiness;
-        }
-        throw error;
-      }
-    },
-    getInfo: () => http.get("v1/_info").json<Info>(),
+    getLiveness: async () => decode<Liveness>(await http.get("healthz")),
+    // 503 is a valid readiness answer, so it is neither retried nor treated as an error.
+    getReadiness: async () => decode<Readiness>(await http.get("readyz", { retry: 0 }), [503]),
+    getInfo: async () => decode<Info>(await http.get("v1/_info")),
   };
 }

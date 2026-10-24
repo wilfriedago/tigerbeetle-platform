@@ -157,7 +157,7 @@ components:
       properties:
         type:
           type: string
-          format: uri
+          format: uri-reference
           description: A URI reference that identifies the problem type.
           default: about:blank
         title:

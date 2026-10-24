@@ -111,7 +111,7 @@ export interface components {
         /** @description RFC 9457 problem details. */
         Problem: {
             /**
-             * Format: uri
+             * Format: uri-reference
              * @description A URI reference that identifies the problem type.
              * @default about:blank
              */
