@@ -24,11 +24,24 @@
     },
     "test:integration": {
       "dependsOn": ["^generate"],
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["DOCKER_HOST", "DOCKER_CERT_PATH", "DOCKER_TLS_VERIFY", "TESTCONTAINERS_*"]
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "API_ADDR",
+        "LOG_LEVEL",
+        "POSTGRES_URL",
+        "TIGERBEETLE_CLUSTER_ID",
+        "TIGERBEETLE_ADDRESSES",
+        "MIGRATE_ON_START",
+        "SHUTDOWN_TIMEOUT",
+        "READINESS_TIMEOUT",
+        "API_PROXY_TARGET",
+        "VITE_*"
+      ]
     },
     "api#generate": {
       "dependsOn": ["@tigerbeetle-platform/openapi#generate"],
@@ -66,7 +79,8 @@
     "api#test:integration": {
       "dependsOn": ["api#generate"],
       "inputs": ["**/*.go", "go.mod", "go.sum", "migrations/**", "queries/**"],
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["DOCKER_HOST", "DOCKER_CERT_PATH", "DOCKER_TLS_VERIFY", "TESTCONTAINERS_*"]
     }
   }
 }

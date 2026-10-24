@@ -26,6 +26,15 @@ case "$arch" in
     ;;
 esac
 
+sha256_of() {
+  # sha256sum comes with coreutils; older macOS only ships shasum.
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | cut -d' ' -f1
+  else
+    shasum -a 256 "$1" | cut -d' ' -f1
+  fi
+}
+
 installed_version() {
   # Prints the version of an installed binary, or nothing when it is missing.
   if command -v "$1" >/dev/null 2>&1; then "$1" "${@:2}" 2>/dev/null | head -n 1; fi
@@ -58,7 +67,11 @@ else
   trap 'rm -rf "$tmp"' EXIT
   archive="sqlc_${SQLC_VERSION#v}_${os}_${arch}.tar.gz"
   curl -sSfL "https://github.com/sqlc-dev/sqlc/releases/download/${SQLC_VERSION}/${archive}" -o "${tmp}/${archive}"
-  echo "${sqlc_sha256}  ${tmp}/${archive}" | sha256sum -c - >/dev/null
+  actual_sha256="$(sha256_of "${tmp}/${archive}")"
+  if [[ "$actual_sha256" != "$sqlc_sha256" ]]; then
+    echo "sqlc checksum mismatch for ${archive}: got ${actual_sha256}, want ${sqlc_sha256}" >&2
+    exit 1
+  fi
   tar -xzf "${tmp}/${archive}" -C "$tmp" sqlc
   install -m 0755 "${tmp}/sqlc" "${bin_dir}/sqlc"
 fi

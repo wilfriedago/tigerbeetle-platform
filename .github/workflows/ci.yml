@@ -8,8 +8,10 @@ on:
 permissions:
   contents: read
 
+# Jobs run on ubuntu-24.04 rather than ubuntu-latest: the latter is migrating to 26.04 during
+# October 2026 and two runs of one workflow could land on different images.
 env:
-  # ubuntu-latest is migrating to 26.04 during October 2026; pin the image for reproducible runs.
+  # go.mod pins the toolchain; never let a job download a different one.
   GOTOOLCHAIN: local
 
 concurrency:
