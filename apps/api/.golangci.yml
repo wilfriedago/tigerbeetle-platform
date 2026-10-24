@@ -1,0 +1,120 @@
+# yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
+version: "2"
+
+run:
+  timeout: 5m
+  build-tags:
+    - integration
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - depguard
+    - errorlint
+    - exhaustive
+    - gocritic
+    - gosec
+    - misspell
+    - nilerr
+    - noctx
+    - revive
+    - sqlclosecheck
+    - unconvert
+    - unparam
+    - usestdlibvars
+  settings:
+    depguard:
+      # Ports and adapters (docs/architecture.md): domain imports nothing from internal, app imports
+      # only domain, adapters import app and domain but never each other. File globs are matched
+      # against absolute paths, hence the leading **/.
+      rules:
+        domain:
+          list-mode: lax
+          files:
+            - "**/internal/domain/**"
+          deny:
+            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal
+              desc: domain must not import other internal packages
+            - pkg: github.com/jackc/pgx
+              desc: domain has no I/O
+            - pkg: github.com/tigerbeetle/tigerbeetle-go
+              desc: domain has no I/O
+            - pkg: net/http
+              desc: domain has no I/O
+        app:
+          list-mode: lax
+          files:
+            - "**/internal/app/**"
+          deny:
+            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters
+              desc: app depends on ports, not adapters
+            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform
+              desc: app depends on ports, not platform
+            - pkg: github.com/jackc/pgx
+              desc: app talks to Postgres through a port
+            - pkg: github.com/tigerbeetle/tigerbeetle-go
+              desc: app talks to TigerBeetle through a port
+        adapter-tigerbeetle:
+          list-mode: lax
+          files:
+            - "**/internal/adapters/tigerbeetle/**"
+          deny:
+            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres
+              desc: adapters never import each other
+            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi
+              desc: adapters never import each other
+        adapter-postgres:
+          list-mode: lax
+          files:
+            - "**/internal/adapters/postgres/**"
+          deny:
+            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle
+              desc: adapters never import each other
+            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi
+              desc: adapters never import each other
+        adapter-httpapi:
+          list-mode: lax
+          files:
+            - "**/internal/adapters/httpapi/**"
+          deny:
+            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle
+              desc: adapters never import each other
+            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres
+              desc: adapters never import each other
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        - hugeParam
+    revive:
+      rules:
+        - name: exported
+          arguments:
+            - disableStutteringCheck
+    exhaustive:
+      default-signifies-exhaustive: true
+    gosec:
+      excludes:
+        # G115: integer overflow conversions. Flagged case by case in review instead.
+        - G115
+  exclusions:
+    generated: strict
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - noctx
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/wilfriedago/tigerbeetle-platform
+  exclusions:
+    generated: strict
