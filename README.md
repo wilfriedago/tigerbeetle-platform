@@ -75,6 +75,7 @@ scripts             Tool installer, version check, image smoke test
 
 - [docs/architecture.md](docs/architecture.md)
 - [docs/adr](docs/adr) (start with ADR-0001)
+- [docs/handoff.md](docs/handoff.md): state of the work and what to do next
 - [CONTRIBUTING.md](CONTRIBUTING.md), [AGENTS.md](AGENTS.md)
 - [SECURITY.md](SECURITY.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 

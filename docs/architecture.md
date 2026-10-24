@@ -88,21 +88,29 @@ exactly one batch of linked transfers, which must fit one TigerBeetle request (d
 8189 events, and a linked chain cannot span requests), so the service caps the number of
 postings per transaction well below that.
 
-```
-client         httpapi        app use case          postgres            tigerbeetle
-  |  POST + Idempotency-Key  |                       |                     |
-  |------------->| validate   |                       |                     |
-  |              |----------->| INSERT idempotency record (pending, minted IDs)
-  |              |            |---------------------->|                     |
-  |              |            | INSERT accounts ON CONFLICT DO NOTHING, re-select
-  |              |            |---------------------->|                     |
-  |              |            | create_accounts (exists counts as created)  |
-  |              |            |-------------------------------------------->|
-  |              |            | create_transfers, one linked chain          |
-  |              |            |-------------------------------------------->|
-  |              |            | UPDATE record SET status = committed        |
-  |              |            |---------------------->|                     |
-  |<-------------| 201, or problem+json               |                     |
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant H as HTTP API
+  participant A as App Use Case
+  participant P as PostgreSQL
+  participant T as TigerBeetle
+
+  C->>H: POST + Idempotency-Key
+  H->>H: Validate request
+  H->>A: Execute use case
+
+  A->>P: INSERT idempotency record<br/>(pending, minted IDs)
+  A->>P: INSERT accounts ON CONFLICT DO NOTHING
+  A->>P: Re-select accounts
+
+  A->>T: create_accounts<br/>(existing accounts count as created)
+  A->>T: create_transfers<br/>(one linked chain)
+
+  A->>P: UPDATE idempotency record<br/>SET status = committed
+
+  A-->>H: Result
+  H-->>C: 201 Created or problem+json
 ```
 
 1. Validate addresses, assets, amounts (decimal strings parsed to unsigned 128-bit integers)

@@ -1,7 +1,8 @@
 # AGENTS.md
 
 Conventions for coding agents working in this repository. Humans follow the same rules; this file
-is the condensed version. The reasoning behind each rule lives in docs/adr.
+is the condensed version. The reasoning behind each rule lives in docs/adr. The current state of
+the work, the pitfalls already hit and the suggested next steps are in docs/handoff.md.
 
 ## Project
 
