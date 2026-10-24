@@ -37,7 +37,7 @@ services:
     volumes:
       - tigerbeetle-data:/data
     ports:
-      - "${TIGERBEETLE_PORT:-3000}:3000"
+      - "${TIGERBEETLE_PORT:-13000}:3000"
     depends_on:
       tigerbeetle-format:
         condition: service_completed_successfully
@@ -60,7 +60,7 @@ services:
       # Mounting the old path would leave the cluster outside the volume and lose it on recreate.
       - postgres-data:/var/lib/postgresql
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-15432}:5432"
     healthcheck:
       # -h 127.0.0.1 forces TCP: during initialisation the server only listens on the unix socket,
       # and a socket check would report healthy too early.
