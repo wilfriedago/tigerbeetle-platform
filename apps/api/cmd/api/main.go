@@ -80,7 +80,12 @@ func run(args []string, stdout io.Writer) error {
 		}
 	}
 
-	ledgerStore, err := tigerbeetle.New(cfg.TigerBeetleClusterID, cfg.TigerBeetleAddresses)
+	// The TigerBeetle client wants IP addresses; compose and Kubernetes hand us names.
+	addresses, err := tigerbeetle.ResolveAddresses(ctx, cfg.TigerBeetleAddresses)
+	if err != nil {
+		return err
+	}
+	ledgerStore, err := tigerbeetle.New(cfg.TigerBeetleClusterID, addresses)
 	if err != nil {
 		return err
 	}
