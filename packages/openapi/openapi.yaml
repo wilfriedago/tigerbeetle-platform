@@ -1,0 +1,179 @@
+openapi: 3.1.0
+info:
+  title: TigerBeetle Platform API
+  version: 0.0.1
+  summary: Formance-style ledger API in front of TigerBeetle.
+  description: |
+    The contract for the TigerBeetle Platform API. The Go server interfaces and the TypeScript
+    client are generated from this file. Edit the spec first, then run `pnpm generate`.
+
+    Errors use RFC 9457 problem details with the `application/problem+json` media type.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: http://localhost:8080
+    description: Local compose stack
+# Authentication is out of scope for now. An empty security requirement states that explicitly
+# instead of leaving it undefined.
+security: []
+tags:
+  - name: operations
+    description: Liveness, readiness and service information.
+
+paths:
+  /healthz:
+    get:
+      operationId: getLiveness
+      summary: Liveness probe
+      description: Returns 200 as soon as the process serves HTTP. It does not check dependencies.
+      tags: [operations]
+      responses:
+        "200":
+          description: The process is alive.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Liveness"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /readyz:
+    get:
+      operationId: getReadiness
+      summary: Readiness probe
+      description: |
+        Checks Postgres and TigerBeetle with a short timeout and reports each one. Returns 503 when
+        any dependency is down so load balancers stop routing traffic to this instance.
+      tags: [operations]
+      responses:
+        "200":
+          description: Every dependency is reachable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Readiness"
+        "503":
+          description: At least one dependency is unreachable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Readiness"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /v1/_info:
+    get:
+      operationId: getInfo
+      summary: Service information
+      description: Service name and version plus the reachability of Postgres and TigerBeetle.
+      tags: [operations]
+      responses:
+        "200":
+          description: Service information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Info"
+        default:
+          $ref: "#/components/responses/Problem"
+
+components:
+  responses:
+    Problem:
+      description: An error described as RFC 9457 problem details.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+
+  schemas:
+    Liveness:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+
+    DependencyStatus:
+      type: string
+      description: Whether a dependency answered the readiness probe in time.
+      enum: [up, down]
+
+    DependencyCheck:
+      type: object
+      description: The result of probing one dependency.
+      required: [status, latencyMs]
+      properties:
+        status:
+          $ref: "#/components/schemas/DependencyStatus"
+        latencyMs:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Round-trip time of the probe in milliseconds.
+        error:
+          type: string
+          description: A short, client-safe reason when the status is down. Never raw driver output.
+
+    Dependencies:
+      type: object
+      required: [postgres, tigerbeetle]
+      properties:
+        postgres:
+          $ref: "#/components/schemas/DependencyCheck"
+        tigerbeetle:
+          $ref: "#/components/schemas/DependencyCheck"
+
+    Readiness:
+      type: object
+      required: [status, dependencies]
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+        dependencies:
+          $ref: "#/components/schemas/Dependencies"
+
+    Info:
+      type: object
+      required: [service, version, dependencies]
+      properties:
+        service:
+          type: string
+          examples: [tigerbeetle-platform-api]
+        version:
+          type: string
+          description: Build version injected at compile time, or `dev` for local builds.
+          examples: [0.0.1]
+        dependencies:
+          $ref: "#/components/schemas/Dependencies"
+
+    Problem:
+      type: object
+      description: RFC 9457 problem details.
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type.
+          default: about:blank
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+          description: The HTTP status code.
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence.
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence.
+        requestId:
+          type: string
+          description: The request ID, also returned in the X-Request-Id header.

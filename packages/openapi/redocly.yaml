@@ -1,0 +1,17 @@
+# Read by both Redocly CLI (lint) and openapi-typescript (generate).
+apis:
+  platform@v1:
+    root: ./openapi.yaml
+    x-openapi-ts:
+      output: ../api-client/src/schema.d.ts
+extends:
+  - recommended-strict
+rules:
+  # The only server today is the local compose stack.
+  no-server-example.com: off
+  # Operations document errors through the shared `default` problem+json response instead of
+  # enumerating every 4xx status on every operation.
+  operation-4xx-response: off
+  no-unused-components: error
+  operation-operationId-unique: error
+  tag-description: error
