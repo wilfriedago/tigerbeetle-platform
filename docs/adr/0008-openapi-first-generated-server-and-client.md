@@ -1,6 +1,6 @@
 # 8. OpenAPI-first with generated server and client
 
-Status: Superseded by [ADR-0018](0018-rest-spec-generated-from-go-with-huma.md)
+Status: Superseded by [ADR-0018](0018-rest-spec-generated-from-go-with-huma.md) and [ADR-0019](0019-rest-client-generated-with-orval.md)
 Date: 2026-10-24
 
 ## Context and Problem Statement
