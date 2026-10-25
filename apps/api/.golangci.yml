@@ -82,6 +82,21 @@ linters:
               desc: adapters never import each other
             - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres
               desc: adapters never import each other
+        # cmd/openapi writes the spec without starting anything (ADR-0018): no driver, and no cgo,
+        # which just generate enforces by building it with CGO_ENABLED=0.
+        spec-commands:
+          list-mode: lax
+          files:
+            - '**/cmd/openapi/**'
+          deny:
+            - pkg: github.com/tigerbeetle/tigerbeetle-go
+              desc: the spec command builds without cgo
+            - pkg: github.com/jackc/pgx
+              desc: the spec command opens no connection
+            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle
+              desc: the spec command builds without cgo
+            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres
+              desc: the spec command opens no connection
     gocritic:
       enabled-tags:
         - diagnostic
