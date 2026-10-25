@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConsoleRouteImport } from './routes/_console'
+import { Route as ConsoleDesignSystemRouteImport } from './routes/_console/design-system'
 import { Route as ConsolePreferencesRouteImport } from './routes/_console/preferences'
 import { Route as ConsoleSystemRouteRouteImport } from './routes/_console/system/route'
 import { Route as ConsoleLedgersIndexRouteImport } from './routes/_console/ledgers/index'
@@ -45,6 +46,11 @@ const IndexRoute = IndexRouteImport.update({
 const ConsoleRoute = ConsoleRouteImport.update({
   id: '/_console',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ConsoleDesignSystemRoute = ConsoleDesignSystemRouteImport.update({
+  id: '/design-system',
+  path: '/design-system',
+  getParentRoute: () => ConsoleRoute,
 } as any)
 const ConsolePreferencesRoute = ConsolePreferencesRouteImport.update({
   id: '/preferences',
@@ -194,6 +200,7 @@ const ConsoleLedgersLedgerTransactionsNewRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/system': typeof ConsoleSystemRouteRouteWithChildren
+  '/design-system': typeof ConsoleDesignSystemRoute
   '/preferences': typeof ConsolePreferencesRoute
   '/ledgers/$ledger': typeof ConsoleLedgersLedgerRouteWithChildren
   '/system/reconciler': typeof ConsoleSystemReconcilerRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/design-system': typeof ConsoleDesignSystemRoute
   '/preferences': typeof ConsolePreferencesRoute
   '/system/reconciler': typeof ConsoleSystemReconcilerRoute
   '/ledgers': typeof ConsoleLedgersIndexRoute
@@ -246,6 +254,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_console': typeof ConsoleRouteWithChildren
   '/_console/system': typeof ConsoleSystemRouteRouteWithChildren
+  '/_console/design-system': typeof ConsoleDesignSystemRoute
   '/_console/preferences': typeof ConsolePreferencesRoute
   '/_console/ledgers/$ledger': typeof ConsoleLedgersLedgerRouteWithChildren
   '/_console/system/reconciler': typeof ConsoleSystemReconcilerRoute
@@ -276,6 +285,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/system'
+    | '/design-system'
     | '/preferences'
     | '/ledgers/$ledger'
     | '/system/reconciler'
@@ -303,6 +313,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/design-system'
     | '/preferences'
     | '/system/reconciler'
     | '/ledgers'
@@ -327,6 +338,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_console'
     | '/_console/system'
+    | '/_console/design-system'
     | '/_console/preferences'
     | '/_console/ledgers/$ledger'
     | '/_console/system/reconciler'
@@ -373,6 +385,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof ConsoleRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_console/design-system': {
+      id: '/_console/design-system'
+      path: '/design-system'
+      fullPath: '/design-system'
+      preLoaderRoute: typeof ConsoleDesignSystemRouteImport
+      parentRoute: typeof ConsoleRoute
     }
     '/_console/preferences': {
       id: '/_console/preferences'
@@ -674,6 +693,7 @@ const ConsoleLedgersLedgerRouteWithChildren =
 
 interface ConsoleRouteChildren {
   ConsoleSystemRouteRoute: typeof ConsoleSystemRouteRouteWithChildren
+  ConsoleDesignSystemRoute: typeof ConsoleDesignSystemRoute
   ConsolePreferencesRoute: typeof ConsolePreferencesRoute
   ConsoleLedgersLedgerRoute: typeof ConsoleLedgersLedgerRouteWithChildren
   ConsoleLedgersIndexRoute: typeof ConsoleLedgersIndexRoute
@@ -681,6 +701,7 @@ interface ConsoleRouteChildren {
 
 const ConsoleRouteChildren: ConsoleRouteChildren = {
   ConsoleSystemRouteRoute: ConsoleSystemRouteRouteWithChildren,
+  ConsoleDesignSystemRoute: ConsoleDesignSystemRoute,
   ConsolePreferencesRoute: ConsolePreferencesRoute,
   ConsoleLedgersLedgerRoute: ConsoleLedgersLedgerRouteWithChildren,
   ConsoleLedgersIndexRoute: ConsoleLedgersIndexRoute,

@@ -1,3 +1,5 @@
+import { Link } from '@tanstack/react-router'
+
 import { Page, PageHeader } from '~/components/layout/page'
 import { Address } from '~/components/ledger/address'
 import { Amount } from '~/components/ledger/amount'
@@ -50,7 +52,18 @@ function Choice<K extends keyof Preferences>({ name, label, description, options
 export function PreferencesPage() {
   return (
     <Page className="max-w-[880px]">
-      <PageHeader title="Preferences" description="How the console looks in this browser. Nothing here is sent to the API." />
+      <PageHeader
+        title="Preferences"
+        description={
+          <>
+            How the console looks in this browser. Nothing here is sent to the API. Every component is on the{' '}
+            <Link to="/design-system" className="text-primary-text hover:underline">
+              design system
+            </Link>{' '}
+            page.
+          </>
+        }
+      />
       <Card>
         <CardContent className="py-0">
           <Choice
