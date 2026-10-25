@@ -1,11 +1,14 @@
 package tigerbeetle
 
 import (
+	"strings"
 	"testing"
 
 	tb "github.com/tigerbeetle/tigerbeetle-go"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 )
 
 func TestResultName(t *testing.T) {
@@ -44,5 +47,31 @@ func TestAmountRoundTrip(t *testing.T) {
 		if got := amountOf(u); got.Cmp(a) != 0 {
 			t.Errorf("amountOf(uint128Of(%s)) = %s", s, got)
 		}
+	}
+}
+
+// TestResultReasonsFollowAIP193 walks every transfer result the client knows: a declined chain's
+// problem type is derived from its result, and gRPC reports the type's slug as an AIP-193
+// ErrorInfo reason (plan section 9.2), so each one must fit the pattern.
+func TestResultReasonsFollowAIP193(t *testing.T) {
+	t.Parallel()
+	statuses := []tb.CreateTransferStatus{tb.TransferCreated}
+	for code := range tb.CreateTransferStatus(256) {
+		statuses = append(statuses, code)
+	}
+	seen := 0
+	for _, status := range statuses {
+		name := status.String()
+		if strings.HasPrefix(name, "CreateTransferStatus(") {
+			continue
+		}
+		seen++
+		reason := problem.ErrorReasonOf(problem.TypeOf(domain.ResultReason(resultName(name, "Transfer"))))
+		if !problem.ValidErrorReason(reason) {
+			t.Errorf("%s gives ErrorInfo reason %q, which breaks AIP-193", name, reason)
+		}
+	}
+	if seen < 50 {
+		t.Fatalf("walked %d named results, want the client's full list", seen)
 	}
 }
