@@ -11,6 +11,8 @@ GOLANGCI_LINT_VERSION="v2.15.0"
 SQLC_VERSION="v1.31.1"
 # renovate: datasource=go depName=golang.org/x/vuln
 GOVULNCHECK_VERSION="v1.9.0"
+# renovate: datasource=github-releases depName=casey/just
+JUST_VERSION="1.59.0"
 
 bin_dir="$(go env GOPATH)/bin"
 mkdir -p "$bin_dir"
@@ -34,6 +36,10 @@ sha256_of() {
     shasum -a 256 "$1" | cut -d' ' -f1
   fi
 }
+
+# One scratch directory for every download, removed on exit.
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
 
 installed_version() {
   # Prints the version of an installed binary, or nothing when it is missing.
@@ -63,8 +69,6 @@ else
       exit 1
       ;;
   esac
-  tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' EXIT
   archive="sqlc_${SQLC_VERSION#v}_${os}_${arch}.tar.gz"
   curl -sSfL "https://github.com/sqlc-dev/sqlc/releases/download/${SQLC_VERSION}/${archive}" -o "${tmp}/${archive}"
   actual_sha256="$(sha256_of "${tmp}/${archive}")"
@@ -74,6 +78,33 @@ else
   fi
   tar -xzf "${tmp}/${archive}" -C "$tmp" sqlc
   install -m 0755 "${tmp}/sqlc" "${bin_dir}/sqlc"
+fi
+
+echo "==> just ${JUST_VERSION}"
+if [[ "$(installed_version just --version)" == "just ${JUST_VERSION}" ]]; then
+  echo "    already installed"
+else
+  # The release publishes SHA256SUMS; the digests are pinned here so a changed asset fails the
+  # install. Update them together with JUST_VERSION. Linux uses the static musl builds.
+  case "${os}_${arch}" in
+    darwin_amd64) just_target="x86_64-apple-darwin" just_sha256="036ead9df9bc31dbae9934ae3b4236ed124d0bafcffd33439460ae084d5c9cb7" ;;
+    darwin_arm64) just_target="aarch64-apple-darwin" just_sha256="6574cea774ed4cae12e24b6aa11857de33e80dab4667cf628fd5840df96a2a9d" ;;
+    linux_amd64) just_target="x86_64-unknown-linux-musl" just_sha256="409044617b6f06517c1035e55ca38c8c856ff8b650e41bc2aa1ef82d5903a23e" ;;
+    linux_arm64) just_target="aarch64-unknown-linux-musl" just_sha256="23871b1702bfd550fb5f901778fd4290ecf2ee034a45a889fbe96d89b188086d" ;;
+    *)
+      echo "no pinned just checksum for ${os}_${arch}" >&2
+      exit 1
+      ;;
+  esac
+  archive="just-${JUST_VERSION}-${just_target}.tar.gz"
+  curl -sSfL "https://github.com/casey/just/releases/download/${JUST_VERSION}/${archive}" -o "${tmp}/${archive}"
+  actual_sha256="$(sha256_of "${tmp}/${archive}")"
+  if [[ "$actual_sha256" != "$just_sha256" ]]; then
+    echo "just checksum mismatch for ${archive}: got ${actual_sha256}, want ${just_sha256}" >&2
+    exit 1
+  fi
+  tar -xzf "${tmp}/${archive}" -C "$tmp" just
+  install -m 0755 "${tmp}/just" "${bin_dir}/just"
 fi
 
 echo "==> govulncheck ${GOVULNCHECK_VERSION}"
