@@ -146,6 +146,12 @@ test-ts:
 test-integration:
     cd {{ api }} && go test -race -tags integration -count=1 ./...
 
+# Every transport of the compose stack from the host (needs `just compose-up-brokers`). The E2E_*
+# variables override the addresses; see apps/api/e2e.
+[group('test')]
+test-e2e:
+    cd {{ api }} && go test -race -tags e2e -count=1 ./e2e/...
+
 # Every build: the API binary and the console bundle.
 [group('build')]
 build: build-go build-ts
