@@ -1,6 +1,6 @@
 # 3. Go for the API, TypeScript and React for the console
 
-Status: Accepted, amended by [ADR-0011](0011-vite-plus-toolchain-for-typescript.md), [ADR-0017](0017-bounded-context-modules-and-dependency-rules.md)
+Status: Accepted, amended by [ADR-0011](0011-vite-plus-toolchain-for-typescript.md), [ADR-0017](0017-bounded-context-modules-and-dependency-rules.md), [ADR-0018](0018-rest-spec-generated-from-go-with-huma.md)
 Date: 2026-10-24
 
 ## Context and Problem Statement
