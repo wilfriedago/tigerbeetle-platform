@@ -1,6 +1,6 @@
 # 14. Console architecture: TanStack, feature slices and a shadcn design system
 
-Status: Accepted
+Status: Accepted, amended by [ADR-0023](0023-console-on-graphql.md)
 Date: 2026-10-25
 
 ## Context and Problem Statement
