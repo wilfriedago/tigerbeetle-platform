@@ -9,9 +9,10 @@ metadata and holds on top of TigerBeetle's accounts, linked transfers and two-ph
 Postgres keeps that context, and a web console sits on the API. A versioned posting-rule DSL
 that compiles to batches of linked transfers comes later.
 
-**Status: pre-alpha.** The repository holds the project setup and a thin vertical slice:
-liveness, readiness and service-information endpoints, the generated server and client, and a
-console page that shows the status of both dependencies. No ledger endpoints yet.
+**Status: pre-alpha.** The API serves the ledger surface: ledgers, accounts with lazy creation
+and address rules, multi-posting transactions with idempotency and a reconciler, holds,
+reverts, prefix balances and the write-request log. The console covers every page of
+[docs/console.md](docs/console.md). No authentication yet.
 
 ## Quickstart
 
@@ -41,7 +42,8 @@ every service is healthy. The readiness call answers 200 with both dependencies 
 }
 ```
 
-Then open http://localhost:5173 for the console, which polls `GET /v1/_info` through the API.
+Then open http://localhost:5173 for the console. `scripts/seed-demo.sh` creates a demo ledger
+(`eu-payments`) with accounts, transactions, a declined write and holds, through the API.
 Stop everything with `pnpm stack:down`; `pnpm stack:reset` also deletes the data volumes.
 Ports and credentials can be overridden by copying `.env.example` to `.env`.
 
@@ -56,7 +58,7 @@ Ports and credentials can be overridden by copying `.env.example` to `.env`.
   server lifecycle). The layering is enforced by the linter.
 - **The OpenAPI spec** (`packages/openapi/openapi.yaml`) is the contract. The Go server interfaces
   and the TypeScript client (`packages/api-client`) are generated from it.
-- **The console** (`apps/console`, React and Vite) talks only to the API.
+- **The console** (`apps/console`, React, Vite and TanStack, ADR-0014) talks only to the API.
 
 The full picture, including the write and read paths, is in
 [docs/architecture.md](docs/architecture.md). Every design decision has an ADR in
@@ -71,7 +73,7 @@ packages/openapi    The OpenAPI contract and its linters and generators
 packages/api-client Generated TypeScript types and the ky-based client
 deploy/compose      Local stack
 docs                Architecture overview and ADRs
-scripts             Tool installer, version check, image smoke test
+scripts             Tool installer, version check, image smoke test, demo seed
 ```
 
 ## Documentation

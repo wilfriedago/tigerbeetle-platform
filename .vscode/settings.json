@@ -11,7 +11,7 @@
   "npm.scriptRunner": "vp",
   "oxc.configPath": "vite.config.ts",
   "oxc.fmt.disableNestedConfig": true,
-  "oxc.tsConfigPath": "./apps/web-console/tsconfig.json",
+  "oxc.tsConfigPath": "./apps/console/tsconfig.json",
   "oxc.typeAware": true,
   "tailwindCSS.classAttributes": [
     "class",

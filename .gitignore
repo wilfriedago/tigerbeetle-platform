@@ -3,6 +3,8 @@ node_modules/
 
 # Build output
 dist/
+# TanStack Router plugin scratch space
+.tanstack/
 apps/api/bin/
 .turbo/
 

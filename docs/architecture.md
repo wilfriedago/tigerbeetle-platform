@@ -2,9 +2,8 @@
 
 This document is the map of the platform: the pieces, which facts each one owns, and how a
 request flows through them. The reasoning lives in the decision records linked at the end. The
-project is pre-alpha: the repository holds the setup and a thin vertical slice (three operational
-endpoints, two store adapters with readiness probes, one migration, one sqlc query, one console
-page). The write and read paths below describe the design that slice was built to receive.
+project is pre-alpha: the API implements the ledger surface of ADR-0004 to ADR-0010 (see
+ADR-0013) and the console covers the pages of `docs/console.md` (see ADR-0014).
 
 ## Overview
 
@@ -41,7 +40,7 @@ byte order, so byte order equals numeric order and time-ordered IDs sort by time
 uses little-endian and `apps/api/internal/adapters/tigerbeetle/id.go` converts.
 
 The API (`apps/api`) owns validation, ID minting, the write protocol between the two stores,
-error mapping and readiness. The console (`apps/console`) is a React page over the API; the Vite
+error mapping and readiness. The console (`apps/console`) is a React application over the API (ADR-0014); the Vite
 dev server proxies `/api` to it (`apps/console/vite.config.ts`), so no CORS setup is needed.
 
 The OpenAPI document `packages/openapi/openapi.yaml` is the contract. oapi-codegen generates the

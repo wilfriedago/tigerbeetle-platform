@@ -1,23 +1,18 @@
 # Console
 
-Status: proposal, 2026-10-24. Nothing here is built yet except the System health page.
+Status: implemented, 2026-10-25. Every page below exists in `apps/console`; the endpoints are
+in `packages/openapi/openapi.yaml` and ADR-0013 records the ones no earlier ADR covered.
+ADR-0014 records how the console is built (TanStack, feature slices, the design system).
 
-This document describes the target structure of the web console (`apps/console`): every route,
-what each page shows, which actions it offers and which API it depends on. The console only talks
-to the platform API through `packages/api-client` (ADR-0003), so every page below is bounded by
+This document describes the structure of the web console (`apps/console`): every route, what
+each page shows, which actions it offers and which API it depends on. The console only talks to
+the platform API through `packages/api-client` (ADR-0003), so every page below is bounded by
 what the API can answer. The domain rules that shape the pages come from the decision records
-linked in each section.
+linked in each section. The "API:" line of each page records the state when the page was
+proposed; all of them exist now.
 
-## API status of each page
-
-Today the API serves only `GET /healthz`, `GET /readyz` and `GET /v1/_info`. Every page is
-tagged with the state of the endpoints it needs:
-
-| Tag         | Meaning                                                                |
-| ----------- | ---------------------------------------------------------------------- |
-| **exists**  | The endpoint is in `packages/openapi/openapi.yaml` and implemented.    |
-| **planned** | The endpoint is described in an ADR but not yet in the spec.           |
-| **new**     | No ADR covers the endpoint; it needs a design and a spec change first. |
+Where the code lives: the route file is `apps/console/src/routes/_console/` plus the URL (for
+example `ledgers/$ledger/transactions/index.tsx`), and the page is in `src/features/<slice>/`.
 
 ## Layout
 
@@ -339,27 +334,15 @@ case (ADR-0006).
   declined" rule (ADR-0007).
 - Paging: Next and Previous over a stack of cursors, with no totals and no page numbers.
 
-## Endpoints still to design
+## Endpoints that were designed for the console
 
-These pages depend on endpoints no ADR covers yet; each needs a spec change in
-`packages/openapi/openapi.yaml` before the page can be built:
+The pages needed endpoints no earlier ADR covered: the ledger list, transaction list filters,
+the write-request log, the reconciler status, rule resolution, the event-type registry and the
+overview counts. ADR-0013 records them; they are all in `packages/openapi/openapi.yaml`.
 
-- list ledgers;
-- transaction list filters;
-- read idempotency records (Requests);
-- reconciler status;
-- rule resolution for the transaction preview;
-- the event-type registry;
-- overview counts.
+## What is left
 
-## Build order
-
-Following the next steps in `docs/handoff.md`:
-
-1. The shell and System health, possible today.
-2. Ledgers and Overview.
-3. Accounts, Assets and Balances.
-4. Transactions, New transaction and Requests.
-5. Holds.
-6. Account rules and Event types.
-7. Posting rules and the live feed.
+- Transactions: the metadata and "reverted" filters (the API filters by address, asset,
+  reference, event type and committed time today) and an export.
+- Account rules: editing a rule's pattern means deleting it and creating another.
+- Posting rules and the live feed (see Later).
