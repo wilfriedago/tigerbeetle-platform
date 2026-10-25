@@ -17,6 +17,7 @@ import (
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/logging"
 )
 
@@ -69,6 +70,8 @@ func run(args []string, stdout io.Writer) error {
 	}
 
 	logger := logging.New(stdout, level).With(slog.String("service", serviceName), slog.String("version", version))
+	// grpc-go's logger is a global that must be set before anything uses gRPC.
+	grpcserver.RouteLogs(logger)
 
 	app, err := bootstrap.Build(ctx, cfg, bootstrap.Service{Name: serviceName, Version: version}, logger)
 	if err != nil {
