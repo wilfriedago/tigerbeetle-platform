@@ -9,7 +9,7 @@ import (
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres/gen"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // IDs are stored in uuid columns in big-endian byte order, the order of ledger.ID, so they copy

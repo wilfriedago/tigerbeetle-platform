@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // PostingView is a posting of a committed transaction with the amount read from TigerBeetle.

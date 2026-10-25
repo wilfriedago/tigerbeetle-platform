@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // Reconciler settles idempotency records left pending by a crash or a TigerBeetle timeout between

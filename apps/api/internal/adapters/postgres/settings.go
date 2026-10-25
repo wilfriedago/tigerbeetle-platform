@@ -9,7 +9,7 @@ import (
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres/gen"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // LedgerSummary returns a ledger with its assets and address count.

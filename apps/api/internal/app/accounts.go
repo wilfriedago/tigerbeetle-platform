@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // LookupChunk is the most IDs one lookup_accounts or lookup_transfers request carries, the default

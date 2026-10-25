@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // Page sizes. Lists page with opaque cursors only: no offsets and no totals, because the tables

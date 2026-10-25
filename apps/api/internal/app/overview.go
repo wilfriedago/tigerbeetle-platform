@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // Overview answers the ledger overview, the write request log and search.

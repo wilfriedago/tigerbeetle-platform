@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // LedgerStore is the TigerBeetle port: the only store of balances and transfers (ADR-0002). The

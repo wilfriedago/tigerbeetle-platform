@@ -61,7 +61,7 @@ job fails a pull request that breaks the contract (`just spec-diff`).
 
 ```
 cmd/api/main.go                 wires every dependency by hand; no framework, no globals
-internal/domain/ledger          pure types: Ledger, Address, Asset, ID and the error sentinels
+internal/kernel/ledger          shared kernel: Ledger, Address, Asset, ID and the error sentinels
 internal/app                    use cases (Status, Ledgers) and the ports in ports.go
 internal/adapters/tigerbeetle   LedgerStore and IDGenerator over the official Go client
 internal/adapters/postgres      MetadataStore over pgx; gen/ from sqlc; migrate.go runs goose
@@ -79,14 +79,14 @@ real dependency. Because a use case holds the interface, not the concrete type, 
 `internal/app` run against in-memory fakes and never start a database. `main.go` is the only
 place that sees every concrete type and plugs them together.
 
-The import rules are: domain imports nothing from `internal`; app imports only domain;
-adapters import app and domain but never each other. The depguard linter in
+The import rules are: the kernel imports nothing from `internal`; app imports only the kernel;
+adapters import app and the kernel but never each other. The depguard linter in
 `apps/api/.golangci.yml` enforces them with one rule per layer (a file glob plus a deny list), so
-a forbidden import fails `just lint` and the `go` CI job. The domain and app rules also deny pgx,
+a forbidden import fails `just lint` and the `go` CI job. The kernel and app rules also deny pgx,
 the TigerBeetle client and `net/http`, which is what "no I/O" means in practice.
 
 Errors follow one pattern. The domain declares four sentinels in
-`internal/domain/ledger/errors.go` (`ErrNotFound`, `ErrAlreadyExists`, `ErrInvalid`,
+`internal/kernel/ledger/errors.go` (`ErrNotFound`, `ErrAlreadyExists`, `ErrInvalid`,
 `ErrUnavailable`). Adapters wrap them with `fmt.Errorf("postgres: get ledger: %w", err)`; the
 `%w` verb keeps the chain intact, so `errors.Is(err, ledger.ErrNotFound)` holds in any layer while
 the driver's message stays available for the log. `internal/adapters/httpapi/problem.go` maps

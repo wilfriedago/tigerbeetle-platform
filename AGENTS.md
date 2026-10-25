@@ -21,7 +21,7 @@ that makes the new one true.
 
 - `apps/api`: Go module `github.com/wilfriedago/tigerbeetle-platform/apps/api`.
   - `cmd/api/main.go`: entrypoint, all wiring by hand. No DI framework, no globals, no `init()`.
-  - `internal/domain/ledger`: pure types and rules, no I/O imports.
+  - `internal/kernel/ledger`: the shared kernel, pure types and rules, no I/O imports.
   - `internal/app`: use cases; `ports.go` declares the interfaces they need.
   - `internal/adapters/tigerbeetle`, `postgres`, `httpapi`: implement the ports. `httpapi/v1`
     registers the REST operations on Huma with typed input and output structs (ADR-0018).
@@ -43,9 +43,9 @@ that makes the new one true.
 
 ## Dependency rules (enforced by golangci-lint depguard)
 
-- `domain` imports nothing from `internal`.
-- `app` imports only `domain`.
-- Adapters import `app` and `domain`, never each other.
+- The kernel (`internal/kernel/ledger`) imports nothing from `internal`.
+- `app` imports only the kernel.
+- Adapters import `app` and the kernel, never each other.
 - No packages named `utils`, `common` or `helpers`. Name packages by what they provide.
 
 ## Go rules

@@ -9,7 +9,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // HoldView is a hold with its amounts read from TigerBeetle (ADR-0010).

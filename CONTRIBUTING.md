@@ -74,7 +74,7 @@ generated from it.
 
 1. Implement the use case in `apps/api/internal/app` against the ports in `ports.go`, adding to
    a port or adapter only when the use case needs something new. Keep domain rules, validation
-   included, in `internal/domain/ledger`.
+   included, in `internal/kernel/ledger`.
 2. Register the operation in `apps/api/internal/adapters/httpapi/v1`, in the file of its tag:
    `restapi.Register` with the operationId, method, path, tag, summary, description and success
    response, and a handler from a typed input struct (path, query and header fields, `Body`) to

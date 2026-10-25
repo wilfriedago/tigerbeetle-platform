@@ -3,7 +3,7 @@ package app
 import (
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // TigerBeetle results the use cases reason about. The adapter reports every result as the

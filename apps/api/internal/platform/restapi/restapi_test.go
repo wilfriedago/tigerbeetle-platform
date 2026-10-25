@@ -17,7 +17,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
 

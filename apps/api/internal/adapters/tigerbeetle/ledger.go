@@ -10,7 +10,7 @@ import (
 	tb "github.com/tigerbeetle/tigerbeetle-go"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // call runs a client request and waits for it or for the context. The client has no per-call

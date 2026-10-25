@@ -25,17 +25,17 @@ linters:
     - usestdlibvars
   settings:
     depguard:
-      # Ports and adapters (docs/architecture.md): domain imports nothing from internal, app imports
-      # only domain, adapters import app and domain but never each other. File globs are matched
-      # against absolute paths, hence the leading **/.
+      # Ports and adapters (docs/architecture.md): the kernel imports nothing from internal, app
+      # imports only the kernel, adapters import app and the kernel but never each other. File globs
+      # are matched against absolute paths, hence the leading **/.
       rules:
-        domain:
+        kernel:
           list-mode: lax
           files:
-            - '**/internal/domain/**'
+            - '**/internal/kernel/**'
           deny:
             - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal
-              desc: domain must not import other internal packages
+              desc: the shared kernel must not import other internal packages
             - pkg: github.com/jackc/pgx
               desc: domain has no I/O
             - pkg: github.com/tigerbeetle/tigerbeetle-go

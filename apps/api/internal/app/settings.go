@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // Settings manages the account rules and event types of a ledger (ADR-0006, ADR-0007).

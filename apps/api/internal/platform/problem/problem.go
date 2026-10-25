@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // Kind is the class of a problem, named the same on every transport.

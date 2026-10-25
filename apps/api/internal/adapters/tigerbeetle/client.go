@@ -12,7 +12,7 @@ import (
 
 	tb "github.com/tigerbeetle/tigerbeetle-go"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // Client wraps a TigerBeetle client. One Client per process: the client batches requests from

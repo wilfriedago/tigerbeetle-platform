@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
 // DefaultGracePeriod is how long a pending record is treated as a write in progress before the
