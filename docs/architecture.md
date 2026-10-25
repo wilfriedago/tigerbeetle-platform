@@ -49,10 +49,13 @@ The API (`apps/api`) owns validation, ID minting, the write protocol between the
 error mapping and readiness. The console (`apps/console`) is a React application over the API (ADR-0014); the Vite
 dev server proxies `/api` to it (`apps/console/vite.config.ts`), so no CORS setup is needed.
 
-The OpenAPI document `packages/openapi/openapi.yaml` is the contract. oapi-codegen generates the
-Go routes, models and strict server interface into `apps/api/internal/adapters/httpapi/gen/`,
-openapi-typescript generates `packages/api-client/src/schema.d.ts`, `just generate` runs both in
-dependency order (ADR-0016), and the `codegen-drift` CI job fails on stale output.
+The OpenAPI document `packages/openapi/openapi.yaml` is the contract, generated from the Go
+code: `apps/api/internal/adapters/httpapi/v1` registers every operation on Huma with typed input
+and output structs, and `cmd/openapi` writes the spec from those registrations (ADR-0018). orval
+generates the TypeScript client in `packages/api-client/src/gen` from the spec, one module per
+tag, over a hand-written fetch layer (ADR-0019). `just generate` runs the generators in
+dependency order (ADR-0016), the `codegen-drift` CI job fails on stale output, and the `openapi`
+job fails a pull request that breaks the contract (`just spec-diff`).
 
 ## Code layout of apps/api
 
@@ -62,8 +65,10 @@ internal/domain/ledger          pure types: Ledger, Address, Asset, ID and the e
 internal/app                    use cases (Status, Ledgers) and the ports in ports.go
 internal/adapters/tigerbeetle   LedgerStore and IDGenerator over the official Go client
 internal/adapters/postgres      MetadataStore over pgx; gen/ from sqlc; migrate.go runs goose
-internal/adapters/httpapi       gen/ from oapi-codegen, handlers, problem+json, middleware
-internal/platform/...           config, logging, httpserver: process plumbing, no business logic
+internal/adapters/httpapi       v1/: the REST operations on Huma; router.go builds the handler
+internal/platform/...           config, logging, httpserver, restapi (Huma), problem, scalar,
+                                requestid: process and transport plumbing, no business logic
+cmd/openapi                     writes packages/openapi/openapi.yaml from the registrations
 migrations/, queries/           goose SQL (embedded with go:embed) and sqlc input
 ```
 

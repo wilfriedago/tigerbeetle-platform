@@ -71,8 +71,8 @@ The full picture, including the write and read paths, is in
 ```
 apps/api            Go API service (module github.com/wilfriedago/tigerbeetle-platform/apps/api)
 apps/console        React console
-packages/openapi    The OpenAPI contract and its linters and generators
-packages/api-client Generated TypeScript types and the ky-based client
+packages/openapi    The OpenAPI contract, generated from the Go code, and its linter
+packages/api-client TypeScript client generated from the spec with orval
 deploy/compose      Local stack
 docs                Architecture overview and ADRs
 scripts             Tool installer, version check, image smoke test, demo seed
