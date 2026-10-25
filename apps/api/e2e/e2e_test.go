@@ -46,7 +46,7 @@ var (
 	natsURL  = env("E2E_NATS_URL", "nats://localhost:4222")
 )
 
-func postJSON(t *testing.T, path, key string, body any, out any) int {
+func postJSON(t *testing.T, path, key string, body, out any) int {
 	t.Helper()
 	raw, err := json.Marshal(body)
 	if err != nil {
