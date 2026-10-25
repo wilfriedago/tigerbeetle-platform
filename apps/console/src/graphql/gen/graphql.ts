@@ -10,12 +10,34 @@ export type BalanceLimit =
   | 'debits_must_not_exceed_credits'
   | 'none';
 
+export type CaptureHoldInput = {
+  /** The amount to capture; the full hold when absent. Must not be zero. */
+  amount?: string | null | undefined;
+  id: string;
+  idempotencyKey: string;
+  ledger: string;
+};
+
 export type CreateEventTypeInput = {
   /** 2 to 65535; the next free code when absent. */
   code?: number | null | undefined;
   ledger: string;
   /** Lowercase, starting with a letter, such as card.authorized. */
   name: string;
+};
+
+export type CreateHoldInput = {
+  amount: string;
+  asset: string;
+  destination: string;
+  eventType?: string | null | undefined;
+  idempotencyKey: string;
+  ledger: string;
+  metadata?: Record<string, string> | null | undefined;
+  reference?: string | null | undefined;
+  source: string;
+  /** Releases the hold after this many seconds on the cluster clock; 0 or absent means never. */
+  timeoutSeconds?: number | null | undefined;
 };
 
 export type CreateLedgerInput = {
@@ -109,6 +131,12 @@ export type RevertTransactionInput = {
   reference?: string | null | undefined;
 };
 
+export type VoidHoldInput = {
+  id: string;
+  idempotencyKey: string;
+  ledger: string;
+};
+
 export type AccountSummaryFieldsFragment = { address: string, createdAt: string, metadata: Record<string, string>, balances: Array<{ asset: string, accountId: string, tbLedger: number, balance: string, available: string, reserved: string, incoming: string, credits: string, debits: string, limit: BalanceLimit, history: boolean, code: number, rule: string, createdAt: string }> };
 
 export type AccountFieldsFragment = { address: string, createdAt: string, metadata: Record<string, string>, openHolds: number, balances: Array<{ asset: string, accountId: string, tbLedger: number, balance: string, available: string, reserved: string, incoming: string, credits: string, debits: string, limit: BalanceLimit, history: boolean, code: number, rule: string, createdAt: string }> };
@@ -173,6 +201,48 @@ export type ReplaceAccountMetadataMutationVariables = Exact<{
 
 
 export type ReplaceAccountMetadataMutation = { replaceAccountMetadata: { address: string, createdAt: string, metadata: Record<string, string>, openHolds: number, balances: Array<{ asset: string, accountId: string, tbLedger: number, balance: string, available: string, reserved: string, incoming: string, credits: string, debits: string, limit: BalanceLimit, history: boolean, code: number, rule: string, createdAt: string }> } };
+
+export type HoldFieldsFragment = { id: string, ledger: string, source: string, destination: string, asset: string, amount: string, capturedAmount: string | null, status: HoldStatus, timeoutSeconds: number, createdAt: string, timestamp: string, expiresAt: string | null, resolvedAt: string | null, reference: string | null, metadata: Record<string, string>, idempotencyKey: string, pendingTransferId: string, resolutionTransferId: string | null, tbLedger: number, eventType: { name: string, code: number } };
+
+export type HoldsQueryVariables = Exact<{
+  name: string;
+  first?: number | null | undefined;
+  after?: string | null | undefined;
+  status?: HoldStatus | null | undefined;
+  address?: string | null | undefined;
+}>;
+
+
+export type HoldsQuery = { ledger: { holds: { nodes: Array<{ id: string, ledger: string, source: string, destination: string, asset: string, amount: string, capturedAmount: string | null, status: HoldStatus, timeoutSeconds: number, createdAt: string, timestamp: string, expiresAt: string | null, resolvedAt: string | null, reference: string | null, metadata: Record<string, string>, idempotencyKey: string, pendingTransferId: string, resolutionTransferId: string | null, tbLedger: number, eventType: { name: string, code: number } }>, pageInfo: { endCursor: string | null } }, holdCounts: { open: number, captured: number, voided: number, expired: number, reserved: Array<{ asset: string, amount: string }> } } | null };
+
+export type HoldQueryVariables = Exact<{
+  name: string;
+  id: string;
+}>;
+
+
+export type HoldQuery = { ledger: { hold: { id: string, ledger: string, source: string, destination: string, asset: string, amount: string, capturedAmount: string | null, status: HoldStatus, timeoutSeconds: number, createdAt: string, timestamp: string, expiresAt: string | null, resolvedAt: string | null, reference: string | null, metadata: Record<string, string>, idempotencyKey: string, pendingTransferId: string, resolutionTransferId: string | null, tbLedger: number, eventType: { name: string, code: number } } | null } | null };
+
+export type CreateHoldMutationVariables = Exact<{
+  input: CreateHoldInput;
+}>;
+
+
+export type CreateHoldMutation = { createHold: { id: string, ledger: string, source: string, destination: string, asset: string, amount: string, capturedAmount: string | null, status: HoldStatus, timeoutSeconds: number, createdAt: string, timestamp: string, expiresAt: string | null, resolvedAt: string | null, reference: string | null, metadata: Record<string, string>, idempotencyKey: string, pendingTransferId: string, resolutionTransferId: string | null, tbLedger: number, eventType: { name: string, code: number } } };
+
+export type CaptureHoldMutationVariables = Exact<{
+  input: CaptureHoldInput;
+}>;
+
+
+export type CaptureHoldMutation = { captureHold: { id: string, ledger: string, source: string, destination: string, asset: string, amount: string, capturedAmount: string | null, status: HoldStatus, timeoutSeconds: number, createdAt: string, timestamp: string, expiresAt: string | null, resolvedAt: string | null, reference: string | null, metadata: Record<string, string>, idempotencyKey: string, pendingTransferId: string, resolutionTransferId: string | null, tbLedger: number, eventType: { name: string, code: number } } };
+
+export type VoidHoldMutationVariables = Exact<{
+  input: VoidHoldInput;
+}>;
+
+
+export type VoidHoldMutation = { voidHold: { id: string, ledger: string, source: string, destination: string, asset: string, amount: string, capturedAmount: string | null, status: HoldStatus, timeoutSeconds: number, createdAt: string, timestamp: string, expiresAt: string | null, resolvedAt: string | null, reference: string | null, metadata: Record<string, string>, idempotencyKey: string, pendingTransferId: string, resolutionTransferId: string | null, tbLedger: number, eventType: { name: string, code: number } } };
 
 export type LedgerFieldsFragment = { name: string, metadata: Record<string, string>, createdAt: string, assetCodes: Array<string>, accountCount: number };
 
@@ -387,6 +457,33 @@ export const AccountFieldsFragmentDoc = new TypedDocumentString(`
   openHolds
 }
     `, {"fragmentName":"AccountFields"}) as unknown as TypedDocumentString<AccountFieldsFragment, unknown>;
+export const HoldFieldsFragmentDoc = new TypedDocumentString(`
+    fragment HoldFields on Hold {
+  id
+  ledger
+  source
+  destination
+  asset
+  amount
+  capturedAmount
+  status
+  timeoutSeconds
+  createdAt
+  timestamp
+  expiresAt
+  resolvedAt
+  reference
+  eventType {
+    name
+    code
+  }
+  metadata
+  idempotencyKey
+  pendingTransferId
+  resolutionTransferId
+  tbLedger
+}
+    `, {"fragmentName":"HoldFields"}) as unknown as TypedDocumentString<HoldFieldsFragment, unknown>;
 export const LedgerFieldsFragmentDoc = new TypedDocumentString(`
     fragment LedgerFields on Ledger {
   name
@@ -648,6 +745,180 @@ export const ReplaceAccountMetadataDocument = new TypedDocumentString(`
   }
   openHolds
 }`) as unknown as TypedDocumentString<ReplaceAccountMetadataMutation, ReplaceAccountMetadataMutationVariables>;
+export const HoldsDocument = new TypedDocumentString(`
+    query Holds($name: String!, $first: Int, $after: String, $status: HoldStatus, $address: String) {
+  ledger(name: $name) {
+    holds(first: $first, after: $after, status: $status, address: $address) {
+      nodes {
+        ...HoldFields
+      }
+      pageInfo {
+        endCursor
+      }
+    }
+    holdCounts {
+      open
+      captured
+      voided
+      expired
+      reserved {
+        asset
+        amount
+      }
+    }
+  }
+}
+    fragment HoldFields on Hold {
+  id
+  ledger
+  source
+  destination
+  asset
+  amount
+  capturedAmount
+  status
+  timeoutSeconds
+  createdAt
+  timestamp
+  expiresAt
+  resolvedAt
+  reference
+  eventType {
+    name
+    code
+  }
+  metadata
+  idempotencyKey
+  pendingTransferId
+  resolutionTransferId
+  tbLedger
+}`) as unknown as TypedDocumentString<HoldsQuery, HoldsQueryVariables>;
+export const HoldDocument = new TypedDocumentString(`
+    query Hold($name: String!, $id: U128!) {
+  ledger(name: $name) {
+    hold(id: $id) {
+      ...HoldFields
+    }
+  }
+}
+    fragment HoldFields on Hold {
+  id
+  ledger
+  source
+  destination
+  asset
+  amount
+  capturedAmount
+  status
+  timeoutSeconds
+  createdAt
+  timestamp
+  expiresAt
+  resolvedAt
+  reference
+  eventType {
+    name
+    code
+  }
+  metadata
+  idempotencyKey
+  pendingTransferId
+  resolutionTransferId
+  tbLedger
+}`) as unknown as TypedDocumentString<HoldQuery, HoldQueryVariables>;
+export const CreateHoldDocument = new TypedDocumentString(`
+    mutation CreateHold($input: CreateHoldInput!) {
+  createHold(input: $input) {
+    ...HoldFields
+  }
+}
+    fragment HoldFields on Hold {
+  id
+  ledger
+  source
+  destination
+  asset
+  amount
+  capturedAmount
+  status
+  timeoutSeconds
+  createdAt
+  timestamp
+  expiresAt
+  resolvedAt
+  reference
+  eventType {
+    name
+    code
+  }
+  metadata
+  idempotencyKey
+  pendingTransferId
+  resolutionTransferId
+  tbLedger
+}`) as unknown as TypedDocumentString<CreateHoldMutation, CreateHoldMutationVariables>;
+export const CaptureHoldDocument = new TypedDocumentString(`
+    mutation CaptureHold($input: CaptureHoldInput!) {
+  captureHold(input: $input) {
+    ...HoldFields
+  }
+}
+    fragment HoldFields on Hold {
+  id
+  ledger
+  source
+  destination
+  asset
+  amount
+  capturedAmount
+  status
+  timeoutSeconds
+  createdAt
+  timestamp
+  expiresAt
+  resolvedAt
+  reference
+  eventType {
+    name
+    code
+  }
+  metadata
+  idempotencyKey
+  pendingTransferId
+  resolutionTransferId
+  tbLedger
+}`) as unknown as TypedDocumentString<CaptureHoldMutation, CaptureHoldMutationVariables>;
+export const VoidHoldDocument = new TypedDocumentString(`
+    mutation VoidHold($input: VoidHoldInput!) {
+  voidHold(input: $input) {
+    ...HoldFields
+  }
+}
+    fragment HoldFields on Hold {
+  id
+  ledger
+  source
+  destination
+  asset
+  amount
+  capturedAmount
+  status
+  timeoutSeconds
+  createdAt
+  timestamp
+  expiresAt
+  resolvedAt
+  reference
+  eventType {
+    name
+    code
+  }
+  metadata
+  idempotencyKey
+  pendingTransferId
+  resolutionTransferId
+  tbLedger
+}`) as unknown as TypedDocumentString<VoidHoldMutation, VoidHoldMutationVariables>;
 export const LedgersDocument = new TypedDocumentString(`
     query Ledgers($first: Int, $after: String) {
   ledgers(first: $first, after: $after) {

@@ -24,6 +24,12 @@ type Documents = {
     "\n  query AggregateBalances($name: String!, $address: String!) {\n    ledger(name: $name) {\n      aggregateBalances(address: $address) {\n        prefix\n        asOf\n        accounts\n        chunks\n        assets {\n          asset\n          accounts\n          balance\n          available\n          reserved\n          incoming\n        }\n      }\n    }\n  }\n": typeof types.AggregateBalancesDocument,
     "\n  query WriteTarget($name: String!, $address: String!) {\n    ledger(name: $name) {\n      account(address: $address) {\n        ...AccountFields\n      }\n      ruleMatch(address: $address) {\n        rule {\n          ...RuleFields\n        }\n      }\n    }\n  }\n": typeof types.WriteTargetDocument,
     "\n  mutation ReplaceAccountMetadata($input: ReplaceAccountMetadataInput!) {\n    replaceAccountMetadata(input: $input) {\n      ...AccountFields\n    }\n  }\n": typeof types.ReplaceAccountMetadataDocument,
+    "\n  fragment HoldFields on Hold {\n    id\n    ledger\n    source\n    destination\n    asset\n    amount\n    capturedAmount\n    status\n    timeoutSeconds\n    createdAt\n    timestamp\n    expiresAt\n    resolvedAt\n    reference\n    eventType {\n      name\n      code\n    }\n    metadata\n    idempotencyKey\n    pendingTransferId\n    resolutionTransferId\n    tbLedger\n  }\n": typeof types.HoldFieldsFragmentDoc,
+    "\n  query Holds($name: String!, $first: Int, $after: String, $status: HoldStatus, $address: String) {\n    ledger(name: $name) {\n      holds(first: $first, after: $after, status: $status, address: $address) {\n        nodes {\n          ...HoldFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n      holdCounts {\n        open\n        captured\n        voided\n        expired\n        reserved {\n          asset\n          amount\n        }\n      }\n    }\n  }\n": typeof types.HoldsDocument,
+    "\n  query Hold($name: String!, $id: U128!) {\n    ledger(name: $name) {\n      hold(id: $id) {\n        ...HoldFields\n      }\n    }\n  }\n": typeof types.HoldDocument,
+    "\n  mutation CreateHold($input: CreateHoldInput!) {\n    createHold(input: $input) {\n      ...HoldFields\n    }\n  }\n": typeof types.CreateHoldDocument,
+    "\n  mutation CaptureHold($input: CaptureHoldInput!) {\n    captureHold(input: $input) {\n      ...HoldFields\n    }\n  }\n": typeof types.CaptureHoldDocument,
+    "\n  mutation VoidHold($input: VoidHoldInput!) {\n    voidHold(input: $input) {\n      ...HoldFields\n    }\n  }\n": typeof types.VoidHoldDocument,
     "\n  fragment LedgerFields on Ledger {\n    name\n    metadata\n    createdAt\n    assetCodes\n    accountCount\n  }\n": typeof types.LedgerFieldsFragmentDoc,
     "\n  query Ledgers($first: Int, $after: String) {\n    ledgers(first: $first, after: $after) {\n      nodes {\n        ...LedgerFields\n      }\n      pageInfo {\n        endCursor\n      }\n    }\n  }\n": typeof types.LedgersDocument,
     "\n  query Ledger($name: String!) {\n    ledger(name: $name) {\n      ...LedgerFields\n    }\n  }\n": typeof types.LedgerDocument,
@@ -58,6 +64,12 @@ const documents: Documents = {
     "\n  query AggregateBalances($name: String!, $address: String!) {\n    ledger(name: $name) {\n      aggregateBalances(address: $address) {\n        prefix\n        asOf\n        accounts\n        chunks\n        assets {\n          asset\n          accounts\n          balance\n          available\n          reserved\n          incoming\n        }\n      }\n    }\n  }\n": types.AggregateBalancesDocument,
     "\n  query WriteTarget($name: String!, $address: String!) {\n    ledger(name: $name) {\n      account(address: $address) {\n        ...AccountFields\n      }\n      ruleMatch(address: $address) {\n        rule {\n          ...RuleFields\n        }\n      }\n    }\n  }\n": types.WriteTargetDocument,
     "\n  mutation ReplaceAccountMetadata($input: ReplaceAccountMetadataInput!) {\n    replaceAccountMetadata(input: $input) {\n      ...AccountFields\n    }\n  }\n": types.ReplaceAccountMetadataDocument,
+    "\n  fragment HoldFields on Hold {\n    id\n    ledger\n    source\n    destination\n    asset\n    amount\n    capturedAmount\n    status\n    timeoutSeconds\n    createdAt\n    timestamp\n    expiresAt\n    resolvedAt\n    reference\n    eventType {\n      name\n      code\n    }\n    metadata\n    idempotencyKey\n    pendingTransferId\n    resolutionTransferId\n    tbLedger\n  }\n": types.HoldFieldsFragmentDoc,
+    "\n  query Holds($name: String!, $first: Int, $after: String, $status: HoldStatus, $address: String) {\n    ledger(name: $name) {\n      holds(first: $first, after: $after, status: $status, address: $address) {\n        nodes {\n          ...HoldFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n      holdCounts {\n        open\n        captured\n        voided\n        expired\n        reserved {\n          asset\n          amount\n        }\n      }\n    }\n  }\n": types.HoldsDocument,
+    "\n  query Hold($name: String!, $id: U128!) {\n    ledger(name: $name) {\n      hold(id: $id) {\n        ...HoldFields\n      }\n    }\n  }\n": types.HoldDocument,
+    "\n  mutation CreateHold($input: CreateHoldInput!) {\n    createHold(input: $input) {\n      ...HoldFields\n    }\n  }\n": types.CreateHoldDocument,
+    "\n  mutation CaptureHold($input: CaptureHoldInput!) {\n    captureHold(input: $input) {\n      ...HoldFields\n    }\n  }\n": types.CaptureHoldDocument,
+    "\n  mutation VoidHold($input: VoidHoldInput!) {\n    voidHold(input: $input) {\n      ...HoldFields\n    }\n  }\n": types.VoidHoldDocument,
     "\n  fragment LedgerFields on Ledger {\n    name\n    metadata\n    createdAt\n    assetCodes\n    accountCount\n  }\n": types.LedgerFieldsFragmentDoc,
     "\n  query Ledgers($first: Int, $after: String) {\n    ledgers(first: $first, after: $after) {\n      nodes {\n        ...LedgerFields\n      }\n      pageInfo {\n        endCursor\n      }\n    }\n  }\n": types.LedgersDocument,
     "\n  query Ledger($name: String!) {\n    ledger(name: $name) {\n      ...LedgerFields\n    }\n  }\n": types.LedgerDocument,
@@ -119,6 +131,30 @@ export function graphql(source: "\n  query WriteTarget($name: String!, $address:
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  mutation ReplaceAccountMetadata($input: ReplaceAccountMetadataInput!) {\n    replaceAccountMetadata(input: $input) {\n      ...AccountFields\n    }\n  }\n"): typeof import('./graphql').ReplaceAccountMetadataDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  fragment HoldFields on Hold {\n    id\n    ledger\n    source\n    destination\n    asset\n    amount\n    capturedAmount\n    status\n    timeoutSeconds\n    createdAt\n    timestamp\n    expiresAt\n    resolvedAt\n    reference\n    eventType {\n      name\n      code\n    }\n    metadata\n    idempotencyKey\n    pendingTransferId\n    resolutionTransferId\n    tbLedger\n  }\n"): typeof import('./graphql').HoldFieldsFragmentDoc;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Holds($name: String!, $first: Int, $after: String, $status: HoldStatus, $address: String) {\n    ledger(name: $name) {\n      holds(first: $first, after: $after, status: $status, address: $address) {\n        nodes {\n          ...HoldFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n      holdCounts {\n        open\n        captured\n        voided\n        expired\n        reserved {\n          asset\n          amount\n        }\n      }\n    }\n  }\n"): typeof import('./graphql').HoldsDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Hold($name: String!, $id: U128!) {\n    ledger(name: $name) {\n      hold(id: $id) {\n        ...HoldFields\n      }\n    }\n  }\n"): typeof import('./graphql').HoldDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation CreateHold($input: CreateHoldInput!) {\n    createHold(input: $input) {\n      ...HoldFields\n    }\n  }\n"): typeof import('./graphql').CreateHoldDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation CaptureHold($input: CaptureHoldInput!) {\n    captureHold(input: $input) {\n      ...HoldFields\n    }\n  }\n"): typeof import('./graphql').CaptureHoldDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation VoidHold($input: VoidHoldInput!) {\n    voidHold(input: $input) {\n      ...HoldFields\n    }\n  }\n"): typeof import('./graphql').VoidHoldDocument;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
