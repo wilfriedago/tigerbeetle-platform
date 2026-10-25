@@ -191,6 +191,12 @@ var registered = []struct {
 	{"getHold", http.MethodGet, "/v1/ledgers/{ledger}/holds/{id}", "holds"},
 	{"captureHold", http.MethodPost, "/v1/ledgers/{ledger}/holds/{id}/capture", "holds"},
 	{"voidHold", http.MethodPost, "/v1/ledgers/{ledger}/holds/{id}/void", "holds"},
+	{"listRules", http.MethodGet, "/v1/ledgers/{ledger}/rules", "settings"},
+	{"matchRule", http.MethodGet, "/v1/ledgers/{ledger}/rules/match", "settings"},
+	{"putRule", http.MethodPut, "/v1/ledgers/{ledger}/rules/{pattern}", "settings"},
+	{"deleteRule", http.MethodDelete, "/v1/ledgers/{ledger}/rules/{pattern}", "settings"},
+	{"listEventTypes", http.MethodGet, "/v1/ledgers/{ledger}/event-types", "settings"},
+	{"createEventType", http.MethodPost, "/v1/ledgers/{ledger}/event-types", "settings"},
 }
 
 func TestOperationsAreRegistered(t *testing.T) {
