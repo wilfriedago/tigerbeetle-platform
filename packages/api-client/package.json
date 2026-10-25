@@ -2,14 +2,16 @@
   "name": "@tigerbeetle-platform/api-client",
   "version": "0.0.0",
   "private": true,
-  "description": "Typed TypeScript client for the platform API, built on ky.",
+  "description": "TypeScript client for the platform API, generated from the OpenAPI spec with orval.",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
+    "generate": "orval",
     "typecheck": "tsc --noEmit",
+    "test": "vp test run",
     "lint": "vp check",
     "format": "vp check --fix"
   },
@@ -18,6 +20,8 @@
   },
   "devDependencies": {
     "@tigerbeetle-platform/openapi": "workspace:*",
-    "typescript": "7.0.2"
+    "orval": "8.44.0",
+    "typescript": "7.0.2",
+    "vite-plus": "catalog:"
   }
 }

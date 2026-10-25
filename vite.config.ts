@@ -6,7 +6,12 @@ import { defineConfig } from 'vite-plus'
 export default defineConfig({
   fmt: {
     // Generated files keep the bytes their generator writes, or just generate-check would fail.
-    ignorePatterns: ['packages/api-client/src/schema.d.ts', 'apps/console/src/route-tree.gen.ts', 'packages/openapi/openapi.yaml'],
+    ignorePatterns: [
+      'packages/api-client/src/schema.d.ts',
+      'packages/api-client/src/gen/**',
+      'apps/console/src/route-tree.gen.ts',
+      'packages/openapi/openapi.yaml'
+    ],
     printWidth: 150,
     semi: false,
     singleQuote: true,
@@ -42,7 +47,7 @@ export default defineConfig({
       style: 'warn',
       suspicious: 'warn'
     },
-    ignorePatterns: ['packages/api-client/src/schema.d.ts', 'apps/console/src/route-tree.gen.ts'],
+    ignorePatterns: ['packages/api-client/src/schema.d.ts', 'packages/api-client/src/gen/**', 'apps/console/src/route-tree.gen.ts'],
     jsPlugins: [
       { name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' },
       { name: 'react-doctor', specifier: 'oxlint-plugin-react-doctor' },

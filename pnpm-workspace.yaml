@@ -2,6 +2,11 @@ packages:
   - apps/*
   - packages/*
 
+# esbuild, which orval loads its config with, works from its platform package; its install script
+# only checks that binary, so it does not run.
+allowBuilds:
+  esbuild: false
+
 minimumReleaseAgeExclude:
   - '@redocly/cli@2.71.0'
 catalog:
