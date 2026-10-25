@@ -1,6 +1,6 @@
 # 12. Vite+ git hooks, replacing lefthook
 
-Status: Accepted
+Status: Accepted, amended by [ADR-0016](0016-justfile-as-the-single-entry-point.md)
 Date: 2026-10-24
 
 ## Context and Problem Statement

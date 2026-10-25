@@ -1,6 +1,6 @@
 # 9. pnpm and Turborepo monorepo with a Go module inside
 
-Status: Accepted, amended by [ADR-0011](0011-vite-plus-toolchain-for-typescript.md), [ADR-0012](0012-vite-plus-git-hooks.md)
+Status: Accepted, amended by [ADR-0011](0011-vite-plus-toolchain-for-typescript.md), [ADR-0012](0012-vite-plus-git-hooks.md), [ADR-0016](0016-justfile-as-the-single-entry-point.md)
 Date: 2026-10-24
 
 ## Context and Problem Statement
