@@ -23,7 +23,7 @@ export interface TransactionDraft {
   metadata: MetadataRow[]
 }
 
-/** The posting cap of a transaction (MaxPostings in apps/api/internal/domain/ledger/posting.go). */
+/** The posting cap of a transaction (MaxPostings in apps/api/internal/modules/bookkeeping/domain/posting.go). */
 export const MAX_POSTINGS = 64
 
 export function emptyPosting(asset = '', source = '', destination = ''): PostingDraft {

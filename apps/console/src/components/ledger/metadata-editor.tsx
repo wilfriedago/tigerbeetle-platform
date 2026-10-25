@@ -6,7 +6,7 @@ import { Input } from '~/components/ui/input'
 
 // 15 Data display, Metadata Row: edits one key/value pair; "Add field" appends one. Keys and values
 // are machine values, so both are mono. The rules mirror ValidateMetadata in
-// apps/api/internal/domain/ledger/metadata.go.
+// apps/api/internal/kernel/ledger/metadata.go.
 
 export interface MetadataRow {
   key: string

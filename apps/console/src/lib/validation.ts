@@ -1,7 +1,7 @@
 import { parseAsset, parseMajorUnits } from './money'
 
 // The input rules of the API, checked in the console so a form explains them before a request is
-// sent (apps/api/internal/domain/ledger). The API checks them again.
+// sent (apps/api/internal/kernel/ledger). The API checks them again.
 
 /** The Address schema of the API: colon-separated segments of letters, digits, dash and underscore. */
 export const ADDRESS_PATTERN = /^[a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)*$/

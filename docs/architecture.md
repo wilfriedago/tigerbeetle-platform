@@ -38,20 +38,22 @@ namespaces; a scale change means a new asset and a new ledger number. Account fl
 address-pattern rules (most specific wins) and are frozen at creation: by default `*` cannot go
 negative (`debits_must_not_exceed_credits`) and `world` has no limit.
 
-Postgres (18.6) holds context only: ledger names and metadata, the address to account ID
-mapping, transaction metadata, idempotency records and the outbox. It never stores a balance,
-not even as a cache. Today it has one table (`apps/api/migrations/00001_create_ledgers.sql`) and
-one query file (`apps/api/queries/ledgers.sql`). 128-bit IDs live in `uuid` columns in big-endian
-byte order, so byte order equals numeric order and time-ordered IDs sort by time; the Go client
-uses little-endian and `apps/api/internal/adapters/tigerbeetle/id.go` converts.
+Postgres (18.6) holds context only: ledger names and metadata, account rules, event types, the
+address to account ID mapping, transaction and hold metadata, and idempotency records. It never
+stores a balance, not even as a cache. It has one schema and one goose sequence
+(`apps/api/migrations`); each table belongs to one module, and each migration names it. 128-bit
+IDs live in `uuid` columns in big-endian byte order, so byte order equals numeric order and
+time-ordered IDs sort by time; the Go client uses little-endian and
+`apps/api/internal/modules/bookkeeping/infrastructure/tigerbeetle/id.go` converts.
 
 The API (`apps/api`) owns validation, ID minting, the write protocol between the two stores,
 error mapping and readiness. The console (`apps/console`) is a React application over the API (ADR-0014); the Vite
 dev server proxies `/api` to it (`apps/console/vite.config.ts`), so no CORS setup is needed.
 
 The OpenAPI document `packages/openapi/openapi.yaml` is the contract, generated from the Go
-code: `apps/api/internal/adapters/httpapi/v1` registers every operation on Huma with typed input
-and output structs, and `cmd/openapi` writes the spec from those registrations (ADR-0018). orval
+code: each module's `interfaces/rest/v1` registers its operations on Huma with typed input and
+output structs, `internal/transport/rest` lists them all, and `cmd/openapi` writes the spec from
+those registrations (ADR-0018). orval
 generates the TypeScript client in `packages/api-client/src/gen` from the spec, one module per
 tag, over a hand-written fetch layer (ADR-0019). `just generate` runs the generators in
 dependency order (ADR-0016), the `codegen-drift` CI job fails on stale output, and the `openapi`
@@ -60,42 +62,65 @@ job fails a pull request that breaks the contract (`just spec-diff`).
 ## Code layout of apps/api
 
 ```
-cmd/api/main.go                 wires every dependency by hand; no framework, no globals
-internal/kernel/ledger          shared kernel: Ledger, Address, Asset, ID and the error sentinels
-internal/app                    use cases (Status, Ledgers) and the ports in ports.go
-internal/adapters/tigerbeetle   LedgerStore and IDGenerator over the official Go client
-internal/adapters/postgres      MetadataStore over pgx; gen/ from sqlc; migrate.go runs goose
-internal/adapters/httpapi       v1/: the REST operations on Huma; router.go builds the handler
-internal/platform/...           config, logging, httpserver, restapi (Huma), problem, scalar,
-                                requestid: process and transport plumbing, no business logic
-cmd/openapi                     writes packages/openapi/openapi.yaml from the registrations
-migrations/, queries/           goose SQL (embedded with go:embed) and sqlc input
+cmd/api/main.go                    reads the config, then bootstrap.Build and App.Run
+cmd/openapi                        writes packages/openapi/openapi.yaml from the registrations
+internal/bootstrap                 opens the resources, builds the modules, runs servers and workers
+internal/kernel/ledger             shared kernel: names, addresses, assets, IDs, amounts, rules,
+                                   event types, the error sentinels and Problem, Clock, paging
+internal/modules/ledgers           ledgers, account rules, event types
+internal/modules/bookkeeping       accounts, transactions, holds, write requests, the overview,
+                                   the reconciler; the write path of ADR-0007
+internal/modules/health            liveness, readiness, service information (interfaces only)
+internal/transport/rest            the one list of REST operations, every module's
+internal/platform/...              config, logging, httpserver, postgres (pool, migrations),
+                                   tigerbeetle (client), readiness, restapi (Huma), problem,
+                                   scalar, requestid: process and transport plumbing
+migrations/                        goose SQL, one sequence, embedded with go:embed
+testdata/depguard/                 one deliberate violation per depguard rule
 ```
 
-The layout is ports and adapters. A port is a Go interface declared by the layer that needs
-it: `apps/api/internal/app/ports.go` declares `LedgerStore` (TigerBeetle), `MetadataStore`
-(Postgres), `Clock` and `IDGenerator`. An adapter is a package that implements a port against a
-real dependency. Because a use case holds the interface, not the concrete type, the tests in
-`internal/app` run against in-memory fakes and never start a database. `main.go` is the only
-place that sees every concrete type and plugs them together.
+The code is split by bounded context (ADR-0017). A module owns its tables, and anything committed
+together, in one TigerBeetle chain or one Postgres transaction, belongs to one module: one write
+allocates ledger numbers, creates accounts, records the idempotency key, submits the chain and
+commits the transaction or hold, so all of that is bookkeeping. Ledgers and their configuration
+have their own life cycle and are never written in a chain.
 
-The import rules are: the kernel imports nothing from `internal`; app imports only the kernel;
-adapters import app and the kernel but never each other. The depguard linter in
-`apps/api/.golangci.yml` enforces them with one rule per layer (a file glob plus a deny list), so
-a forbidden import fails `just lint` and the `go` CI job. The kernel and app rules also deny pgx,
-the TigerBeetle client and `net/http`, which is what "no I/O" means in practice.
+Inside a module the layers are `domain` (rules and the ports infrastructure implements),
+`application` (one type per command family and one per query family, exported as interfaces in
+`usecases.go`), `infrastructure` (Postgres through its own sqlc queries, TigerBeetle) and
+`interfaces` (`dto`, the wire types every transport shares, and `rest/v1`). A use case holds
+interfaces, never concrete types, so the application tests run on hand-written fakes and never
+start a database.
 
-Errors follow one pattern. The domain declares four sentinels in
+Modules never import each other. A module declares what it needs from another in
+`application/ports.go`, and `internal/bootstrap` passes it a query of the other module: Go types
+satisfy interfaces implicitly, so no import is needed, and a mismatch is a compile error on the
+line that passes the value. Bookkeeping asks ledgers whether a ledger exists, which rule creates
+an account and what code an event type has; ledgers asks bookkeeping for the assets and address
+count of its ledgers, the usage of its event types and the assets of an address. Commands and
+queries being separate types keeps the construction order acyclic: ledgers' directory and
+policies, then bookkeeping, then the rest of ledgers.
+
+The depguard linter in `apps/api/.golangci.yml` enforces these rules: the kernel imports nothing
+from `internal`, each layer imports only what it may, modules are isolated from one another,
+`platform` holds no business rule, and `cmd/openapi` builds without drivers or cgo. Every rule
+has a fixture in `testdata/depguard` that breaks it, and `just lint-depguard-probe` (run in CI)
+fails unless each fixture trips exactly its rule, so a rule that silently matches nothing is
+caught.
+
+Errors follow one pattern. The kernel declares six sentinels in
 `internal/kernel/ledger/errors.go` (`ErrNotFound`, `ErrAlreadyExists`, `ErrInvalid`,
-`ErrUnavailable`). Adapters wrap them with `fmt.Errorf("postgres: get ledger: %w", err)`; the
-`%w` verb keeps the chain intact, so `errors.Is(err, ledger.ErrNotFound)` holds in any layer while
-the driver's message stays available for the log. `internal/adapters/httpapi/problem.go` maps
-each sentinel to an RFC 9457 `application/problem+json` response and never copies driver text.
+`ErrUnavailable`, `ErrRejected`, `ErrConflict`) and `Problem`, which carries a stable reason.
+Infrastructure wraps them with `fmt.Errorf("postgres: get ledger: %w", err)`; the `%w` verb keeps
+the chain intact, so `errors.Is(err, ledger.ErrNotFound)` holds in any layer while the driver's
+message stays available for the log. `internal/platform/problem` maps any error to a
+transport-neutral problem and never copies driver text; `internal/platform/restapi` renders it
+as RFC 9457 `application/problem+json`.
 
 ## The write path
 
 A transaction is `POST /v1/ledgers/{ledger}/transactions` with an `Idempotency-Key` header
-(the path shape of ADR-0004; no ledger endpoint is in the spec yet). One API transaction becomes
+(the path shape of ADR-0004). One API transaction becomes
 exactly one batch of linked transfers, which must fit one TigerBeetle request (default maximum
 8189 events, and a linked chain cannot span requests), so the service caps the number of
 postings per transaction well below that.
@@ -104,7 +129,7 @@ postings per transaction well below that.
 sequenceDiagram
   participant C as Client
   participant H as HTTP API
-  participant A as App Use Case
+  participant A as Bookkeeping use case
   participant P as PostgreSQL
   participant T as TigerBeetle
 

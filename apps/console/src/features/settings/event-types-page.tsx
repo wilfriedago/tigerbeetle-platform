@@ -24,7 +24,7 @@ import { settingsQueries, useCreateEventType } from './api'
 
 const route = getRouteApi('/_console/ledgers/$ledger/settings/event-types')
 
-/** Mirrors eventTypeNamePattern in apps/api/internal/domain/ledger/event.go. */
+/** Mirrors eventTypeNamePattern in apps/api/internal/kernel/ledger/event.go. */
 const NAME_PATTERN = /^[a-z][a-z0-9_.-]{0,62}$/
 
 const column = columnHelper<EventType>()

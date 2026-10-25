@@ -11,7 +11,7 @@ export interface Asset {
   scale: number
 }
 
-/** The largest scale the API accepts (MaxAssetScale in apps/api/internal/domain/ledger/asset.go). */
+/** The largest scale the API accepts (MaxAssetScale in apps/api/internal/kernel/ledger/asset.go). */
 export const MAX_ASSET_SCALE = 18
 
 /** 2^128 - 1, the largest amount TigerBeetle stores. */

@@ -54,12 +54,12 @@ Ports and credentials can be overridden by copying `.env.example` to `.env`.
 - **TigerBeetle** is the only source of truth for money: accounts, transfers, balances.
 - **Postgres** holds context only: ledger names, account addresses and metadata, idempotency
   records. It never stores a balance.
-- **The API** (`apps/api`, Go, standard library HTTP) is the only writer to both. Its code is laid
-  out as ports and adapters: `internal/domain` (pure rules), `internal/app` (use cases and ports),
-  `internal/adapters/{tigerbeetle,postgres,httpapi}`, `internal/platform` (config, logging,
-  server lifecycle). The layering is enforced by the linter.
-- **The OpenAPI spec** (`packages/openapi/openapi.yaml`) is the contract. The Go server interfaces
-  and the TypeScript client (`packages/api-client`) are generated from it.
+- **The API** (`apps/api`, Go) is the only writer to both. Its code is split into bounded-context
+  modules, `ledgers` and `bookkeeping`, plus `health`, each in domain, application,
+  infrastructure and interfaces layers, over a shared kernel and platform packages; modules never
+  import each other. The linter enforces the layering (ADR-0017).
+- **The OpenAPI spec** (`packages/openapi/openapi.yaml`) is the contract, generated from the Go
+  registrations; the TypeScript client (`packages/api-client`) is generated from it.
 - **The console** (`apps/console`, React, Vite and TanStack, ADR-0014) talks only to the API.
 
 The full picture, including the write and read paths, is in
