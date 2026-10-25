@@ -25,78 +25,174 @@ linters:
     - usestdlibvars
   settings:
     depguard:
-      # Ports and adapters (docs/architecture.md): the kernel imports nothing from internal, app
-      # imports only the kernel, adapters import app and the kernel but never each other. File globs
-      # are matched against absolute paths, hence the leading **/.
+      # The module boundaries of docs/plans/ddd-transports/plan.md, section 14. File globs are
+      # matched against absolute paths, hence the leading **/; pkg entries are import-path
+      # prefixes. Every rule is proven to fire by the fixtures in testdata/depguard, which
+      # `just lint-depguard-probe` lints one by one: a rule renamed, a glob mistyped or a module
+      # added without its lines makes the probe fail. YAML anchors (&name, *name) repeat the
+      # common deny entries.
       rules:
         kernel:
           list-mode: lax
-          files:
-            - '**/internal/kernel/**'
+          files: ['**/internal/kernel/**']
           deny:
             - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal
-              desc: the shared kernel must not import other internal packages
-            - pkg: github.com/jackc/pgx
-              desc: domain has no I/O
-            - pkg: github.com/tigerbeetle/tigerbeetle-go
-              desc: domain has no I/O
-            - pkg: net/http
-              desc: domain has no I/O
-        app:
+              desc: the shared kernel imports nothing from internal
+            - &io-pgx { pkg: github.com/jackc/pgx, desc: no I/O here }
+            - &io-tb { pkg: github.com/tigerbeetle/tigerbeetle-go, desc: no I/O here }
+            - &io-http { pkg: net/http, desc: no transport here }
+            - &fw-huma { pkg: github.com/danielgtaylor/huma, desc: no framework here }
+            - &fw-gql { pkg: github.com/99designs/gqlgen, desc: no framework here }
+            - &fw-grpc { pkg: google.golang.org/grpc, desc: no transport here }
+            - &br-amqp { pkg: github.com/rabbitmq/amqp091-go, desc: no broker here }
+            - &br-nats { pkg: github.com/nats-io/nats.go, desc: no broker here }
+            - &br-kafka { pkg: github.com/twmb/franz-go, desc: no broker here }
+        module-domain:
           list-mode: lax
-          files:
-            - '**/internal/app/**'
+          files: ['**/internal/modules/*/domain/**']
           deny:
-            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters
-              desc: app depends on ports, not adapters
-            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform
-              desc: app depends on ports, not platform
-            - pkg: github.com/jackc/pgx
-              desc: app talks to Postgres through a port
-            - pkg: github.com/tigerbeetle/tigerbeetle-go
-              desc: app talks to TigerBeetle through a port
-        adapter-tigerbeetle:
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules, desc: domain depends on the kernel only }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform, desc: domain depends on the kernel only }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport, desc: domain depends on the kernel only }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap, desc: domain depends on the kernel only }
+            - *io-pgx
+            - *io-tb
+            - *io-http
+            - *fw-huma
+            - *fw-gql
+            - *fw-grpc
+            - *br-amqp
+            - *br-nats
+            - *br-kafka
+        module-application:
           list-mode: lax
-          files:
-            - '**/internal/adapters/tigerbeetle/**'
+          files: ['**/internal/modules/*/application/**']
           deny:
-            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres
-              desc: adapters never import each other
-            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi
-              desc: adapters never import each other
-        adapter-postgres:
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/infrastructure,
+                desc: application depends on its domain only
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces,
+                desc: application depends on its domain only
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure,
+                desc: application depends on its domain only
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces,
+                desc: application depends on its domain only
+              }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health, desc: health has no application layer to call }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform, desc: use cases get platform services through ports }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport, desc: use cases know no transport }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap, desc: use cases know no wiring }
+            - *io-pgx
+            - *io-tb
+            - *io-http
+            - *fw-huma
+            - *fw-gql
+            - *fw-grpc
+            - *br-amqp
+            - *br-nats
+            - *br-kafka
+        module-infrastructure:
           list-mode: lax
-          files:
-            - '**/internal/adapters/postgres/**'
+          files: ['**/internal/modules/*/infrastructure/**']
           deny:
-            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle
-              desc: adapters never import each other
-            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi
-              desc: adapters never import each other
-        adapter-httpapi:
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/application,
+                desc: infrastructure implements domain ports only
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces,
+                desc: infrastructure implements domain ports only
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application,
+                desc: infrastructure implements domain ports only
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces,
+                desc: infrastructure implements domain ports only
+              }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport, desc: infrastructure knows no transport }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap, desc: infrastructure knows no wiring }
+            - *io-http
+            - *fw-huma
+            - *fw-gql
+            - *fw-grpc
+        module-interfaces:
           list-mode: lax
-          files:
-            - '**/internal/adapters/httpapi/**'
+          files: ['**/internal/modules/*/interfaces/**']
           deny:
-            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle
-              desc: adapters never import each other
-            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres
-              desc: adapters never import each other
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/infrastructure,
+                desc: 'interfaces call use cases, never drivers'
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure,
+                desc: 'interfaces call use cases, never drivers'
+              }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport, desc: 'transports compose modules, not the reverse' }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap, desc: no wiring in interfaces }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres, desc: no driver in interfaces }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/tigerbeetle, desc: no driver in interfaces }
+            - *io-pgx
+            - *io-tb
+        # One rule per module: no file of another module imports it. Bootstrap and the transports
+        # are outside internal/modules, so they may compose modules.
+        isolate-ledgers:
+          list-mode: lax
+          files: ['**/internal/modules/**', '!**/internal/modules/ledgers/**']
+          deny:
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers,
+                desc: modules talk through ports wired in bootstrap
+              }
+        isolate-bookkeeping:
+          list-mode: lax
+          files: ['**/internal/modules/**', '!**/internal/modules/bookkeeping/**']
+          deny:
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping,
+                desc: modules talk through ports wired in bootstrap
+              }
+        isolate-health:
+          list-mode: lax
+          files: ['**/internal/modules/**', '!**/internal/modules/health/**']
+          deny:
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health,
+                desc: modules talk through ports wired in bootstrap
+              }
+        platform:
+          list-mode: lax
+          files: ['**/internal/platform/**']
+          deny:
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules, desc: platform has no business rule }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport, desc: platform has no business rule }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap, desc: platform has no business rule }
         # cmd/openapi writes the spec without starting anything (ADR-0018): no driver, and no cgo,
         # which just generate enforces by building it with CGO_ENABLED=0.
         spec-commands:
           list-mode: lax
-          files:
-            - '**/cmd/openapi/**'
+          files: ['**/cmd/openapi/**']
           deny:
-            - pkg: github.com/tigerbeetle/tigerbeetle-go
-              desc: the spec command builds without cgo
-            - pkg: github.com/jackc/pgx
-              desc: the spec command opens no connection
-            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle
-              desc: the spec command builds without cgo
-            - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres
-              desc: the spec command opens no connection
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/tigerbeetle, desc: spec commands build without cgo }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres, desc: spec commands open no connection }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/infrastructure,
+                desc: spec commands build without drivers
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure,
+                desc: spec commands build without drivers
+              }
+            - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap, desc: spec commands build without drivers }
+            - *io-pgx
+            - *io-tb
     gocritic:
       enabled-tags:
         - diagnostic

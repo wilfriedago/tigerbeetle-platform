@@ -52,8 +52,15 @@ that makes the new one true.
 ## Dependency rules (enforced by golangci-lint depguard)
 
 - The kernel (`internal/kernel/ledger`) imports nothing from `internal`.
-- `app` imports only the kernel.
-- Adapters import `app` and the kernel, never each other.
+- A module's `domain` imports only the kernel. `application` imports its domain and the kernel,
+  never `platform`, a driver or a transport. `infrastructure` implements domain ports and may use
+  `platform`; `interfaces` call use cases, never infrastructure or a driver.
+- Modules never import each other: a module declares what it needs from another in
+  `application/ports.go`, and `internal/bootstrap` passes the other module's query to it.
+- `platform` holds no business rule and imports no module; the transports and bootstrap compose
+  modules, never the reverse. `cmd/openapi` builds without drivers or cgo.
+- Every rule has a fixture in `apps/api/testdata/depguard`; `just lint-depguard-probe` proves each
+  one fires. Add a fixture with a new rule or module.
 - No packages named `utils`, `common` or `helpers`. Name packages by what they provide.
 
 ## Go rules

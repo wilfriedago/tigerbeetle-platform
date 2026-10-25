@@ -62,6 +62,12 @@ lint-ts:
 lint-spec:
     pnpm --filter @tigerbeetle-platform/openapi lint
 
+# Each fixture in apps/api/testdata/depguard must trip exactly the rule it names (plan 14.2).
+[doc('Prove that every depguard rule fires on its fixture.')]
+[group('quality')]
+lint-depguard-probe:
+    scripts/depguard-probe.sh
+
 # Path parameters are flattened: the generated spec declares them on each operation, the
 # hand-written one declared them once per path (ADR-0018).
 [doc('Breaking changes, then the changelog, of the REST spec against a git revision (CI: the base branch).')]
