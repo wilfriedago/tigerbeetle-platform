@@ -52,6 +52,14 @@ func StartPostgres(t testing.TB) string {
 // deploy/compose/compose.yaml.
 func StartTigerBeetle(t testing.TB) string {
 	t.Helper()
+	host, _ := StartTigerBeetleNode(t)
+	return host
+}
+
+// StartTigerBeetleNode is StartTigerBeetle that also returns the address other containers reach
+// the replica at, for the CDC job, which accepts IP addresses only.
+func StartTigerBeetleNode(t testing.TB) (host, inside string) {
+	t.Helper()
 	ctx := context.Background()
 	images, err := Load()
 	if err != nil {
@@ -81,7 +89,7 @@ func StartTigerBeetle(t testing.TB) string {
 			t.Logf("terminate tigerbeetle: %v", err)
 		}
 	})
-	host, err := c.Host(ctx)
+	dockerHost, err := c.Host(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,9 +98,9 @@ func StartTigerBeetle(t testing.TB) string {
 		t.Fatal(err)
 	}
 	// The TigerBeetle client accepts IP addresses only, not host names such as "localhost".
-	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, dockerHost)
 	if err != nil || len(ips) == 0 {
-		t.Fatalf("resolve docker host %q: %v", host, err)
+		t.Fatalf("resolve docker host %q: %v", dockerHost, err)
 	}
 	ip := ips[0].IP
 	for _, candidate := range ips {
@@ -101,11 +109,23 @@ func StartTigerBeetle(t testing.TB) string {
 			break
 		}
 	}
-	return net.JoinHostPort(ip.String(), port.Port())
+	containerIP, err := c.ContainerIP(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return net.JoinHostPort(ip.String(), port.Port()), net.JoinHostPort(containerIP, "3000")
 }
 
 // StartRabbitMQ runs the pinned RabbitMQ image for the test and returns its AMQP URL.
 func StartRabbitMQ(t testing.TB) string {
+	t.Helper()
+	url, _ := StartRabbitMQNode(t)
+	return url
+}
+
+// StartRabbitMQNode is StartRabbitMQ that also returns the address other containers reach the
+// broker at, IP:5672, for the CDC job.
+func StartRabbitMQNode(t testing.TB) (url, inside string) {
 	t.Helper()
 	ctx := context.Background()
 	images, err := Load()
@@ -121,11 +141,70 @@ func StartRabbitMQ(t testing.TB) string {
 			t.Logf("terminate rabbitmq: %v", err)
 		}
 	})
-	url, err := c.AmqpURL(ctx)
+	amqpURL, err := c.AmqpURL(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return url
+	containerIP, err := c.ContainerIP(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return amqpURL, net.JoinHostPort(containerIP, "5672")
+}
+
+// CDC is a running TigerBeetle CDC job.
+type CDC struct {
+	container testcontainers.Container
+}
+
+// Stop kills the job, as a crash would.
+func (c *CDC) Stop(t testing.TB) {
+	t.Helper()
+	timeout := time.Duration(0)
+	if err := c.container.Stop(context.Background(), &timeout); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Start starts the job again; it resumes after the last timestamp it published.
+func (c *CDC) Start(t testing.TB) {
+	t.Helper()
+	if err := c.container.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// StartCDC runs the TigerBeetle CDC job from the pinned server image, as compose does
+// (ADR-0022), publishing the cluster's committed transfers to exchange on RabbitMQ. Both
+// addresses are IP:port on the container network; the job resolves no names.
+func StartCDC(t testing.TB, tigerbeetle, rabbitmq, exchange string) *CDC {
+	t.Helper()
+	ctx := context.Background()
+	images, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := testcontainers.ContainerRequest{
+		Image: images.TigerBeetle,
+		Cmd: []string{
+			"amqp", "--cluster=0", "--addresses=" + tigerbeetle, "--host=" + rabbitmq,
+			"--vhost=/", "--user=guest", "--password=guest", "--publish-exchange=" + exchange,
+		},
+		HostConfigModifier: func(hc *container.HostConfig) {
+			hc.SecurityOpt = append(hc.SecurityOpt, "seccomp=unconfined")
+		},
+		WaitingFor: wait.ForLog("Starting CDC").WithStartupTimeout(time.Minute),
+	}
+	c, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{ContainerRequest: req, Started: true})
+	if err != nil {
+		t.Fatalf("start cdc job: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := c.Terminate(context.Background()); err != nil {
+			t.Logf("terminate cdc job: %v", err)
+		}
+	})
+	return &CDC{container: c}
 }
 
 // StartNATS runs the pinned NATS image for the test and returns its URL. JetStream stays off, as
