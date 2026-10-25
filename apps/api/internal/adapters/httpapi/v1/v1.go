@@ -47,4 +47,5 @@ func Register(api huma.API, deps Deps) {
 	registerLedgers(api, h)
 	registerAccounts(api, h)
 	registerTransactions(api, h)
+	registerHolds(api, h)
 }
