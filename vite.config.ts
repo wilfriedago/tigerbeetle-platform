@@ -5,7 +5,7 @@ import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
   fmt: {
-    ignorePatterns: ['packages/api-client/src/schema.d.ts'],
+    ignorePatterns: ['packages/api-client/src/schema.d.ts', 'apps/console/src/route-tree.gen.ts'],
     printWidth: 150,
     semi: false,
     singleQuote: true,
@@ -41,7 +41,7 @@ export default defineConfig({
       style: 'warn',
       suspicious: 'warn'
     },
-    ignorePatterns: ['packages/api-client/src/schema.d.ts'],
+    ignorePatterns: ['packages/api-client/src/schema.d.ts', 'apps/console/src/route-tree.gen.ts'],
     jsPlugins: [
       { name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' },
       { name: 'react-doctor', specifier: 'oxlint-plugin-react-doctor' },
@@ -68,6 +68,8 @@ export default defineConfig({
           'vitest/expect-expect': ['error', { assertFunctionNames: ['expect', 'expectNoA11yViolations'] }],
           'vitest/max-expects': 'off',
           'vitest/no-hooks': 'off',
+          // AGENTS.md: tests import describe/it/expect from vite-plus/test; globals are not enabled.
+          'vitest/no-importing-vitest-globals': 'off',
           'vitest/padding-around-after-all-blocks': 'off',
           'vitest/prefer-called-once': 'off',
           'vitest/prefer-called-times': 'off',
@@ -87,7 +89,8 @@ export default defineConfig({
         }
       }
     ],
-    plugins: ['eslint', 'typescript', 'unicorn', 'oxc', 'react', 'react-perf', 'jsx-a11y', 'import', 'promise', 'vitest'],
+    // vitest is enabled by the override for test files only; its rules misread app entry points.
+    plugins: ['eslint', 'typescript', 'unicorn', 'oxc', 'react', 'react-perf', 'jsx-a11y', 'import', 'promise'],
     rules: {
       'no-console': 'warn',
       'no-continue': 'off',
@@ -118,7 +121,9 @@ export default defineConfig({
           allowNamedExports: false,
           classes: true,
           enums: true,
-          functions: true,
+          // Function declarations are hoisted. TanStack Router routes name their component before
+          // the function body, and shadcn files define helpers after the component that uses them.
+          functions: false,
           ignoreTypeReferences: true,
           typedefs: false,
           variables: true
