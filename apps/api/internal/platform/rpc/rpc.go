@@ -6,6 +6,7 @@ package rpc
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -181,4 +182,23 @@ func DecodeReply(body []byte, data any) error {
 		return fmt.Errorf("rpc: decode reply data: %w", err)
 	}
 	return nil
+}
+
+// NoBody is the body type of a method that takes none: a body sent anyway is refused.
+type NoBody struct{}
+
+// Bind adapts a typed function to a Handler: it decodes the parameters into P and the body into B
+// with Params and Body, and passes the request for its idempotency key.
+func Bind[P, B any](fn func(ctx context.Context, p P, b B, req Request) (any, error)) Handler {
+	return func(ctx context.Context, req Request) (any, error) {
+		p, err := Params[P](req)
+		if err != nil {
+			return nil, err
+		}
+		b, err := Body[B](req)
+		if err != nil {
+			return nil, err
+		}
+		return fn(ctx, p, b, req)
+	}
 }
