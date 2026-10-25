@@ -1,12 +1,8 @@
-import * as React from 'react'
-
-import { cva, type VariantProps } from 'class-variance-authority'
-
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
 
-import { cn } from '~/lib/utils'
+import { cn, tv, type VariantProps } from '~/lib/utils'
 
 // An Input with a leading icon, a suffix (an asset such as EUR/2) or a trailing button. The group
 // owns the outline so hover, focus and error look exactly like Input.
@@ -24,22 +20,20 @@ function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-const inputGroupAddonVariants = cva(
-  "flex h-auto cursor-text items-center justify-center gap-2 text-small text-subtle-foreground select-none group-data-[disabled=true]/input-group:opacity-45 [&>svg:not([class*='size-'])]:size-4",
-  {
-    variants: {
-      align: {
-        'inline-start': 'order-first pl-2.5 has-[>button]:pl-1',
-        'inline-end': 'order-last pr-2 has-[>button]:pr-1 has-[>kbd]:pr-1.5',
-        'block-start': 'order-first w-full justify-start px-2.5 pt-2',
-        'block-end': 'order-last w-full justify-start px-2.5 pb-2'
-      }
-    },
-    defaultVariants: {
-      align: 'inline-start'
+const inputGroupAddonVariants = tv({
+  base: "flex h-auto cursor-text items-center justify-center gap-2 text-small text-subtle-foreground select-none group-data-[disabled=true]/input-group:opacity-45 [&>svg:not([class*='size-'])]:size-4",
+  variants: {
+    align: {
+      'inline-start': 'order-first pl-2.5 has-[>button]:pl-1',
+      'inline-end': 'order-last pr-2 has-[>button]:pr-1 has-[>kbd]:pr-1.5',
+      'block-start': 'order-first w-full justify-start px-2.5 pt-2',
+      'block-end': 'order-last w-full justify-start px-2.5 pb-2'
     }
+  },
+  defaultVariants: {
+    align: 'inline-start'
   }
-)
+})
 
 function InputGroupAddon({
   className,
@@ -51,7 +45,7 @@ function InputGroupAddon({
     <div
       data-slot="input-group-addon"
       data-align={align}
-      className={cn(inputGroupAddonVariants({ align }), className)}
+      className={inputGroupAddonVariants({ align, className })}
       onClick={(event) => {
         if ((event.target as HTMLElement).closest('button')) {
           return

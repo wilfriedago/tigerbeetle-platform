@@ -146,8 +146,8 @@ export default defineConfig({
         'error',
         {
           paths: [
-            { name: 'tailwind-variants', importNames: ['tv', 'createTV'] },
-            { name: 'cn', importNames: ['cn'] }
+            { name: 'tailwind-variants', importNames: ['tv', 'createTV'], message: 'Import tv from ~/lib/utils, which knows the design tokens.' },
+            { name: 'cn', importNames: ['cn'], message: 'Import cn from ~/lib/utils, which knows the design tokens.' }
           ],
           patterns: [{ group: ['**/index', './index', '../index'] }]
         }

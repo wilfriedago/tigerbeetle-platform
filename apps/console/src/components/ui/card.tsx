@@ -1,5 +1,3 @@
-import * as React from 'react'
-
 import { cn } from '~/lib/utils'
 
 // 15 Data display, Card: groups one idea. Surface, 1 px border, 8 px radius. The header carries

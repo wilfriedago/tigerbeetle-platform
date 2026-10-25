@@ -17,7 +17,13 @@ function ToggleGroup({ className, ...props }: ToggleGroupPrimitive.Props) {
 }
 
 function ToggleGroupItem({ className, ...props }: TogglePrimitive.Props) {
-  return <TogglePrimitive data-slot="toggle-group-item" className={cn(toggleVariants(), 'focus-visible:z-10', className)} {...props} />
+  return (
+    <TogglePrimitive
+      data-slot="toggle-group-item"
+      className={(state) => toggleVariants({ className: ['focus-visible:z-10', typeof className === 'function' ? className(state) : className] })}
+      {...props}
+    />
+  )
 }
 
 export { ToggleGroup, ToggleGroupItem }

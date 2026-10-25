@@ -1,12 +1,11 @@
 import { useMemo } from 'react'
 
-import { cva, type VariantProps } from 'class-variance-authority'
 import { CircleXIcon } from 'lucide-react'
 
 import { Label } from '~/components/ui/label'
 import { Separator } from '~/components/ui/separator'
 
-import { cn } from '~/lib/utils'
+import { cn, tv, type VariantProps } from '~/lib/utils'
 
 // 11 Form controls, Field and Field/Error: a visible label (13 px medium) with an optional hint on
 // the right, the control, then help text that states the rule the API enforces, in the same words
@@ -43,7 +42,8 @@ function FieldGroup({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-const fieldVariants = cva('group/field flex w-full gap-1.5', {
+const fieldVariants = tv({
+  base: 'group/field flex w-full gap-1.5',
   variants: {
     orientation: {
       vertical: 'flex-col *:w-full [&>.sr-only]:w-auto',
@@ -57,7 +57,7 @@ const fieldVariants = cva('group/field flex w-full gap-1.5', {
 })
 
 function Field({ className, orientation = 'vertical', ...props }: React.ComponentProps<'div'> & VariantProps<typeof fieldVariants>) {
-  return <div role="group" data-slot="field" data-orientation={orientation} className={cn(fieldVariants({ orientation }), className)} {...props} />
+  return <div role="group" data-slot="field" data-orientation={orientation} className={fieldVariants({ orientation, className })} {...props} />
 }
 
 function FieldContent({ className, ...props }: React.ComponentProps<'div'>) {
