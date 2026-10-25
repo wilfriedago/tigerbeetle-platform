@@ -12,10 +12,13 @@ COPY apps/api/package.json apps/api/
 COPY apps/console/package.json apps/console/
 COPY packages/api-client/package.json packages/api-client/
 COPY packages/openapi/package.json packages/openapi/
-RUN pnpm install --frozen-lockfile --filter console...
+# --ignore-scripts skips the root prepare script, which installs the git hooks and needs git.
+# Dependency build scripts are not approved in pnpm-workspace.yaml, so nothing else is skipped.
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter console...
 
 COPY packages ./packages
 COPY apps/console ./apps/console
 
 EXPOSE 5173
-CMD ["pnpm", "--filter", "console", "dev"]
+# --host: inside the container the dev server must listen on all interfaces to be reachable.
+CMD ["pnpm", "--filter", "console", "dev", "--host"]
