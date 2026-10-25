@@ -7,6 +7,16 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
       description: An error described as RFC 9457 problem details.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying, sent with a 409 `request-in-flight` and a 503 `write-pending`.
+          schema:
+            minimum: 1
+            type: integer
+        X-Request-Id:
+          description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+          schema:
+            type: string
   schemas:
     Account:
       allOf:
@@ -1236,6 +1246,13 @@ paths:
     get:
       description: Returns 200 as soon as the process serves HTTP. It does not check dependencies.
       operationId: getLiveness
+      parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
       responses:
         "200":
           content:
@@ -1243,6 +1260,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Liveness"
           description: The process is alive.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Liveness probe
@@ -1254,6 +1276,13 @@ paths:
         Checks Postgres and TigerBeetle with a short timeout and reports each one. Returns 503 when
         any dependency is down so load balancers stop routing traffic to this instance.
       operationId: getReadiness
+      parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
       responses:
         "200":
           content:
@@ -1261,12 +1290,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/Readiness"
           description: Every dependency is reachable.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         "503":
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Readiness"
           description: At least one dependency is unreachable.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Readiness probe
@@ -1276,6 +1315,13 @@ paths:
     get:
       description: Service name and version, runtime versions, and the reachability of Postgres and TigerBeetle.
       operationId: getInfo
+      parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
       responses:
         "200":
           content:
@@ -1283,6 +1329,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Info"
           description: Service information.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Service information
@@ -1294,6 +1345,13 @@ paths:
         The background loop that settles write records left pending by a crash between Postgres
         and TigerBeetle (ADR-0007): its last run and the records it is waiting on.
       operationId: getReconcilerStatus
+      parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
       responses:
         "200":
           content:
@@ -1301,6 +1359,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/ReconcilerStatus"
           description: Reconciler status.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Reconciler status
@@ -1317,6 +1380,12 @@ paths:
           schema:
             maxLength: 512
             type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: Page size.
           in: query
           name: limit
@@ -1332,6 +1401,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/LedgerList"
           description: A page of ledgers.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: List ledgers
@@ -1342,6 +1416,12 @@ paths:
       description: The ledger with its metadata, assets and account count.
       operationId: getLedger
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1355,6 +1435,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Ledger"
           description: The ledger.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Get a ledger
@@ -1367,6 +1452,12 @@ paths:
         name is taken.
       operationId: createLedger
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1386,6 +1477,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Ledger"
           description: The ledger was created.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Create a ledger
@@ -1405,6 +1501,12 @@ paths:
           name: cursor
           schema:
             maxLength: 512
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
             type: string
         - description: The ledger name.
           in: path
@@ -1443,6 +1545,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/AccountList"
           description: A page of accounts.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: List accounts
@@ -1461,6 +1568,12 @@ paths:
           required: true
           schema:
             $ref: "#/components/schemas/Address"
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1474,6 +1587,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Account"
           description: The account.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Get an account
@@ -1493,6 +1611,12 @@ paths:
           required: true
           schema:
             $ref: "#/components/schemas/Address"
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1518,6 +1642,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/BalanceHistory"
           description: Balance history.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Balance history
@@ -1534,6 +1663,12 @@ paths:
           required: true
           schema:
             $ref: "#/components/schemas/Address"
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1553,6 +1688,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Account"
           description: The account with its new metadata.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Replace account metadata
@@ -1567,6 +1707,12 @@ paths:
         covering more accounts than the cap answers 422 `prefix-too-broad`.
       operationId: aggregateBalances
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1586,6 +1732,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/AggregateBalances"
           description: Per-asset sums.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Sum balances under a prefix
@@ -1598,6 +1749,12 @@ paths:
         chart of accounts by segment. Without a prefix, the top-level segments.
       operationId: listSegments
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1615,6 +1772,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/SegmentList"
           description: Child segments.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Address segments under a prefix
@@ -1627,6 +1789,12 @@ paths:
         account count and the money issued. A scale never changes: a new scale is a new asset.
       operationId: listAssets
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1640,6 +1808,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/AssetList"
           description: The assets of the ledger.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: List assets
@@ -1650,6 +1823,12 @@ paths:
       description: The event types of the ledger with their TigerBeetle `code` and usage.
       operationId: listEventTypes
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1663,6 +1842,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/EventTypeList"
           description: The event types.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: List event types
@@ -1674,6 +1858,12 @@ paths:
         there is no edit or delete (ADR-0007). Without a code, the next free one is assigned.
       operationId: createEventType
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1693,6 +1883,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/EventType"
           description: The event type.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Create an event type
@@ -1708,6 +1903,12 @@ paths:
           name: cursor
           schema:
             maxLength: 512
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
             type: string
         - description: The ledger name.
           in: path
@@ -1739,6 +1940,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/HoldList"
           description: A page of holds.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: List holds
@@ -1760,6 +1966,12 @@ paths:
             maxLength: 255
             minLength: 1
             type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1779,6 +1991,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Hold"
           description: The hold is open.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Create a hold
@@ -1789,6 +2006,12 @@ paths:
       description: The hold, its pending transfer and, once resolved, the transfer that resolved it.
       operationId: getHold
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1808,6 +2031,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Hold"
           description: The hold.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Get a hold
@@ -1830,6 +2058,12 @@ paths:
           schema:
             maxLength: 255
             minLength: 1
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
             type: string
         - description: The ledger name.
           in: path
@@ -1855,6 +2089,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Hold"
           description: The hold is captured.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Capture a hold
@@ -1875,6 +2114,12 @@ paths:
             maxLength: 255
             minLength: 1
             type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1894,6 +2139,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Hold"
           description: The hold is voided.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Void a hold
@@ -1904,6 +2154,12 @@ paths:
       description: Replaces the metadata of the ledger with the given key/value pairs.
       operationId: replaceLedgerMetadata
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -1923,6 +2179,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Ledger"
           description: The ledger with its new metadata.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Replace ledger metadata
@@ -1940,6 +2201,12 @@ paths:
           name: cursor
           schema:
             maxLength: 512
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
             type: string
         - description: The ledger name.
           in: path
@@ -1976,6 +2243,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/WriteRequestList"
           description: A page of write requests.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: List write requests
@@ -1986,6 +2258,12 @@ paths:
       description: The record with the stored request, the stored outcome and the minted IDs.
       operationId: getWriteRequest
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -2007,6 +2285,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/WriteRequestDetail"
           description: The write request.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Get a write request
@@ -2020,6 +2303,12 @@ paths:
         accounts keep the flags stored on their row (ADR-0006).
       operationId: listRules
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -2033,6 +2322,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/RuleList"
           description: The rules.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: List account rules
@@ -2043,6 +2337,12 @@ paths:
       description: The rule that would create the account for an address, and every rule considered.
       operationId: matchRule
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -2061,6 +2361,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/RuleMatch"
           description: The winning rule.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Which rule wins for an address
@@ -2079,6 +2384,12 @@ paths:
             maxLength: 256
             minLength: 1
             type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -2088,6 +2399,11 @@ paths:
       responses:
         "204":
           description: The rule was deleted.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Delete a rule
@@ -2104,6 +2420,12 @@ paths:
           schema:
             maxLength: 256
             minLength: 1
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
             type: string
         - description: The ledger name.
           in: path
@@ -2124,6 +2446,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Rule"
           description: The rule.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Create or replace a rule
@@ -2136,6 +2463,12 @@ paths:
         finds accounts, a reference finds transactions, an Idempotency-Key finds a write request.
       operationId: search
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -2156,6 +2489,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/SearchResults"
           description: Matches by kind.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Search the ledger
@@ -2169,6 +2507,12 @@ paths:
         of the last 24 hours with their reasons.
       operationId: getLedgerStats
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -2182,6 +2526,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/LedgerStats"
           description: Overview figures.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Ledger overview figures
@@ -2200,6 +2549,12 @@ paths:
           name: cursor
           schema:
             maxLength: 512
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
             type: string
         - description: The ledger name.
           in: path
@@ -2253,6 +2608,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/TransactionList"
           description: A page of transactions.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: List transactions
@@ -2276,6 +2636,12 @@ paths:
             maxLength: 255
             minLength: 1
             type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -2295,6 +2661,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Transaction"
           description: The transaction was committed.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Create a transaction
@@ -2305,6 +2676,12 @@ paths:
       description: The transaction with its postings and the TigerBeetle transfer behind each one.
       operationId: getTransaction
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -2324,6 +2701,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Transaction"
           description: The transaction.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Get a transaction
@@ -2334,6 +2716,12 @@ paths:
       description: Replaces the metadata stored in Postgres with the transaction. The postings never change.
       operationId: replaceTransactionMetadata
       parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
         - description: The ledger name.
           in: path
           name: ledger
@@ -2359,6 +2747,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Transaction"
           description: The transaction with its new metadata.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Replace transaction metadata
@@ -2382,6 +2775,12 @@ paths:
           schema:
             maxLength: 255
             minLength: 1
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
             type: string
         - description: The ledger name.
           in: path
@@ -2407,6 +2806,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Transaction"
           description: The reverting transaction was committed.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Problem"
       summary: Revert a transaction

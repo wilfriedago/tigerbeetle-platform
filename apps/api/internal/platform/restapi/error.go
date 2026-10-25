@@ -212,8 +212,17 @@ func registerComponents(oapi *huma.OpenAPI) {
 	if oapi.Components.Responses == nil {
 		oapi.Components.Responses = map[string]*huma.Response{}
 	}
+	retryMinimum := 1.0
 	oapi.Components.Responses["Problem"] = &huma.Response{
 		Description: "An error described as RFC 9457 problem details.",
+		Headers: map[string]*huma.Param{
+			requestid.Header: requestIDResponseHeader(),
+			"Retry-After": {
+				Description: "Seconds to wait before retrying, sent with a 409 `request-in-flight` and a 503 " +
+					"`write-pending`.",
+				Schema: &huma.Schema{Type: huma.TypeInteger, Minimum: &retryMinimum},
+			},
+		},
 		Content: map[string]*huma.MediaType{
 			problemMediaType: {Schema: (*Error)(nil).Schema(oapi.Components.Schemas)},
 		},

@@ -1250,6 +1250,10 @@ export interface components {
         /** @description An error described as RFC 9457 problem details. */
         Problem: {
             headers: {
+                /** @description Seconds to wait before retrying, sent with a 409 `request-in-flight` and a 503 `write-pending`. */
+                "Retry-After"?: number;
+                /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                "X-Request-Id"?: string;
                 [name: string]: unknown;
             };
             content: {
@@ -1333,7 +1337,10 @@ export interface operations {
     getLiveness: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1342,6 +1349,8 @@ export interface operations {
             /** @description The process is alive. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1354,7 +1363,10 @@ export interface operations {
     getReadiness: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1363,6 +1375,8 @@ export interface operations {
             /** @description Every dependency is reachable. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1372,6 +1386,8 @@ export interface operations {
             /** @description At least one dependency is unreachable. */
             503: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1384,7 +1400,10 @@ export interface operations {
     getInfo: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1393,6 +1412,8 @@ export interface operations {
             /** @description Service information. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1405,7 +1426,10 @@ export interface operations {
     getReconcilerStatus: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1414,6 +1438,8 @@ export interface operations {
             /** @description Reconciler status. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1431,7 +1457,10 @@ export interface operations {
                 /** @description Page size. */
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1440,6 +1469,8 @@ export interface operations {
             /** @description A page of ledgers. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1452,7 +1483,10 @@ export interface operations {
     getLedger: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1464,6 +1498,8 @@ export interface operations {
             /** @description The ledger. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1476,7 +1512,10 @@ export interface operations {
     createLedger: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1492,6 +1531,8 @@ export interface operations {
             /** @description The ledger was created. */
             201: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1515,7 +1556,10 @@ export interface operations {
                 /** @description Page size. */
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1527,6 +1571,8 @@ export interface operations {
             /** @description A page of accounts. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1539,7 +1585,10 @@ export interface operations {
     getAccount: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The account address, such as `users:1234:wallet`. */
                 address: components["schemas"]["Address"];
@@ -1553,6 +1602,8 @@ export interface operations {
             /** @description The account. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1568,7 +1619,10 @@ export interface operations {
                 asset: components["schemas"]["Asset"];
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The account address, such as `users:1234:wallet`. */
                 address: components["schemas"]["Address"];
@@ -1582,6 +1636,8 @@ export interface operations {
             /** @description Balance history. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1594,7 +1650,10 @@ export interface operations {
     replaceAccountMetadata: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The account address, such as `users:1234:wallet`. */
                 address: components["schemas"]["Address"];
@@ -1612,6 +1671,8 @@ export interface operations {
             /** @description The account with its new metadata. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1627,7 +1688,10 @@ export interface operations {
                 /** @description The prefix, on whole segments. A trailing colon is optional. */
                 address: components["schemas"]["AddressPrefix"];
             };
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1639,6 +1703,8 @@ export interface operations {
             /** @description Per-asset sums. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1653,7 +1719,10 @@ export interface operations {
             query?: {
                 prefix?: components["schemas"]["AddressPrefix"];
             };
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1665,6 +1734,8 @@ export interface operations {
             /** @description Child segments. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1677,7 +1748,10 @@ export interface operations {
     listAssets: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1689,6 +1763,8 @@ export interface operations {
             /** @description The assets of the ledger. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1701,7 +1777,10 @@ export interface operations {
     listEventTypes: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1713,6 +1792,8 @@ export interface operations {
             /** @description The event types. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1725,7 +1806,10 @@ export interface operations {
     createEventType: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1741,6 +1825,8 @@ export interface operations {
             /** @description The event type. */
             201: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1761,7 +1847,10 @@ export interface operations {
                 /** @description Page size. */
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1773,6 +1862,8 @@ export interface operations {
             /** @description A page of holds. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1791,6 +1882,8 @@ export interface operations {
                  *     different body answers 422 `idempotency-key-reused`.
                  */
                 "Idempotency-Key": string;
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
             };
             path: {
                 /** @description The ledger name. */
@@ -1807,6 +1900,8 @@ export interface operations {
             /** @description The hold is open. */
             201: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1819,7 +1914,10 @@ export interface operations {
     getHold: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1833,6 +1931,8 @@ export interface operations {
             /** @description The hold. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1851,6 +1951,8 @@ export interface operations {
                  *     different body answers 422 `idempotency-key-reused`.
                  */
                 "Idempotency-Key": string;
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
             };
             path: {
                 /** @description The ledger name. */
@@ -1869,6 +1971,8 @@ export interface operations {
             /** @description The hold is captured. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1887,6 +1991,8 @@ export interface operations {
                  *     different body answers 422 `idempotency-key-reused`.
                  */
                 "Idempotency-Key": string;
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
             };
             path: {
                 /** @description The ledger name. */
@@ -1901,6 +2007,8 @@ export interface operations {
             /** @description The hold is voided. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1913,7 +2021,10 @@ export interface operations {
     replaceLedgerMetadata: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1929,6 +2040,8 @@ export interface operations {
             /** @description The ledger with its new metadata. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1950,7 +2063,10 @@ export interface operations {
                 /** @description Page size. */
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1962,6 +2078,8 @@ export interface operations {
             /** @description A page of write requests. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1974,7 +2092,10 @@ export interface operations {
     getWriteRequest: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -1988,6 +2109,8 @@ export interface operations {
             /** @description The write request. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2000,7 +2123,10 @@ export interface operations {
     listRules: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -2012,6 +2138,8 @@ export interface operations {
             /** @description The rules. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2026,7 +2154,10 @@ export interface operations {
             query: {
                 address: components["schemas"]["Address"];
             };
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -2038,6 +2169,8 @@ export interface operations {
             /** @description The winning rule. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2050,7 +2183,10 @@ export interface operations {
     putRule: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description `*`, an address such as `world`, or a prefix ending with a colon such as `users:`. */
                 pattern: string;
@@ -2068,6 +2204,8 @@ export interface operations {
             /** @description The rule. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2080,7 +2218,10 @@ export interface operations {
     deleteRule: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description `*`, an address such as `world`, or a prefix ending with a colon such as `users:`. */
                 pattern: string;
@@ -2094,6 +2235,8 @@ export interface operations {
             /** @description The rule was deleted. */
             204: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
@@ -2106,7 +2249,10 @@ export interface operations {
             query: {
                 q: string;
             };
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -2118,6 +2264,8 @@ export interface operations {
             /** @description Matches by kind. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2130,7 +2278,10 @@ export interface operations {
     getLedgerStats: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -2142,6 +2293,8 @@ export interface operations {
             /** @description Overview figures. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2168,7 +2321,10 @@ export interface operations {
                 /** @description Page size. */
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -2180,6 +2336,8 @@ export interface operations {
             /** @description A page of transactions. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2198,6 +2356,8 @@ export interface operations {
                  *     different body answers 422 `idempotency-key-reused`.
                  */
                 "Idempotency-Key": string;
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
             };
             path: {
                 /** @description The ledger name. */
@@ -2214,6 +2374,8 @@ export interface operations {
             /** @description The transaction was committed. */
             201: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2226,7 +2388,10 @@ export interface operations {
     getTransaction: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -2240,6 +2405,8 @@ export interface operations {
             /** @description The transaction. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2252,7 +2419,10 @@ export interface operations {
     replaceTransactionMetadata: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
+            };
             path: {
                 /** @description The ledger name. */
                 ledger: components["schemas"]["LedgerName"];
@@ -2270,6 +2440,8 @@ export interface operations {
             /** @description The transaction with its new metadata. */
             200: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2288,6 +2460,8 @@ export interface operations {
                  *     different body answers 422 `idempotency-key-reused`.
                  */
                 "Idempotency-Key": string;
+                /** @description Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header. */
+                "X-Request-Id"?: string;
             };
             path: {
                 /** @description The ledger name. */
@@ -2306,6 +2480,8 @@ export interface operations {
             /** @description The reverting transaction was committed. */
             201: {
                 headers: {
+                    /** @description The request ID: the one the client sent when it was valid, a new one otherwise. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {

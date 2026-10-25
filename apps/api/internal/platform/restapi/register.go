@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/danielgtaylor/huma/v2"
+
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 )
 
 // Register adds one operation to api. Every operation documents the shared Problem response as its
@@ -20,7 +22,14 @@ func Register[I, O any](api huma.API, op huma.Operation, handler func(context.Co
 	if op.Responses == nil {
 		op.Responses = map[string]*huma.Response{}
 	}
+	for _, r := range op.Responses {
+		if r.Headers == nil {
+			r.Headers = map[string]*huma.Param{}
+		}
+		r.Headers[requestid.Header] = requestIDResponseHeader()
+	}
 	op.Responses["default"] = &huma.Response{Ref: problemResponseRef}
+	op.Parameters = append(op.Parameters, requestIDParam())
 	op.SkipValidateParams = true
 	op.SkipValidateBody = true
 	huma.Register(api, op, func(ctx context.Context, in *I) (*O, error) {
@@ -45,5 +54,25 @@ func JSON[T any](api huma.API, description string) *huma.Response {
 	return &huma.Response{
 		Description: description,
 		Content:     map[string]*huma.MediaType{"application/json": {Schema: schema}},
+	}
+}
+
+// requestIDParam documents the X-Request-Id request header the middleware reads on every request.
+func requestIDParam() *huma.Param {
+	maxLength := 128
+	return &huma.Param{
+		Name: requestid.Header, In: "header",
+		Description: "Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII " +
+			"characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id " +
+			"response header.",
+		Schema: &huma.Schema{Type: huma.TypeString, MaxLength: &maxLength},
+	}
+}
+
+// requestIDResponseHeader documents the X-Request-Id header of every answer.
+func requestIDResponseHeader() *huma.Param {
+	return &huma.Param{
+		Description: "The request ID: the one the client sent when it was valid, a new one otherwise.",
+		Schema:      &huma.Schema{Type: huma.TypeString},
 	}
 }

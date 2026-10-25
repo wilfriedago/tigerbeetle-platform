@@ -73,3 +73,11 @@ crash windows of ADR-0007. The table below lists what differs on the wire.
 | Body sent without a JSON `Content-Type` (`curl -d`)                       | decoded as JSON                                                           | unchanged, through a small middleware (plan question 6)                                                                 |
 | Unknown members in a body, values beyond the documented limits            | ignored, clamped by the domain                                            | unchanged (plan question 4)                                                                                             |
 | 404, 405, panics, `X-Request-Id`, `Retry-After`, `X-Content-Type-Options` | problem+json, headers as specified                                        | unchanged                                                                                                               |
+
+## After the parity commit: the headers the API already sent
+
+The next commit declares two headers the API has always sent without documenting them (plan
+question 3): `X-Request-Id` as an optional request header and a response header of every answer,
+and `Retry-After` on the shared Problem response. Against the hand-written spec, `oasdiff breaking`
+still reports nothing; the changelog lists 141 INFO entries: 35 `new-optional-request-parameter`
+and 106 `response-header-added`. The generated client can now read `Retry-After` from its types.

@@ -308,6 +308,9 @@ func TestSpec(t *testing.T) {
 		"application/problem+json:",
 		"format: uri-reference",
 		"propertyNames",
+		"X-Request-Id:",
+		"Retry-After:",
+		"name: X-Request-Id",
 	} {
 		if !strings.Contains(spec, want) && !strings.Contains(spec, strings.ReplaceAll(want, "'", `"`)) {
 			t.Errorf("spec lacks %q", want)
