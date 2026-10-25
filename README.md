@@ -16,19 +16,21 @@ reverts, prefix balances and the write-request log. The console covers every pag
 
 ## Quickstart
 
-Prerequisites: Docker with Compose v2, Node.js 24 and pnpm 12 (any pnpm 12 on your PATH works;
-`packageManager` in package.json pins the exact version). Go and the Go tools are only needed to
-work on the API itself (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+Prerequisites: Docker with Compose v2, Node.js 24, pnpm 12 (any pnpm 12 on your PATH works;
+`packageManager` in package.json pins the exact version) and just 1.59.0, the task runner, which
+`scripts/install-tools.sh just` installs. Go and the Go tools are only needed to work on the API
+itself (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ```sh
 git clone https://github.com/wilfriedago/tigerbeetle-platform.git
 cd tigerbeetle-platform
 pnpm install
-pnpm stack:up
+scripts/install-tools.sh just   # the task runner; put the directory it prints on your PATH
+just compose-up
 curl -s localhost:8080/readyz
 ```
 
-`pnpm stack:up` builds the API image, formats a TigerBeetle data file on first run, starts
+`just compose-up` builds the API image, formats a TigerBeetle data file on first run, starts
 TigerBeetle, Postgres, the API (which applies the migrations) and the console, and waits until
 every service is healthy. The readiness call answers 200 with both dependencies reported `up`:
 
@@ -44,7 +46,7 @@ every service is healthy. The readiness call answers 200 with both dependencies 
 
 Then open http://localhost:5173 for the console. `scripts/seed-demo.sh` creates a demo ledger
 (`eu-payments`) with accounts, transactions, a declined write and holds, through the API.
-Stop everything with `pnpm stack:down`; `pnpm stack:reset` also deletes the data volumes.
+Stop everything with `just compose-down`; `just compose-reset` also deletes the data volumes.
 Ports and credentials can be overridden by copying `.env.example` to `.env`.
 
 ## Architecture in short

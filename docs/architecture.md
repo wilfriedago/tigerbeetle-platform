@@ -51,8 +51,8 @@ dev server proxies `/api` to it (`apps/console/vite.config.ts`), so no CORS setu
 
 The OpenAPI document `packages/openapi/openapi.yaml` is the contract. oapi-codegen generates the
 Go routes, models and strict server interface into `apps/api/internal/adapters/httpapi/gen/`,
-openapi-typescript generates `packages/api-client/src/schema.d.ts`, `pnpm generate` runs both in
-dependency order (`turbo.json`), and the `codegen-drift` CI job fails on stale output.
+openapi-typescript generates `packages/api-client/src/schema.d.ts`, `just generate` runs both in
+dependency order (ADR-0016), and the `codegen-drift` CI job fails on stale output.
 
 ## Code layout of apps/api
 
@@ -77,7 +77,7 @@ place that sees every concrete type and plugs them together.
 The import rules are: domain imports nothing from `internal`; app imports only domain;
 adapters import app and domain but never each other. The depguard linter in
 `apps/api/.golangci.yml` enforces them with one rule per layer (a file glob plus a deny list), so
-a forbidden import fails `pnpm lint` and the `go` CI job. The domain and app rules also deny pgx,
+a forbidden import fails `just lint` and the `go` CI job. The domain and app rules also deny pgx,
 the TigerBeetle client and `net/http`, which is what "no I/O" means in practice.
 
 Errors follow one pattern. The domain declares four sentinels in

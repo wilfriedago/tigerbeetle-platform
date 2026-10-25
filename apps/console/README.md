@@ -9,6 +9,8 @@ API through `@tigerbeetle-platform/api-client`.
 - `pnpm --filter console generate` regenerates `src/route-tree.gen.ts` from `src/routes`; the
   Vite plugin does the same while `dev` runs. The file is committed.
 - `pnpm --filter console test` runs the unit tests (money, preflight, validation, drafts).
+- From the repository root, `just dev`, `just generate`, `just typecheck` and `just test-ts` run
+  these tasks for every package (ADR-0016).
 - A production build expects the API under the same origin (a reverse proxy mapping `/api` to
   the API); `VITE_API_URL` overrides the path, `VITE_API_PUBLIC_URL` sets the address shown in
   "Copy as curl". The API sends no CORS headers.
