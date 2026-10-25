@@ -54,7 +54,18 @@ root justfile, in phases 0 to 7 with a review stop after each.
     `BadRequest`.
   - `GRPC_ENABLED` (off) and `GRPC_ADDR` (`:9090`); compose passes the switch and publishes
     `GRPC_PORT`.
-- Phase 6 (AMQP and NATS RPC) comes next, then 7 (Kafka).
+- Phase 6 (AMQP and NATS RPC, ADR-0021) is done:
+  - `internal/platform/rpc`: the envelope, the router of `v1.<operationId>` methods, the worker
+    pool and the deadline rules; `amqp` (connection supervisor), `amqprpc` (durable queue
+    `tbp.rpc.v1`, direct reply-to) and `natsrpc` (micro service, queue group `tbp-api`), each
+    with a test client.
+  - Every module registers one method per REST operation in `interfaces/rpc/v1`;
+    `internal/transport/rpc` builds the router and a test keeps it equal to the REST operations
+    (35).
+  - Switches `AMQP_RPC_ENABLED`, `NATS_RPC_ENABLED` and their settings; readiness reports the
+    enabled brokers and answers 200 `degraded` when one is down.
+  - Compose profile `brokers` (`just compose-up-brokers`) and `just test-e2e`.
+- Phase 7 (Kafka) comes next.
 
 Where the commits are: phases 0 to 4 and the first three commits of phase 5 (up to 725f75b)
 are on `feat/console` in the main checkout. While phase 5 ran, the main checkout gained
@@ -72,6 +83,13 @@ merged and not pushed, so CI has never run on GitHub. Everything below was verif
 
 Working and verified:
 
+- After phase 6: the platform integration tests (spike S5) show each request running once across
+  two replicas on both brokers, concurrency capped at `RPC_CONCURRENCY`, deadlines kept, a
+  dropped AMQP connection redialled, and a NATS timeout told apart from no responders.
+  `cmd/api/rpc_integration_test.go` runs two replicas through bootstrap: one write replays over
+  AMQP, NATS and REST and moves the balance once, and 40 writes across both brokers each apply
+  once. `just test-e2e` passed against `just compose-up-brokers` on every transport, and
+  stopping NATS turned `/readyz` into 200 `degraded` until it came back.
 - After phase 5: `cmd/api/grpc_integration_test.go` passes against real Postgres and
   TigerBeetle. A gRPC write replays over REST and gRPC under its key, a reused key is
   `IDEMPOTENCY_KEY_REUSED`, a decline carries `ErrorInfo` with its posting and results, and a
@@ -126,6 +144,7 @@ Not done, by design or by circumstance:
 | Runtime image                  | `gcr.io/distroless/base-debian13:nonroot`                                                                                                                                                                      |
 | Postgres                       | `postgres:18.6-trixie`, pgx v5.11.0, sqlc v1.31.1, goose v3.29.0 (library only)                                                                                                                                |
 | REST                           | Huma v2.39.1 (`humago` on the standard ServeMux); oasdiff 1.34.1 (installed by `scripts/install-tools.sh`, sha256 pinned)                                                                                      |
+| Broker RPC                     | amqp091-go v1.16.0, nats.go v1.55.0, testcontainers modules rabbitmq and nats v0.44.0; `rabbitmq:4.4.0-management` and `nats:2.15.1-alpine`, both pinned by digest in the `brokers` profile                    |
 | gRPC                           | grpc v1.84.0, protobuf v1.36.12; buf v1.75.0, protoc-gen-go v1.36.12, protoc-gen-go-grpc v1.6.2 (installed by `scripts/install-tools.sh`, sha256 pinned)                                                       |
 | GraphQL                        | gqlgen v0.17.98 (a `go tool`), gqlparser v2.5.64; console: graphql-codegen 7.4.6 with client-preset 6.2.3, graphql 17.0.2, @graphql-typed-document-node/core 3.2.0                                             |
 | golangci-lint, govulncheck     | v2.15.0, v1.9.0 (installed by `scripts/install-tools.sh`)                                                                                                                                                      |
@@ -317,6 +336,23 @@ place.
     server (empty service name) to probe on demand, as `/readyz` does, and refreshes the
     embedded server's status so `Watch` sees it.
 
+55. **`grpclog.SetLoggerV2` races with gRPC in use.** Setting it from `grpcserver.New` failed
+    `go test -race` now and then, because parallel tests already ran gRPC. `cmd/api` calls
+    `grpcserver.RouteLogs` once at start, before anything touches gRPC.
+56. **oasdiff 1.34.1 rates a new response enum value as an error**, not the warning the plan
+    expected. The `degraded` readiness status is accepted on purpose (ADR-0021), so
+    `packages/openapi/oasdiff-ignore.txt` lists exactly its two lines and `just spec-diff` passes
+    the file as `--err-ignore`. Remove the lines once `main` has the change.
+57. **nats.go refuses `FlushWithContext` without a deadline**, so a readiness probe called with a
+    plain context failed every time. `natsrpc.Server.Ready` sets one when the caller did not.
+58. **The testcontainers nats module starts the server with `-DV -js`.** devstack overrides the
+    command with `-m 8222`, as compose runs it: no JetStream, no debug logs.
+59. **A compose `depends_on` on a profile service needs `required: false`**, or the default stack
+    refuses to start without the brokers.
+60. **RabbitMQ direct reply-to needs the client to consume `amq.rabbitmq.reply-to` with automatic
+    acknowledgement, on the channel it publishes the request from.** The server replies to the
+    `reply_to` name through the default exchange.
+
 ## Decisions amended along the way
 
 On 2026-10-25 the owner approved the migration plan and answered its questions (plan section 23).
@@ -358,14 +394,16 @@ API (`apps/api`):
     hold, request, overview and footprint queries. `infrastructure/tigerbeetle` holds the bounded
     calls and `id.go`.
   - `health`: liveness, readiness and service information, an interfaces layer only.
-  - Each has `interfaces/dto` (wire types), `rest/v1`, `graphql` and `grpc/v1`.
+  - Each has `interfaces/dto` (wire types, request bodies and list answers included), `rest/v1`,
+    `graphql`, `grpc/v1` and `rpc/v1`.
 - Transports `internal/transport/rest` (the operation list), `internal/transport/graphql`
-  (handler, resolver root, schema registry, generated `exec`) and `internal/transport/grpc` (the
-  service registry).
+  (handler, resolver root, schema registry, generated `exec`), `internal/transport/grpc` (the
+  service registry) and `internal/transport/rpc` (the broker router).
 - `internal/bootstrap`: resources, module construction (`modules.go`), servers and runners.
 - `internal/platform`: config, logging, httpserver, postgres, tigerbeetle, readiness, restapi,
-  graphqlschema, grpcserver, grpcapi (generated `platformv1` and conversions), problem, scalar,
-  requestid.
+  graphqlschema, grpcserver, grpcapi (generated `platformv1` and conversions), rpc, amqp,
+  amqprpc, natsrpc, problem, scalar, requestid.
+- `apps/api/e2e`: the `e2e`-tagged suite against the compose stack.
 - End-to-end tests in `cmd/api/*_integration_test.go`.
 
 Console (`apps/console/src`):
@@ -384,7 +422,7 @@ Console (`apps/console/src`):
 
 ## Suggested next steps, in order
 
-1. Phases 6 and 7 (plan section 19), each ending with an update of this file; one combined
+1. Phase 7 (plan section 19), each ending with an update of this file; one combined
    summary of versions and deviations for the owner at the end.
 2. The owner reviews phases 2 to 7 together.
 3. Push to GitHub, open the pull request for `feat/console`, make CI green, install Renovate.
