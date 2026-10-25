@@ -62,6 +62,14 @@ lint-ts:
 lint-spec:
     pnpm --filter @tigerbeetle-platform/openapi lint
 
+# Path parameters are flattened: the generated spec declares them on each operation, the
+# hand-written one declared them once per path (ADR-0018).
+[doc('Breaking changes, then the changelog, of the REST spec against a git revision (CI: the base branch).')]
+[group('quality')]
+spec-diff base="main":
+    oasdiff breaking "{{ base }}:packages/openapi/openapi.yaml" packages/openapi/openapi.yaml --flatten-params --fail-on ERR
+    oasdiff changelog "{{ base }}:packages/openapi/openapi.yaml" packages/openapi/openapi.yaml --flatten-params
+
 # golangci-lint runs gofumpt and goimports on Go; vp check --fix runs Oxfmt and Oxlint fixes.
 [doc('Format everything and write the changes.')]
 [group('quality')]
