@@ -266,7 +266,9 @@ export function OverviewPage() {
               </ul>
             ) : (
               <CardContent>
-                <p className="text-small text-muted-foreground">No open hold has a timeout.</p>
+                <p className="text-small text-muted-foreground">
+                  {(holds.data?.data.length ?? 0) === 0 ? 'No open holds.' : 'No open hold has a timeout.'}
+                </p>
               </CardContent>
             )}
           </Card>

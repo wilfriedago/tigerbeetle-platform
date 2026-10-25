@@ -83,6 +83,9 @@ function PaletteBody({ ledger, onClose }: { ledger: string | undefined; onClose:
   const q = debounced.trim()
   const search = useQuery({ ...ledgerQueries.search(ledger ?? '', q), enabled: Boolean(ledger) && q.length > 0, placeholderData: keepPreviousData })
   const results = q.length > 0 ? search.data : undefined
+  // cmdk keeps its highlight when the items change; with server results the first match should
+  // lead, so the highlight resets whenever a new answer arrives.
+  const [selection, setSelection] = useState({ at: 0, value: '' })
 
   if (!ledger) {
     return (
@@ -97,9 +100,17 @@ function PaletteBody({ ledger, onClose }: { ledger: string | undefined; onClose:
   const prefix = q.replace(/:$/, '')
   const offerPrefix = PREFIX_PATTERN.test(q) && !/^[0-9a-f]{32}$/.test(q)
   const nothing = results && results.accounts.length + results.transactions.length + results.holds.length + results.requests.length === 0
+  const first =
+    (results?.accounts[0] && `account:${results.accounts[0].address}`) ??
+    (results?.transactions[0] && `tx:${results.transactions[0].id}`) ??
+    (results?.holds[0] && `hold:${results.holds[0].id}`) ??
+    (results?.requests[0] && `request:${results.requests[0].key}`) ??
+    (offerPrefix ? `balances:${prefix}` : 'action:new-transaction')
+  const answeredAt = q.length > 0 ? search.dataUpdatedAt : 0
+  const selected = selection.at === answeredAt ? selection.value : first
 
   return (
-    <Command shouldFilter={false} loop>
+    <Command shouldFilter={false} loop value={selected} onValueChange={(value) => setSelection({ at: answeredAt, value })}>
       <CommandInput value={query} onValueChange={setQuery} placeholder="Search ID, address, reference or Idempotency-Key" />
       <CommandList>
         {q.length > 0 && search.isFetching && !results ? (

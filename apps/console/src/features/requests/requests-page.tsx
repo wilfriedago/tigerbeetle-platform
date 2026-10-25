@@ -18,6 +18,7 @@ import { IdText } from '~/components/ledger/id-text'
 import { ProblemPanel } from '~/components/ledger/problem-panel'
 import { StatusBadge } from '~/components/ledger/status-badge'
 import { Timestamp } from '~/components/ledger/timestamp'
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
 import { Sheet, SheetBody, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/components/ui/sheet'
 import { Skeleton } from '~/components/ui/skeleton'
@@ -265,15 +266,13 @@ function RecordDetail({ ledger, record }: { ledger: string; record: WriteRequest
       </DescriptionList>
       {problem ? <ProblemPanel error={problem} /> : null}
       {final ? (
-        <div className="flex gap-3 rounded-md border border-primary-border bg-primary-subtle p-3">
-          <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary-text" />
-          <div className="flex flex-col gap-1 text-small">
-            <span className="font-semibold">Why the key cannot be reused</span>
-            <span className="text-muted-foreground">
-              The transfer IDs minted for this key are burned in TigerBeetle. Send the corrected request with a new key.
-            </span>
-          </div>
-        </div>
+        <Alert>
+          <InfoIcon />
+          <AlertTitle>Why the key cannot be reused</AlertTitle>
+          <AlertDescription>
+            The transfer IDs minted for this key are burned in TigerBeetle. Send the corrected request with a new key.
+          </AlertDescription>
+        </Alert>
       ) : null}
       <CodeBlock value={record.request} label="Stored request" maxHeight={260} />
       {record.response ? <CodeBlock value={record.response} label={`Stored response ${record.responseStatus ?? ''}`} maxHeight={260} /> : null}

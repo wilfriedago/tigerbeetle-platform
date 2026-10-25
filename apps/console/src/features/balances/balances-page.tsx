@@ -11,6 +11,7 @@ import { Amount, AmountDisplay } from '~/components/ledger/amount'
 import { AssetBadge } from '~/components/ledger/asset-badge'
 import { BalanceBar } from '~/components/ledger/balance'
 import { ProblemPanel } from '~/components/ledger/problem-panel'
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group'
@@ -110,19 +111,17 @@ export function BalancesPage() {
       {sum.error ? <ProblemPanel error={sum.error} onRetry={() => void sum.refetch()} /> : null}
       {sum.data ? (
         <>
-          <div className="flex gap-3 rounded-lg border border-primary-border bg-primary-subtle p-4">
-            <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary-text" />
-            <div className="flex flex-col gap-1">
-              <span className="text-small font-semibold">
-                Summed at {formatTime(sum.data.asOf)} from {sum.data.accounts.toLocaleString('en-US')}{' '}
-                {sum.data.accounts === 1 ? 'account' : 'accounts'} in {sum.data.chunks} {sum.data.chunks === 1 ? 'chunk' : 'chunks'}
-              </span>
-              <p className="text-small text-muted-foreground">
-                TigerBeetle has no prefix queries, so Postgres resolves the prefix and the API reads the accounts in chunks of up to 8,189.{' '}
-                {sum.data.chunks > 1 ? 'The total is not one consistent snapshot across chunks.' : 'One chunk is one consistent read.'}
-              </p>
-            </div>
-          </div>
+          <Alert>
+            <InfoIcon />
+            <AlertTitle>
+              Summed at {formatTime(sum.data.asOf)} from {sum.data.accounts.toLocaleString('en-US')}{' '}
+              {sum.data.accounts === 1 ? 'account' : 'accounts'} in {sum.data.chunks} {sum.data.chunks === 1 ? 'chunk' : 'chunks'}
+            </AlertTitle>
+            <AlertDescription>
+              TigerBeetle has no prefix queries, so Postgres resolves the prefix and the API reads the accounts in chunks of up to 8,189.{' '}
+              {sum.data.chunks > 1 ? 'The total is not one consistent snapshot across chunks.' : 'One chunk is one consistent read.'}
+            </AlertDescription>
+          </Alert>
           {sum.data.assets.length === 0 ? (
             <p className="text-small text-muted-foreground">
               No account under <span className="font-mono">{displayPrefix(sum.data.prefix)}</span>.

@@ -16,6 +16,7 @@ import { PostingChain, type StepState } from '~/components/ledger/posting-chain'
 import { ProblemPanel } from '~/components/ledger/problem-panel'
 import { StatusBadge } from '~/components/ledger/status-badge'
 import { BusinessTime, Timestamp } from '~/components/ledger/timestamp'
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 
 import { accountQueries } from '~/features/accounts/api'
@@ -315,24 +316,17 @@ function Pending({ ledger, submission, onResolved }: ResultViewProps) {
               </DescriptionList>
             </CardContent>
           </Card>
-          <div className="flex gap-3 rounded-lg border border-primary-border bg-primary-subtle p-4">
-            <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary-text" />
-            <div className="flex flex-col gap-1">
-              <span className="text-small font-semibold">Safe to leave this page</span>
-              <p className="text-small text-muted-foreground">
-                The write keeps going without you. If this page closes, the reconciler settles it{grace ? ` after ${grace} s` : ''}. Find it under{' '}
-                <Link
-                  to="/ledgers/$ledger/requests"
-                  params={{ ledger }}
-                  search={{ key: submission.key }}
-                  className="text-primary-text hover:underline"
-                >
-                  Requests
-                </Link>
-                .
-              </p>
-            </div>
-          </div>
+          <Alert>
+            <InfoIcon />
+            <AlertTitle>Safe to leave this page</AlertTitle>
+            <AlertDescription>
+              The write keeps going without you. If this page closes, the reconciler settles it{grace ? ` after ${grace} s` : ''}. Find it under{' '}
+              <Link to="/ledgers/$ledger/requests" params={{ ledger }} search={{ key: submission.key }}>
+                Requests
+              </Link>
+              .
+            </AlertDescription>
+          </Alert>
         </div>
       </div>
     </div>
