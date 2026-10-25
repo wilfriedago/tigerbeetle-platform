@@ -40,7 +40,30 @@ root justfile, in phases 0 to 7 with a review stop after each.
   - The console's ledger slices (ledgers, accounts and balances, transactions, holds, requests,
     settings, overview) run on GraphQL; the System page stays on the REST client. The write
     forms read an address's account and rule in one request.
-- Phase 5 (gRPC) comes next, then 6 (AMQP and NATS RPC) and 7 (Kafka).
+- Phase 5 (gRPC, ADR-0021) is done, from 2cbe027:
+  - `packages/proto`: one package, `tigerbeetle.platform.v1`, a service per REST tag, 33
+    methods (the 35 REST operations less liveness and readiness, which `grpc.health.v1` covers).
+    `just lint-proto` runs `buf lint`; `just proto-breaking` and the CI `proto` job run
+    `buf breaking`. buf writes `internal/platform/grpcapi/platformv1`.
+  - Module services in `interfaces/grpc/v1` over the same use cases and `dto` types;
+    `internal/transport/grpc` registers them and joins LedgerService and OperationsService,
+    which span modules.
+  - `internal/platform/grpcserver`: request ID, access log, error and recovery interceptors,
+    reflection, a drain bounded by `SHUTDOWN_TIMEOUT`, grpc-go's logger routed to slog. Errors
+    carry `ErrorInfo` (AIP-193 reason from `problem.ErrorReason`), `RetryInfo` and
+    `BadRequest`.
+  - `GRPC_ENABLED` (off) and `GRPC_ADDR` (`:9090`); compose passes the switch and publishes
+    `GRPC_PORT`.
+- Phase 6 (AMQP and NATS RPC) comes next, then 7 (Kafka).
+
+Where the commits are: phases 0 to 4 and the first three commits of phase 5 (up to 725f75b)
+are on `feat/console` in the main checkout. While phase 5 ran, the main checkout gained
+uncommitted edits that were not part of this work (`.vscode/settings.json`, a reformatted
+`bookkeeping/interfaces/rest/v1/accounts.go` that fails gofumpt, and two other Go files). The
+pre-commit hook lints the whole module, so every later commit was made in a separate worktree,
+`../tigerbeetle-platform-worktrees/transports`, on the branch `feat/console-transports`, which
+starts at the tip of `feat/console`. Fast-forward `feat/console` to it once those edits are
+committed or set aside.
 
 The API implements the ledger surface (ADR-0004 to ADR-0010, details in ADR-0013) and the console
 covers every page of `docs/console.md` (ADR-0014). The work is on the `feat/console` branch, not
@@ -49,6 +72,14 @@ merged and not pushed, so CI has never run on GitHub. Everything below was verif
 
 Working and verified:
 
+- After phase 5: `cmd/api/grpc_integration_test.go` passes against real Postgres and
+  TigerBeetle. A gRPC write replays over REST and gRPC under its key, a reused key is
+  `IDEMPOTENCY_KEY_REUSED`, a decline carries `ErrorInfo` with its posting and results, and a
+  lost write answers `WRITE_PENDING` then `REQUEST_IN_FLIGHT`, both with `RetryInfo`, until the
+  reconciler settles it. The compose stack with `GRPC_ENABLED=true` answered `buf curl` through
+  reflection (health, create ledger and transaction, a decline with `ErrorInfo`, and a REST
+  replay of a gRPC key), and stopped cleanly with exit code 0 while 40 gRPC writes were in
+  flight.
 - After phase 4: `TESTCONTAINERS_RYUK_DISABLED=true just test-integration` passes, including
   `cmd/api/graphql_integration_test.go` (a ledger, a transaction replayed over REST under the
   same key, a reused key, nested reads with null for a missing hold and ledger, and a decline with
@@ -95,6 +126,7 @@ Not done, by design or by circumstance:
 | Runtime image                  | `gcr.io/distroless/base-debian13:nonroot`                                                                                                                                                                      |
 | Postgres                       | `postgres:18.6-trixie`, pgx v5.11.0, sqlc v1.31.1, goose v3.29.0 (library only)                                                                                                                                |
 | REST                           | Huma v2.39.1 (`humago` on the standard ServeMux); oasdiff 1.34.1 (installed by `scripts/install-tools.sh`, sha256 pinned)                                                                                      |
+| gRPC                           | grpc v1.84.0, protobuf v1.36.12; buf v1.75.0, protoc-gen-go v1.36.12, protoc-gen-go-grpc v1.6.2 (installed by `scripts/install-tools.sh`, sha256 pinned)                                                       |
 | GraphQL                        | gqlgen v0.17.98 (a `go tool`), gqlparser v2.5.64; console: graphql-codegen 7.4.6 with client-preset 6.2.3, graphql 17.0.2, @graphql-typed-document-node/core 3.2.0                                             |
 | golangci-lint, govulncheck     | v2.15.0, v1.9.0 (installed by `scripts/install-tools.sh`)                                                                                                                                                      |
 | just                           | 1.59.0 (installed by `scripts/install-tools.sh`, sha256 pinned per platform)                                                                                                                                   |
@@ -271,6 +303,20 @@ place.
 50. **`present()` strips nulls deeply**, which would change stored JSON. The request detail keeps
     the stored request and response bodies as they are and presents only the record's members.
 
+51. **commitlint reads any body line that starts with `word:` as a footer**, not only the
+    first one (fact 39): "tag: ledgers, ..." and "first: request ID" wrapped onto the start of a
+    line both warned. Reword the line or move the colon.
+52. **`buf breaking` needs the protos on the base.** `just proto-breaking` exits 0 with a note
+    when the base revision has no `packages/proto`, the case of the first pull request. buf's
+    git input accepts a remote-tracking ref (`origin/main`) and works from a git worktree.
+53. **A gRPC service implemented by two modules needs the stubs without
+    `mustEmbedUnimplemented...`.** `buf.gen.yaml` sets `require_unimplemented_servers=false`,
+    so `internal/transport/grpc` joins two module types into one service by embedding, and a
+    method neither has is a compile error instead of an Unimplemented answer.
+54. **grpc-go's health server is static.** The health module overrides `Check` for the whole
+    server (empty service name) to probe on demand, as `/readyz` does, and refreshes the
+    embedded server's status so `Watch` sees it.
+
 ## Decisions amended along the way
 
 On 2026-10-25 the owner approved the migration plan and answered its questions (plan section 23).
@@ -312,12 +358,14 @@ API (`apps/api`):
     hold, request, overview and footprint queries. `infrastructure/tigerbeetle` holds the bounded
     calls and `id.go`.
   - `health`: liveness, readiness and service information, an interfaces layer only.
-  - Each has `interfaces/dto` (wire types), `rest/v1` and `graphql`.
-- Transports `internal/transport/rest` (the operation list) and `internal/transport/graphql`
-  (handler, resolver root, schema registry, generated `exec`).
+  - Each has `interfaces/dto` (wire types), `rest/v1`, `graphql` and `grpc/v1`.
+- Transports `internal/transport/rest` (the operation list), `internal/transport/graphql`
+  (handler, resolver root, schema registry, generated `exec`) and `internal/transport/grpc` (the
+  service registry).
 - `internal/bootstrap`: resources, module construction (`modules.go`), servers and runners.
 - `internal/platform`: config, logging, httpserver, postgres, tigerbeetle, readiness, restapi,
-  graphqlschema, problem, scalar, requestid.
+  graphqlschema, grpcserver, grpcapi (generated `platformv1` and conversions), problem, scalar,
+  requestid.
 - End-to-end tests in `cmd/api/*_integration_test.go`.
 
 Console (`apps/console/src`):
@@ -336,7 +384,7 @@ Console (`apps/console/src`):
 
 ## Suggested next steps, in order
 
-1. Phases 5 to 7 (plan section 19), each ending with an update of this file; one combined
+1. Phases 6 and 7 (plan section 19), each ending with an update of this file; one combined
    summary of versions and deviations for the owner at the end.
 2. The owner reviews phases 2 to 7 together.
 3. Push to GitHub, open the pull request for `feat/console`, make CI green, install Renovate.
