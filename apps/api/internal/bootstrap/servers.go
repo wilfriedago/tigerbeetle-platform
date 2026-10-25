@@ -12,19 +12,17 @@ import (
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	ledgersv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/rest/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/httpserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 	graphqltransport "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/graphql"
+	grpctransport "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/grpc"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/rest"
 )
 
-// httpHandler builds the HTTP handler: the health operations always, the module operations when
-// REST is enabled, and POST /graphql when GraphQL is, on one ServeMux behind the standard
-// middleware of platform/restapi (request ID, access log, panic recovery).
-func httpHandler(r resources, m modules, cfg config.Config, svc Service, logger *slog.Logger) http.Handler {
-	mux := http.NewServeMux()
-	api := restapi.NewAPI(mux)
-	health := healthdto.Source{
+// healthSource is what the health answers of every transport read.
+func healthSource(r resources, cfg config.Config, svc Service) healthdto.Source {
+	return healthdto.Source{
 		Readiness: r.readiness,
 		Database:  r.db,
 		Service: healthdto.Service{
@@ -35,6 +33,14 @@ func httpHandler(r resources, m modules, cfg config.Config, svc Service, logger 
 			TigerBeetleClusterID:     clusterID(cfg.TigerBeetleClusterID),
 		},
 	}
+}
+
+// httpHandler builds the HTTP handler: the health operations always, the module operations when
+// REST is enabled, and POST /graphql when GraphQL is, on one ServeMux behind the standard
+// middleware of platform/restapi (request ID, access log, panic recovery).
+func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger) http.Handler {
+	mux := http.NewServeMux()
+	api := restapi.NewAPI(mux)
 	rest.RegisterHealth(api, health)
 	if cfg.RESTEnabled {
 		rest.RegisterModules(api, rest.Handlers{
@@ -67,9 +73,21 @@ func httpHandler(r resources, m modules, cfg config.Config, svc Service, logger 
 	return restapi.Handler(mux, logger)
 }
 
+// grpcServer builds the gRPC server with every module's services and server reflection.
+func grpcServer(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger) *grpcserver.Server {
+	srv := grpcserver.New(grpcserver.Options{
+		Addr: cfg.GRPCAddr, ShutdownTimeout: cfg.ShutdownTimeout, Logger: logger, Reflection: true,
+	})
+	grpctransport.RegisterAll(srv, grpctransport.Modules{Health: health, Ledgers: m.ledgers, Bookkeeping: m.bookkeeping})
+	return srv
+}
+
 // runners lists the enabled servers and workers.
 func runners(cfg config.Config, a *App, logger *slog.Logger) []Runner {
 	out := []Runner{httpRunner{cfg: cfg, handler: a.handler, logger: logger}}
+	if a.grpc != nil {
+		out = append(out, grpcRunner{srv: a.grpc})
+	}
 	if cfg.ReconcilerEnabled {
 		out = append(out, reconcilerRunner{a: a})
 	}
@@ -92,6 +110,17 @@ func (h httpRunner) Run(ctx context.Context) error {
 		ShutdownTimeout: h.cfg.ShutdownTimeout,
 		Logger:          h.logger,
 	})
+}
+
+// grpcRunner serves gRPC.
+type grpcRunner struct {
+	srv *grpcserver.Server
+}
+
+func (grpcRunner) Name() string { return "grpc" }
+
+func (g grpcRunner) Run(ctx context.Context) error {
+	return g.srv.Run(ctx)
 }
 
 // reconcilerRunner settles writes interrupted by a crash or a TigerBeetle timeout (ADR-0007).

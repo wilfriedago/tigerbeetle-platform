@@ -37,6 +37,7 @@ func TestParse(t *testing.T) {
 				RESTEnabled:           true,
 				GraphQLEnabled:        true,
 				ReconcilerEnabled:     true,
+				GRPCAddr:              ":9090",
 			},
 		},
 		{
@@ -44,14 +45,14 @@ func TestParse(t *testing.T) {
 			environ: merge(required, map[string]string{
 				"API_ADDR": ":9000", "LOG_LEVEL": "debug", "TIGERBEETLE_CLUSTER_ID": "7",
 				"MIGRATE_ON_START": "true", "SHUTDOWN_TIMEOUT": "1s", "READINESS_TIMEOUT": "500ms",
-				"RECONCILER_ENABLED": "false",
+				"RECONCILER_ENABLED": "false", "GRPC_ENABLED": "true", "GRPC_ADDR": ":9191",
 			}),
 			want: Config{
 				Addr: ":9000", LogLevel: "debug", PostgresURL: "postgres://u:p@localhost:5432/db",
 				TigerBeetleClusterID: 7, TigerBeetleAddresses: []string{"localhost:3000", "localhost:3001"},
 				MigrateOnStart: true, ShutdownTimeout: time.Second, ReadinessTimeout: 500 * time.Millisecond,
 				TigerBeetleTimeout: 5 * time.Second, ReconcilerGracePeriod: 30 * time.Second, ReconcilerInterval: 10 * time.Second,
-				RESTEnabled: true, GraphQLEnabled: true,
+				RESTEnabled: true, GraphQLEnabled: true, GRPCEnabled: true, GRPCAddr: ":9191",
 			},
 		},
 		{name: "missing postgres url", environ: map[string]string{"TIGERBEETLE_ADDRESSES": "localhost:3000"}, wantErr: true},

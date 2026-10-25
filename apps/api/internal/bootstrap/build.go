@@ -15,6 +15,7 @@ import (
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcserver"
 	platformpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
 	platformtb "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/tigerbeetle"
@@ -28,7 +29,9 @@ type Service struct {
 
 // App is the built application: its servers and workers, and the resources they share.
 type App struct {
-	handler    http.Handler
+	handler http.Handler
+	// grpc is nil when GRPC_ENABLED is off.
+	grpc       *grpcserver.Server
 	reconciler *bookkeepingapp.Reconciler
 	runners    []Runner
 	// closers release the resources in construction order; close runs them in reverse.
@@ -58,7 +61,11 @@ func Build(ctx context.Context, cfg config.Config, svc Service, logger *slog.Log
 		return nil, err
 	}
 	m := buildModules(r, cfg, logger, o)
-	a.handler = httpHandler(r, m, cfg, svc, logger)
+	health := healthSource(r, cfg, svc)
+	a.handler = httpHandler(health, m, cfg, logger)
+	if cfg.GRPCEnabled {
+		a.grpc = grpcServer(health, m, cfg, logger)
+	}
 	a.reconciler = m.bookkeeping.Reconciler
 	a.runners = runners(cfg, a, logger)
 	return a, nil
@@ -100,6 +107,11 @@ func (a *App) open(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 // Handler is the HTTP handler of the API, for tests that serve it with httptest.
 func (a *App) Handler() http.Handler {
 	return a.handler
+}
+
+// GRPC is the gRPC server, nil when GRPC_ENABLED is off. Tests serve it on an in-memory listener.
+func (a *App) GRPC() *grpcserver.Server {
+	return a.grpc
 }
 
 // ReconcileOnce runs one pass of the reconciler and returns how many records it settled. Run

@@ -44,6 +44,11 @@ type Config struct {
 	GraphQLEnabled bool `env:"GRAPHQL_ENABLED" envDefault:"true"`
 	// ReconcilerEnabled runs the reconciler in this process (plan section 13.1).
 	ReconcilerEnabled bool `env:"RECONCILER_ENABLED" envDefault:"true"`
+	// GRPCEnabled serves gRPC on GRPCAddr. Off by default: like the broker transports it stays
+	// development-only until authentication is decided (ADR-0021).
+	GRPCEnabled bool `env:"GRPC_ENABLED" envDefault:"false"`
+	// GRPCAddr is the listen address of the gRPC server.
+	GRPCAddr string `env:"GRPC_ADDR" envDefault:":9090"`
 }
 
 // Load reads the process environment.
