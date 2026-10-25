@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query'
 
-import { api } from '~/lib/api'
+import { getInfo, getReconcilerStatus } from '@tigerbeetle-platform/api-client'
 
 /** How often the console asks the API for its health (docs/console.md, Top bar). */
 export const HEALTH_INTERVAL_MS = 5000
@@ -8,7 +8,7 @@ export const HEALTH_INTERVAL_MS = 5000
 export const systemQueries = {
   info: () =>
     queryOptions({
-      queryFn: async ({ signal }) => api.getInfo({ signal }),
+      queryFn: async ({ signal }) => getInfo({ signal }),
       queryKey: ['system', 'info'] as const,
       refetchInterval: HEALTH_INTERVAL_MS,
       // Health must reflect now, and failures are themselves the answer.
@@ -17,7 +17,7 @@ export const systemQueries = {
     }),
   reconciler: () =>
     queryOptions({
-      queryFn: async ({ signal }) => api.getReconcilerStatus({ signal }),
+      queryFn: async ({ signal }) => getReconcilerStatus({ signal }),
       queryKey: ['system', 'reconciler'] as const,
       refetchInterval: HEALTH_INTERVAL_MS
     })

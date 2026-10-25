@@ -15,9 +15,6 @@
     "lint": "vp check",
     "format": "vp check --fix"
   },
-  "dependencies": {
-    "ky": "2.2.0"
-  },
   "devDependencies": {
     "@tigerbeetle-platform/openapi": "workspace:*",
     "orval": "8.44.0",

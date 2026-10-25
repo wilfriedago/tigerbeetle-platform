@@ -10,10 +10,12 @@ import { createRoot } from 'react-dom/client'
 
 import { RouterProvider } from '@tanstack/react-router'
 
+import { configureApi } from '~/lib/api'
 import { applyPreferences, getPreferences, watchSystemTheme } from '~/lib/preferences'
 
 import { createAppRouter } from './router'
 
+configureApi()
 const router = createAppRouter()
 
 applyPreferences(getPreferences())
