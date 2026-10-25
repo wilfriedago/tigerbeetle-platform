@@ -9,11 +9,17 @@ this file for the state of the work.
 A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
 owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the
 REST spec and GraphQL schema generated from Go, an orval REST client, the console on GraphQL and a
-root justfile, in phases 0 to 7 with a review stop after each. Phase 0 (documentation only) is
-done: ADR-0015 to ADR-0024 are written, the amended ADRs carry their new status lines, and
-AGENTS.md and docs/architecture.md point at the plan. It waits for the owner's review; phase 1
-(the justfile) comes next. Nothing below this paragraph has changed yet: the code, the commands
-and the layout are still those of the console work.
+root justfile, in phases 0 to 7 with a review stop after each.
+
+- Phase 0 (documentation) is done and was approved: ADR-0015 to ADR-0024, the amended status
+  lines, and pointers in AGENTS.md and docs/architecture.md.
+- Phase 1 (the justfile) is done and waits for the owner's review. The root `justfile` is the
+  entry point for every task; the root `package.json` keeps only `prepare`; Turborepo runs the
+  TypeScript packages only; the pre-commit hook and every CI job call just recipes; the console
+  has a `typecheck` script; no caret range is left. It also restored the oapi-codegen tool's
+  dependencies (fact 28) and formatted ten console components that `vp check` reported.
+- Phase 2 (the REST spec generated from Go with Huma) comes next. The Go code and the layout are
+  still those of the console work.
 
 The API implements the ledger surface (ADR-0004 to ADR-0010, details in ADR-0013) and the console
 covers every page of `docs/console.md` (ADR-0014). The work is on the `feat/console` branch, not
@@ -22,8 +28,10 @@ merged and not pushed, so CI has never run on GitHub. Everything below was verif
 
 Working and verified:
 
-- `pnpm lint`, `pnpm test`, `pnpm build` and `pnpm generate` (no diff) pass.
-- `TESTCONTAINERS_RYUK_DISABLED=true go test -race -tags integration ./cmd/api/` passes: ledgers,
+- After phase 1: `just lint`, `just typecheck`, `just test`, `just build`, `just vulncheck`,
+  `just versions-check` and `just generate-check` (no diff) pass, and the pre-commit hook formats
+  and lints a staged Go file and lints a staged spec through just.
+- `TESTCONTAINERS_RYUK_DISABLED=true just test-integration` passes. The end-to-end test covers ledgers,
   rules, event types, multi-posting and multi-asset transactions, replays and key reuse,
   declines with per-posting results, reverts, holds (partial capture, void, expiry), aggregates,
   and both crash windows of ADR-0007 settled by the reconciler.
@@ -32,9 +40,9 @@ Working and verified:
   posting, ways forward, a new key on retry) and shows balances read back; holds capture in
   part and void; the Cmd+K search, the account tree and the request drawer work; the shell
   collapses to a drawer at phone width.
-- `pnpm stack:up` builds and starts the whole stack; `/readyz` answers 200 and the console in
-  its container serves every page through the proxy. The image smoke test,
-  `scripts/check-versions.sh` and `govulncheck` were not rerun for this work.
+- `just compose-up` builds and starts the whole stack; `/readyz` answers 200 and the console in
+  its container serves its pages and proxies `/api` to the API. The image smoke test was not
+  rerun.
 
 Not done, by design or by circumstance:
 
@@ -55,6 +63,7 @@ Not done, by design or by circumstance:
 | Postgres                       | `postgres:18.6-trixie`, pgx v5.11.0, sqlc v1.31.1, goose v3.29.0 (library only)                                                                                                                                          |
 | oapi-codegen                   | v2.8.1 via the go.mod `tool` directive, runtime v1.8.0                                                                                                                                                                   |
 | golangci-lint, govulncheck     | v2.15.0, v1.9.0 (installed by `scripts/install-tools.sh`)                                                                                                                                                                |
+| just                           | 1.59.0 (installed by `scripts/install-tools.sh`, sha256 pinned per platform)                                                                                                                                             |
 | env, go-cmp, testcontainers-go | v11.4.1, v0.7.0, v0.44.0                                                                                                                                                                                                 |
 | Node, pnpm, Turborepo          | 24.22.1, 12.15.0, 2.11.10                                                                                                                                                                                                |
 | Console                        | React 19.3.1, Vite+ 1.4.0 (Vite 8.3.5), TypeScript 7.0.2, ky 2.2.0, TanStack Router 1.170.46, Query 5.104.5, Form 1.33.5, Table 9.3.1, Pacer 0.24.1, Base UI 1.9.0, shadcn 4.22.1 (base-nova), Tailwind 4.3.3, zod 4.6.7 |
@@ -108,11 +117,12 @@ place.
     `ubuntu-24.04`.
 13. **sqlc publishes no checksum file.** `scripts/install-tools.sh` pins the sha256 of each
     platform archive; update them with the version.
-14. **Go tools live in `$(go env GOPATH)/bin`.** `scripts/install-tools.sh` installs there;
-    actions/setup-go puts it on PATH in CI; locally it must be on PATH. `.githooks/pre-commit`
-    prefixes PATH itself.
-15. **Turborepo strict env mode strips variables.** The `dev` task declares the API and console
-    variables, and `test:integration` passes `DOCKER_HOST` and `TESTCONTAINERS_*` through.
+14. **Go tools live in `$(go env GOPATH)/bin`.** `scripts/install-tools.sh` installs there and,
+    in GitHub Actions, adds the directory to `GITHUB_PATH`; locally it must be on PATH.
+    `.githooks/pre-commit` and the justfile prefix PATH themselves.
+15. **Turborepo strict env mode strips variables.** Since phase 1 Turborepo runs only the
+    TypeScript packages, so the `dev` task declares only the console variables (`API_PROXY_TARGET`,
+    `VITE_*`). The Go recipes run outside Turborepo and see the whole environment.
 16. **Inline `type` specifiers keep the import at runtime.** With `verbatimModuleSyntax`,
     `import { type A } from './schema'` leaves `import './schema'` in the bundle, and
     `schema.d.ts` has no runtime module, so the build fails. The lint autofix
@@ -138,9 +148,9 @@ place.
     unstaged changes, and `vp check --fix` reformats the staged version, lint-staged cannot put the
     unstaged changes back: it prints "Failed to restore unstaged changes", reverts and aborts the
     commit. Stage whole files.
-24. **Staged Go files fail the hook until phase 1 commit 4.** The shim `apps/api/package.json` was
-    deleted (67af5db), but the `staged` block still runs `pnpm --filter api ...` for Go files.
-    Phase 0 committed Markdown only; phase 1 commit 4 points the hook at just.
+24. **Staged Go files failed the hook between 67af5db and phase 1 commit 4.** The `staged` block
+    still called the deleted shim (`pnpm --filter api ...`); it now calls `just fmt-go-files` and
+    `just lint-go`.
 25. **TigerBeetle CDC as seen from the 0.17.9 image** (spike S3, ADR-0022). u128 and u64 values
     are JSON numbers up to 2^53 - 1 and JSON strings from 2^53 on; nanosecond timestamps are
     always strings, so decode both forms without a float. `--host` takes an IP address only. The
@@ -152,6 +162,17 @@ place.
 27. **`tigerbeetle repl` wants a terminal**, and piped input prints "ANSI escape sequences not
     supported". `repl --command="create_accounts ...;"`, absent from `--help`, runs one statement
     and prints JSON, which suits scripts.
+28. **Upgrading every Go dependency broke the oapi-codegen tool.** `go get -u` in b89e9f7 moved
+    `speakeasy-api/openapi`, `speakeasy-api/jsonpath` and `dprotaso/go-yit` past the versions
+    oapi-codegen v2.8.1 compiles with (they switched YAML libraries), and nothing noticed because
+    only `go tool oapi-codegen` uses them. 87eba56 sets them back to what the tool requires. Leave
+    them there until phase 2 removes oapi-codegen; `just generate` now runs the tool, so a
+    regression fails the drift check.
+29. **Only the comment line right above a recipe shows in `just --list`.** Recipes with a longer
+    comment use `[doc('...')]` for the listed text.
+30. **`vp check` at the root checks formatting; the console's `lint` task does not.** Ten console
+    components with stray blank lines passed `pnpm lint` but failed `vp check`, which CI's web job
+    runs. `just lint` runs both.
 
 ## Decisions amended along the way
 
@@ -206,9 +227,10 @@ Console (`apps/console/src`):
 
 ## Suggested next steps, in order
 
-1. The owner reviews phase 0: the ADR set and the status lines (plan section 18).
-2. Phase 1, the justfile, as listed in plan section 19, then phases 2 to 7, each ending with a
-   review stop, an update of this file and a summary of versions and deviations.
+1. The owner reviews phase 1: `just --list`, the hook, the CI workflow (plan section 19).
+2. Phase 2, the REST spec generated from Go with Huma, starting with spikes S1 (Huma) and S2
+   (orval); then phases 3 to 7, each ending with a review stop, an update of this file and a
+   summary of versions and deviations.
 3. Push to GitHub, open the pull request for `feat/console`, make CI green, install Renovate.
 4. Review the console against `.design/home.pen` with the owner; the screens were followed
    closely but not pixel by pixel (the account tree and the pending result view simplify the
