@@ -11,8 +11,9 @@ import { AccountField } from '~/features/accounts/components/account-field'
 import { type AccountStates } from '~/features/accounts/use-account-states'
 
 import { type Simulation } from '~/lib/preflight'
+import { addressError, amountError, assetError } from '~/lib/validation'
 
-import { addressError, amountError, assetError, emptyPosting, MAX_POSTINGS } from './draft'
+import { emptyPosting, MAX_POSTINGS } from './draft'
 import { transactionFormOptions } from './form-options'
 
 const LIMIT_TEXT = {

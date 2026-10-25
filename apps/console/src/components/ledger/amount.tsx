@@ -15,7 +15,7 @@ interface AmountProps {
   asset: string
   /** Hide the asset code, for columns that already name the asset in their header. */
   hideAsset?: boolean
-  className?: string
+  className?: string | undefined
 }
 
 /** The amount as text in the chosen unit (Preferences: major units or raw integers), without the code. */

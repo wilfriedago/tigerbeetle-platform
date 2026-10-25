@@ -3,6 +3,7 @@ import { type CreateTransactionRequest, type Posting } from '@tigerbeetle-platfo
 import { type MetadataRow, rowsToMetadata } from '~/components/ledger/metadata-editor'
 
 import { parseAsset, parseMajorUnits } from '~/lib/money'
+import { addressError } from '~/lib/validation'
 
 /** What the New transaction form edits. Amounts are typed in major units and converted on the way out. */
 export interface PostingDraft {
@@ -25,36 +26,8 @@ export interface TransactionDraft {
 /** The posting cap of a transaction (MaxPostings in apps/api/internal/domain/ledger/posting.go). */
 export const MAX_POSTINGS = 64
 
-/** The Address schema of the API: colon-separated segments of letters, digits, dash and underscore. */
-export const ADDRESS_PATTERN = /^[a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)*$/
-
 export function emptyPosting(asset = '', source = '', destination = ''): PostingDraft {
   return { amount: '', asset, destination, source }
-}
-
-export function addressError(value: string, label: string): string | undefined {
-  if (value === '') {
-    return `Pick the ${label} account.`
-  }
-  if (value.length > 255 || !ADDRESS_PATTERN.test(value)) {
-    return 'Use segments of letters, digits, dash or underscore, separated by colons.'
-  }
-  return undefined
-}
-
-export function assetError(value: string): string | undefined {
-  if (value === '') {
-    return 'Pick an asset.'
-  }
-  return parseAsset(value) ? undefined : 'Use CODE/SCALE, such as EUR/2.'
-}
-
-export function amountError(value: string, asset: string): string | undefined {
-  const parsed = parseMajorUnits(value, parseAsset(asset)?.scale ?? 0)
-  if (!parsed.ok) {
-    return parsed.error
-  }
-  return parsed.raw === '0' ? 'TigerBeetle moves amounts greater than zero.' : undefined
 }
 
 /** The amount integer the API receives, or undefined while the input is not valid. */
