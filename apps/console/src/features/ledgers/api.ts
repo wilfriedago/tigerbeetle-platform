@@ -22,7 +22,9 @@ import { present } from '~/lib/graphql/present'
 export const ledgerKeys = {
   all: ['ledgers'] as const,
   list: (cursor: string | undefined) => ['ledgers', 'list', cursor ?? ''] as const,
-  scope: (ledger: string) => ['ledger', ledger] as const
+  scope: (ledger: string) => ['ledger', ledger] as const,
+  /** The account and rule reads of the write forms, which both account and rule changes make stale. */
+  writeTargets: (ledger: string) => ['ledger', ledger, 'write-target'] as const
 }
 
 export const LedgerFields = graphql(`

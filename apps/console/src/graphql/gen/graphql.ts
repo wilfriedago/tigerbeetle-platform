@@ -54,6 +54,12 @@ export type PutRuleInput = {
   pattern: string;
 };
 
+export type ReplaceAccountMetadataInput = {
+  address: string;
+  ledger: string;
+  metadata: Record<string, string>;
+};
+
 export type ReplaceLedgerMetadataInput = {
   ledger: string;
   metadata: Record<string, string>;
@@ -65,6 +71,71 @@ export type RequestStatus =
   | 'declined'
   | 'failed'
   | 'pending';
+
+export type AccountSummaryFieldsFragment = { address: string, createdAt: string, metadata: Record<string, string>, balances: Array<{ asset: string, accountId: string, tbLedger: number, balance: string, available: string, reserved: string, incoming: string, credits: string, debits: string, limit: BalanceLimit, history: boolean, code: number, rule: string, createdAt: string }> };
+
+export type AccountFieldsFragment = { address: string, createdAt: string, metadata: Record<string, string>, openHolds: number, balances: Array<{ asset: string, accountId: string, tbLedger: number, balance: string, available: string, reserved: string, incoming: string, credits: string, debits: string, limit: BalanceLimit, history: boolean, code: number, rule: string, createdAt: string }> };
+
+export type AccountsQueryVariables = Exact<{
+  name: string;
+  first?: number | null | undefined;
+  after?: string | null | undefined;
+  prefix?: string | null | undefined;
+  search?: string | null | undefined;
+  asset?: string | null | undefined;
+}>;
+
+
+export type AccountsQuery = { ledger: { accounts: { nodes: Array<{ address: string, createdAt: string, metadata: Record<string, string>, balances: Array<{ asset: string, accountId: string, tbLedger: number, balance: string, available: string, reserved: string, incoming: string, credits: string, debits: string, limit: BalanceLimit, history: boolean, code: number, rule: string, createdAt: string }> }>, pageInfo: { endCursor: string | null } } } | null };
+
+export type AccountQueryVariables = Exact<{
+  name: string;
+  address: string;
+}>;
+
+
+export type AccountQuery = { ledger: { account: { address: string, createdAt: string, metadata: Record<string, string>, openHolds: number, balances: Array<{ asset: string, accountId: string, tbLedger: number, balance: string, available: string, reserved: string, incoming: string, credits: string, debits: string, limit: BalanceLimit, history: boolean, code: number, rule: string, createdAt: string }> } | null } | null };
+
+export type AccountHistoryQueryVariables = Exact<{
+  name: string;
+  address: string;
+  asset: string;
+  limit?: number | null | undefined;
+}>;
+
+
+export type AccountHistoryQuery = { ledger: { accountHistory: { address: string, asset: string, data: Array<{ timestamp: string, at: string, balance: string, reserved: string, credits: string, debits: string }> } } | null };
+
+export type SegmentsQueryVariables = Exact<{
+  name: string;
+  prefix?: string | null | undefined;
+}>;
+
+
+export type SegmentsQuery = { ledger: { segments: Array<{ segment: string, prefix: string, accounts: number, assets: Array<string>, isAccount: boolean, hasChildren: boolean }> } | null };
+
+export type AggregateBalancesQueryVariables = Exact<{
+  name: string;
+  address: string;
+}>;
+
+
+export type AggregateBalancesQuery = { ledger: { aggregateBalances: { prefix: string, asOf: string, accounts: number, chunks: number, assets: Array<{ asset: string, accounts: number, balance: string, available: string, reserved: string, incoming: string }> } } | null };
+
+export type WriteTargetQueryVariables = Exact<{
+  name: string;
+  address: string;
+}>;
+
+
+export type WriteTargetQuery = { ledger: { account: { address: string, createdAt: string, metadata: Record<string, string>, openHolds: number, balances: Array<{ asset: string, accountId: string, tbLedger: number, balance: string, available: string, reserved: string, incoming: string, credits: string, debits: string, limit: BalanceLimit, history: boolean, code: number, rule: string, createdAt: string }> } | null, ruleMatch: { rule: { pattern: string, limit: BalanceLimit, history: boolean, code: number, builtIn: boolean, segments: number, createdAt: string | null, updatedAt: string | null } } } | null };
+
+export type ReplaceAccountMetadataMutationVariables = Exact<{
+  input: ReplaceAccountMetadataInput;
+}>;
+
+
+export type ReplaceAccountMetadataMutation = { replaceAccountMetadata: { address: string, createdAt: string, metadata: Record<string, string>, openHolds: number, balances: Array<{ asset: string, accountId: string, tbLedger: number, balance: string, available: string, reserved: string, incoming: string, credits: string, debits: string, limit: BalanceLimit, history: boolean, code: number, rule: string, createdAt: string }> } };
 
 export type LedgerFieldsFragment = { name: string, metadata: Record<string, string>, createdAt: string, assetCodes: Array<string>, accountCount: number };
 
@@ -186,6 +257,53 @@ export class TypedDocumentString<TResult, TVariables>
     return this.value;
   }
 }
+export const AccountSummaryFieldsFragmentDoc = new TypedDocumentString(`
+    fragment AccountSummaryFields on AccountSummary {
+  address
+  createdAt
+  metadata
+  balances {
+    asset
+    accountId
+    tbLedger
+    balance
+    available
+    reserved
+    incoming
+    credits
+    debits
+    limit
+    history
+    code
+    rule
+    createdAt
+  }
+}
+    `, {"fragmentName":"AccountSummaryFields"}) as unknown as TypedDocumentString<AccountSummaryFieldsFragment, unknown>;
+export const AccountFieldsFragmentDoc = new TypedDocumentString(`
+    fragment AccountFields on Account {
+  address
+  createdAt
+  metadata
+  balances {
+    asset
+    accountId
+    tbLedger
+    balance
+    available
+    reserved
+    incoming
+    credits
+    debits
+    limit
+    history
+    code
+    rule
+    createdAt
+  }
+  openHolds
+}
+    `, {"fragmentName":"AccountFields"}) as unknown as TypedDocumentString<AccountFieldsFragment, unknown>;
 export const LedgerFieldsFragmentDoc = new TypedDocumentString(`
     fragment LedgerFields on Ledger {
   name
@@ -225,6 +343,201 @@ export const EventTypeFieldsFragmentDoc = new TypedDocumentString(`
   transactions
 }
     `, {"fragmentName":"EventTypeFields"}) as unknown as TypedDocumentString<EventTypeFieldsFragment, unknown>;
+export const AccountsDocument = new TypedDocumentString(`
+    query Accounts($name: String!, $first: Int, $after: String, $prefix: String, $search: String, $asset: String) {
+  ledger(name: $name) {
+    accounts(
+      first: $first
+      after: $after
+      prefix: $prefix
+      search: $search
+      asset: $asset
+    ) {
+      nodes {
+        ...AccountSummaryFields
+      }
+      pageInfo {
+        endCursor
+      }
+    }
+  }
+}
+    fragment AccountSummaryFields on AccountSummary {
+  address
+  createdAt
+  metadata
+  balances {
+    asset
+    accountId
+    tbLedger
+    balance
+    available
+    reserved
+    incoming
+    credits
+    debits
+    limit
+    history
+    code
+    rule
+    createdAt
+  }
+}`) as unknown as TypedDocumentString<AccountsQuery, AccountsQueryVariables>;
+export const AccountDocument = new TypedDocumentString(`
+    query Account($name: String!, $address: String!) {
+  ledger(name: $name) {
+    account(address: $address) {
+      ...AccountFields
+    }
+  }
+}
+    fragment AccountFields on Account {
+  address
+  createdAt
+  metadata
+  balances {
+    asset
+    accountId
+    tbLedger
+    balance
+    available
+    reserved
+    incoming
+    credits
+    debits
+    limit
+    history
+    code
+    rule
+    createdAt
+  }
+  openHolds
+}`) as unknown as TypedDocumentString<AccountQuery, AccountQueryVariables>;
+export const AccountHistoryDocument = new TypedDocumentString(`
+    query AccountHistory($name: String!, $address: String!, $asset: String!, $limit: Int) {
+  ledger(name: $name) {
+    accountHistory(address: $address, asset: $asset, limit: $limit) {
+      address
+      asset
+      data {
+        timestamp
+        at
+        balance
+        reserved
+        credits
+        debits
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<AccountHistoryQuery, AccountHistoryQueryVariables>;
+export const SegmentsDocument = new TypedDocumentString(`
+    query Segments($name: String!, $prefix: String) {
+  ledger(name: $name) {
+    segments(prefix: $prefix) {
+      segment
+      prefix
+      accounts
+      assets
+      isAccount
+      hasChildren
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<SegmentsQuery, SegmentsQueryVariables>;
+export const AggregateBalancesDocument = new TypedDocumentString(`
+    query AggregateBalances($name: String!, $address: String!) {
+  ledger(name: $name) {
+    aggregateBalances(address: $address) {
+      prefix
+      asOf
+      accounts
+      chunks
+      assets {
+        asset
+        accounts
+        balance
+        available
+        reserved
+        incoming
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<AggregateBalancesQuery, AggregateBalancesQueryVariables>;
+export const WriteTargetDocument = new TypedDocumentString(`
+    query WriteTarget($name: String!, $address: String!) {
+  ledger(name: $name) {
+    account(address: $address) {
+      ...AccountFields
+    }
+    ruleMatch(address: $address) {
+      rule {
+        ...RuleFields
+      }
+    }
+  }
+}
+    fragment AccountFields on Account {
+  address
+  createdAt
+  metadata
+  balances {
+    asset
+    accountId
+    tbLedger
+    balance
+    available
+    reserved
+    incoming
+    credits
+    debits
+    limit
+    history
+    code
+    rule
+    createdAt
+  }
+  openHolds
+}
+fragment RuleFields on Rule {
+  pattern
+  limit
+  history
+  code
+  builtIn
+  segments
+  createdAt
+  updatedAt
+}`) as unknown as TypedDocumentString<WriteTargetQuery, WriteTargetQueryVariables>;
+export const ReplaceAccountMetadataDocument = new TypedDocumentString(`
+    mutation ReplaceAccountMetadata($input: ReplaceAccountMetadataInput!) {
+  replaceAccountMetadata(input: $input) {
+    ...AccountFields
+  }
+}
+    fragment AccountFields on Account {
+  address
+  createdAt
+  metadata
+  balances {
+    asset
+    accountId
+    tbLedger
+    balance
+    available
+    reserved
+    incoming
+    credits
+    debits
+    limit
+    history
+    code
+    rule
+    createdAt
+  }
+  openHolds
+}`) as unknown as TypedDocumentString<ReplaceAccountMetadataMutation, ReplaceAccountMetadataMutationVariables>;
 export const LedgersDocument = new TypedDocumentString(`
     query Ledgers($first: Int, $after: String) {
   ledgers(first: $first, after: $after) {

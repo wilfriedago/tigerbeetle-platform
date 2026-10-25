@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { type QueryClient, queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import {
   type CreateEventTypeRequest,
@@ -141,6 +141,13 @@ export const settingsQueries = {
     })
 }
 
+async function invalidateRules(queryClient: QueryClient, ledger: string) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: [...ledgerKeys.scope(ledger), 'rules'] }),
+    queryClient.invalidateQueries({ queryKey: ledgerKeys.writeTargets(ledger) })
+  ])
+}
+
 export function usePutRule(ledger: string) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -150,7 +157,7 @@ export function usePutRule(ledger: string) {
       })
       return present(putRule)
     },
-    onSuccess: async () => queryClient.invalidateQueries({ queryKey: [...ledgerKeys.scope(ledger), 'rules'] })
+    onSuccess: async () => invalidateRules(queryClient, ledger)
   })
 }
 
@@ -160,7 +167,7 @@ export function useDeleteRule(ledger: string) {
     mutationFn: async (pattern: string) => {
       await request(DeleteRuleMutation, { input: { ledger, pattern } })
     },
-    onSuccess: async () => queryClient.invalidateQueries({ queryKey: [...ledgerKeys.scope(ledger), 'rules'] })
+    onSuccess: async () => invalidateRules(queryClient, ledger)
   })
 }
 

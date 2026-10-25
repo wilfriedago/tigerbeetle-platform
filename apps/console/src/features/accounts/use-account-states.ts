@@ -2,10 +2,7 @@ import { useQueries } from '@tanstack/react-query'
 
 import { type Account, type Rule } from '@tigerbeetle-platform/api-client'
 
-import { settingsQueries } from '~/features/settings/api'
-
 import { type AccountState } from '~/lib/preflight'
-import { isNotFound } from '~/lib/problem'
 
 import { accountQueries } from './api'
 
@@ -22,47 +19,36 @@ export interface AccountStates {
 }
 
 /**
- * Reads what a write is about to touch: each address once (GET account) and the rule that would
- * create its missing accounts (GET rules/match). Both are cached, so editing the form does not
- * refetch what is already known.
+ * Reads what a write is about to touch: one GraphQL request per address returns its account, when
+ * it exists, and the rule that would create its missing accounts. Each answer is cached, so editing
+ * the form does not refetch what is already known.
  */
 export function useAccountStates(ledger: string, addresses: readonly string[]): AccountStates {
   const unique = [...new Set(addresses.filter((address) => ADDRESS.test(address)))]
-  const accounts = useQueries({ queries: unique.map((address) => accountQueries.detail(ledger, address)) })
-  const matches = useQueries({ queries: unique.map((address) => settingsQueries.match(ledger, address)) })
+  const targets = useQueries({ queries: unique.map((address) => accountQueries.writeTarget(ledger, address)) })
   const index = new Map(unique.map((address, i) => [address, i]))
 
-  const accountOf = (address: string) => {
+  const targetOf = (address: string) => {
     const i = index.get(address)
-    return i === undefined ? undefined : accounts[i]?.data
+    return i === undefined ? undefined : targets[i]?.data
   }
-  const ruleOf = (address: string) => {
-    const i = index.get(address)
-    return i === undefined ? undefined : matches[i]?.data?.rule
-  }
+  const accountOf = (address: string) => targetOf(address)?.account
+  const ruleOf = (address: string) => targetOf(address)?.rule
   const stateOf = (address: string, asset: string): AccountState | undefined => {
-    const i = index.get(address)
-    const account = i === undefined ? undefined : accounts[i]
-    if (!account) {
+    const target = targetOf(address)
+    if (!target) {
       return undefined
     }
-    if (account.data) {
-      const balance = account.data.balances.find((entry) => entry.asset === asset)
-      if (balance) {
-        return { balance: balance.balance, exists: true, incoming: balance.incoming, limit: balance.limit, reserved: balance.reserved }
-      }
-    } else if (!isNotFound(account.error)) {
-      return undefined
+    const balance = target.account?.balances.find((entry) => entry.asset === asset)
+    if (balance) {
+      return { balance: balance.balance, exists: true, incoming: balance.incoming, limit: balance.limit, reserved: balance.reserved }
     }
     // No account in this asset yet: the write creates it with the matching rule's flags (ADR-0006).
-    const rule = ruleOf(address)
-    return rule ? { balance: '0', exists: false, incoming: '0', limit: rule.limit, reserved: '0' } : undefined
+    return { balance: '0', exists: false, incoming: '0', limit: target.rule.limit, reserved: '0' }
   }
   return {
     accountOf,
-    loading:
-      accounts.some((query) => query.isPending && query.fetchStatus !== 'idle') ||
-      matches.some((query) => query.isPending && query.fetchStatus !== 'idle'),
+    loading: targets.some((query) => query.isPending && query.fetchStatus !== 'idle'),
     ruleOf,
     stateOf
   }

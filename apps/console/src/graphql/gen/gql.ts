@@ -15,6 +15,15 @@ import * as types from './graphql';
  * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
 type Documents = {
+    "\n  fragment AccountSummaryFields on AccountSummary {\n    address\n    createdAt\n    metadata\n    balances {\n      asset\n      accountId\n      tbLedger\n      balance\n      available\n      reserved\n      incoming\n      credits\n      debits\n      limit\n      history\n      code\n      rule\n      createdAt\n    }\n  }\n": typeof types.AccountSummaryFieldsFragmentDoc,
+    "\n  fragment AccountFields on Account {\n    address\n    createdAt\n    metadata\n    balances {\n      asset\n      accountId\n      tbLedger\n      balance\n      available\n      reserved\n      incoming\n      credits\n      debits\n      limit\n      history\n      code\n      rule\n      createdAt\n    }\n    openHolds\n  }\n": typeof types.AccountFieldsFragmentDoc,
+    "\n  query Accounts($name: String!, $first: Int, $after: String, $prefix: String, $search: String, $asset: String) {\n    ledger(name: $name) {\n      accounts(first: $first, after: $after, prefix: $prefix, search: $search, asset: $asset) {\n        nodes {\n          ...AccountSummaryFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n": typeof types.AccountsDocument,
+    "\n  query Account($name: String!, $address: String!) {\n    ledger(name: $name) {\n      account(address: $address) {\n        ...AccountFields\n      }\n    }\n  }\n": typeof types.AccountDocument,
+    "\n  query AccountHistory($name: String!, $address: String!, $asset: String!, $limit: Int) {\n    ledger(name: $name) {\n      accountHistory(address: $address, asset: $asset, limit: $limit) {\n        address\n        asset\n        data {\n          timestamp\n          at\n          balance\n          reserved\n          credits\n          debits\n        }\n      }\n    }\n  }\n": typeof types.AccountHistoryDocument,
+    "\n  query Segments($name: String!, $prefix: String) {\n    ledger(name: $name) {\n      segments(prefix: $prefix) {\n        segment\n        prefix\n        accounts\n        assets\n        isAccount\n        hasChildren\n      }\n    }\n  }\n": typeof types.SegmentsDocument,
+    "\n  query AggregateBalances($name: String!, $address: String!) {\n    ledger(name: $name) {\n      aggregateBalances(address: $address) {\n        prefix\n        asOf\n        accounts\n        chunks\n        assets {\n          asset\n          accounts\n          balance\n          available\n          reserved\n          incoming\n        }\n      }\n    }\n  }\n": typeof types.AggregateBalancesDocument,
+    "\n  query WriteTarget($name: String!, $address: String!) {\n    ledger(name: $name) {\n      account(address: $address) {\n        ...AccountFields\n      }\n      ruleMatch(address: $address) {\n        rule {\n          ...RuleFields\n        }\n      }\n    }\n  }\n": typeof types.WriteTargetDocument,
+    "\n  mutation ReplaceAccountMetadata($input: ReplaceAccountMetadataInput!) {\n    replaceAccountMetadata(input: $input) {\n      ...AccountFields\n    }\n  }\n": typeof types.ReplaceAccountMetadataDocument,
     "\n  fragment LedgerFields on Ledger {\n    name\n    metadata\n    createdAt\n    assetCodes\n    accountCount\n  }\n": typeof types.LedgerFieldsFragmentDoc,
     "\n  query Ledgers($first: Int, $after: String) {\n    ledgers(first: $first, after: $after) {\n      nodes {\n        ...LedgerFields\n      }\n      pageInfo {\n        endCursor\n      }\n    }\n  }\n": typeof types.LedgersDocument,
     "\n  query Ledger($name: String!) {\n    ledger(name: $name) {\n      ...LedgerFields\n    }\n  }\n": typeof types.LedgerDocument,
@@ -34,6 +43,15 @@ type Documents = {
     "\n  mutation CreateEventType($input: CreateEventTypeInput!) {\n    createEventType(input: $input) {\n      ...EventTypeFields\n    }\n  }\n": typeof types.CreateEventTypeDocument,
 };
 const documents: Documents = {
+    "\n  fragment AccountSummaryFields on AccountSummary {\n    address\n    createdAt\n    metadata\n    balances {\n      asset\n      accountId\n      tbLedger\n      balance\n      available\n      reserved\n      incoming\n      credits\n      debits\n      limit\n      history\n      code\n      rule\n      createdAt\n    }\n  }\n": types.AccountSummaryFieldsFragmentDoc,
+    "\n  fragment AccountFields on Account {\n    address\n    createdAt\n    metadata\n    balances {\n      asset\n      accountId\n      tbLedger\n      balance\n      available\n      reserved\n      incoming\n      credits\n      debits\n      limit\n      history\n      code\n      rule\n      createdAt\n    }\n    openHolds\n  }\n": types.AccountFieldsFragmentDoc,
+    "\n  query Accounts($name: String!, $first: Int, $after: String, $prefix: String, $search: String, $asset: String) {\n    ledger(name: $name) {\n      accounts(first: $first, after: $after, prefix: $prefix, search: $search, asset: $asset) {\n        nodes {\n          ...AccountSummaryFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n": types.AccountsDocument,
+    "\n  query Account($name: String!, $address: String!) {\n    ledger(name: $name) {\n      account(address: $address) {\n        ...AccountFields\n      }\n    }\n  }\n": types.AccountDocument,
+    "\n  query AccountHistory($name: String!, $address: String!, $asset: String!, $limit: Int) {\n    ledger(name: $name) {\n      accountHistory(address: $address, asset: $asset, limit: $limit) {\n        address\n        asset\n        data {\n          timestamp\n          at\n          balance\n          reserved\n          credits\n          debits\n        }\n      }\n    }\n  }\n": types.AccountHistoryDocument,
+    "\n  query Segments($name: String!, $prefix: String) {\n    ledger(name: $name) {\n      segments(prefix: $prefix) {\n        segment\n        prefix\n        accounts\n        assets\n        isAccount\n        hasChildren\n      }\n    }\n  }\n": types.SegmentsDocument,
+    "\n  query AggregateBalances($name: String!, $address: String!) {\n    ledger(name: $name) {\n      aggregateBalances(address: $address) {\n        prefix\n        asOf\n        accounts\n        chunks\n        assets {\n          asset\n          accounts\n          balance\n          available\n          reserved\n          incoming\n        }\n      }\n    }\n  }\n": types.AggregateBalancesDocument,
+    "\n  query WriteTarget($name: String!, $address: String!) {\n    ledger(name: $name) {\n      account(address: $address) {\n        ...AccountFields\n      }\n      ruleMatch(address: $address) {\n        rule {\n          ...RuleFields\n        }\n      }\n    }\n  }\n": types.WriteTargetDocument,
+    "\n  mutation ReplaceAccountMetadata($input: ReplaceAccountMetadataInput!) {\n    replaceAccountMetadata(input: $input) {\n      ...AccountFields\n    }\n  }\n": types.ReplaceAccountMetadataDocument,
     "\n  fragment LedgerFields on Ledger {\n    name\n    metadata\n    createdAt\n    assetCodes\n    accountCount\n  }\n": types.LedgerFieldsFragmentDoc,
     "\n  query Ledgers($first: Int, $after: String) {\n    ledgers(first: $first, after: $after) {\n      nodes {\n        ...LedgerFields\n      }\n      pageInfo {\n        endCursor\n      }\n    }\n  }\n": types.LedgersDocument,
     "\n  query Ledger($name: String!) {\n    ledger(name: $name) {\n      ...LedgerFields\n    }\n  }\n": types.LedgerDocument,
@@ -53,6 +71,42 @@ const documents: Documents = {
     "\n  mutation CreateEventType($input: CreateEventTypeInput!) {\n    createEventType(input: $input) {\n      ...EventTypeFields\n    }\n  }\n": types.CreateEventTypeDocument,
 };
 
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  fragment AccountSummaryFields on AccountSummary {\n    address\n    createdAt\n    metadata\n    balances {\n      asset\n      accountId\n      tbLedger\n      balance\n      available\n      reserved\n      incoming\n      credits\n      debits\n      limit\n      history\n      code\n      rule\n      createdAt\n    }\n  }\n"): typeof import('./graphql').AccountSummaryFieldsFragmentDoc;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  fragment AccountFields on Account {\n    address\n    createdAt\n    metadata\n    balances {\n      asset\n      accountId\n      tbLedger\n      balance\n      available\n      reserved\n      incoming\n      credits\n      debits\n      limit\n      history\n      code\n      rule\n      createdAt\n    }\n    openHolds\n  }\n"): typeof import('./graphql').AccountFieldsFragmentDoc;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Accounts($name: String!, $first: Int, $after: String, $prefix: String, $search: String, $asset: String) {\n    ledger(name: $name) {\n      accounts(first: $first, after: $after, prefix: $prefix, search: $search, asset: $asset) {\n        nodes {\n          ...AccountSummaryFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n"): typeof import('./graphql').AccountsDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Account($name: String!, $address: String!) {\n    ledger(name: $name) {\n      account(address: $address) {\n        ...AccountFields\n      }\n    }\n  }\n"): typeof import('./graphql').AccountDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query AccountHistory($name: String!, $address: String!, $asset: String!, $limit: Int) {\n    ledger(name: $name) {\n      accountHistory(address: $address, asset: $asset, limit: $limit) {\n        address\n        asset\n        data {\n          timestamp\n          at\n          balance\n          reserved\n          credits\n          debits\n        }\n      }\n    }\n  }\n"): typeof import('./graphql').AccountHistoryDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Segments($name: String!, $prefix: String) {\n    ledger(name: $name) {\n      segments(prefix: $prefix) {\n        segment\n        prefix\n        accounts\n        assets\n        isAccount\n        hasChildren\n      }\n    }\n  }\n"): typeof import('./graphql').SegmentsDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query AggregateBalances($name: String!, $address: String!) {\n    ledger(name: $name) {\n      aggregateBalances(address: $address) {\n        prefix\n        asOf\n        accounts\n        chunks\n        assets {\n          asset\n          accounts\n          balance\n          available\n          reserved\n          incoming\n        }\n      }\n    }\n  }\n"): typeof import('./graphql').AggregateBalancesDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query WriteTarget($name: String!, $address: String!) {\n    ledger(name: $name) {\n      account(address: $address) {\n        ...AccountFields\n      }\n      ruleMatch(address: $address) {\n        rule {\n          ...RuleFields\n        }\n      }\n    }\n  }\n"): typeof import('./graphql').WriteTargetDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation ReplaceAccountMetadata($input: ReplaceAccountMetadataInput!) {\n    replaceAccountMetadata(input: $input) {\n      ...AccountFields\n    }\n  }\n"): typeof import('./graphql').ReplaceAccountMetadataDocument;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
