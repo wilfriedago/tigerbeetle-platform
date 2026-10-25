@@ -72,6 +72,17 @@ a 1 MiB body. The console's documents live in each feature's `api.ts`, typed by 
 from the schema. GraphQL is internal to the console, like REST until authentication is decided;
 REST stays the API for third parties.
 
+gRPC (ADR-0021) has a hand-written contract in `packages/proto`: one package,
+`tigerbeetle.platform.v1`, with a service per REST tag, linted by `buf lint` and gated by
+`buf breaking` in CI. buf writes the Go code into `internal/platform/grpcapi/platformv1`; each
+module's `interfaces/grpc/v1` implements its services over the same use cases and `dto` types,
+and `internal/transport/grpc` registers them all, joining the two services that span modules
+(LedgerService and OperationsService). `internal/platform/grpcserver` runs the server behind
+`GRPC_ENABLED` (off by default, development only until authentication is decided) with request
+ID, access log, error and recovery interceptors, `grpc.health.v1` and reflection. Errors carry
+the standard `google.rpc` details: `ErrorInfo` with an AIP-193 reason derived from the problem
+type, `RetryInfo` when a retry later makes sense, `BadRequest` when an input error names a field.
+
 ## Code layout of apps/api
 
 ```
@@ -88,9 +99,11 @@ internal/modules/health            liveness, readiness, service information (int
 internal/transport/rest            the one list of REST operations, every module's
 internal/transport/graphql         POST /graphql: handler, resolver root, schema registry, and
                                    the gqlgen executor in exec (generated)
+internal/transport/grpc            every gRPC service, registered on one server
 internal/platform/...              config, logging, httpserver, postgres (pool, migrations),
                                    tigerbeetle (client), readiness, restapi (Huma),
-                                   graphqlschema (the SDL generator), problem, scalar,
+                                   graphqlschema (the SDL generator), grpcserver, grpcapi (the
+                                   protobuf code and its conversions), problem, scalar,
                                    requestid: process and transport plumbing
 migrations/                        goose SQL, one sequence, embedded with go:embed
 testdata/depguard/                 one deliberate violation per depguard rule
@@ -105,7 +118,7 @@ have their own life cycle and are never written in a chain.
 Inside a module the layers are `domain` (rules and the ports infrastructure implements),
 `application` (one type per command family and one per query family, exported as interfaces in
 `usecases.go`), `infrastructure` (Postgres through its own sqlc queries, TigerBeetle) and
-`interfaces` (`dto`, the wire types every transport shares, `rest/v1` and `graphql`). A use case holds
+`interfaces` (`dto`, the wire types every transport shares, `rest/v1`, `graphql` and `grpc/v1`). A use case holds
 interfaces, never concrete types, so the application tests run on hand-written fakes and never
 start a database.
 
@@ -134,14 +147,14 @@ message stays available for the log. `internal/platform/problem` maps any error 
 transport-neutral problem and never copies driver text; `internal/platform/restapi` renders it
 as RFC 9457 `application/problem+json`, and `internal/transport/graphql` puts the same members
 (code, type, title, status, detail, requestId, retryAfter, posting, results) in the extensions of
-a GraphQL error.
+a GraphQL error, and `internal/platform/grpcserver` in a status with `google.rpc` details.
 
 ## The write path
 
 A transaction is `POST /v1/ledgers/{ledger}/transactions` with an `Idempotency-Key` header
-(the path shape of ADR-0004), or the `createTransaction` mutation with `idempotencyKey` in its
-input; both reach the same use case, so a key written on one transport replays on the other
-(ADR-0024). One API transaction becomes
+(the path shape of ADR-0004), the `createTransaction` mutation with `idempotencyKey` in its
+input, or `TransactionService.CreateTransaction` with `idempotency_key`. All reach the same use
+case, so a key written on one transport replays on any other (ADR-0024). One API transaction becomes
 exactly one batch of linked transfers, which must fit one TigerBeetle request (default maximum
 8189 events, and a linked chain cannot span requests), so the service caps the number of
 postings per transaction well below that.

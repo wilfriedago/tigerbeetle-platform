@@ -30,20 +30,21 @@ Every task is a `just` recipe at the root (ADR-0016); `just --list` prints them 
 Go recipes call the Go toolchain directly. TypeScript recipes call Turborepo, which orders and
 caches the TypeScript packages. Git hooks and CI run the same recipes.
 
-| Command                                                            | What it does                                                                                                                                                                                                                                                                                                                  |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `just dev`                                                         | Dev servers side by side: `go run ./cmd/api` and the Vite console. Needs TigerBeetle and Postgres (the stack, or your own) and the variables from `.env.example`.                                                                                                                                                             |
-| `just build`                                                       | `go build` for the API (`build-go`) and `vp build` for the console (`build-ts`).                                                                                                                                                                                                                                              |
-| `just lint`                                                        | golangci-lint for Go (`lint-go`); `vp check` over the repository, each package's lint and Redocly for the spec (`lint-ts`). `just lint-spec` runs Redocly alone.                                                                                                                                                              |
-| `just format`                                                      | golangci-lint formatters (gofumpt, goimports) and `vp check --fix`, writing changes.                                                                                                                                                                                                                                          |
-| `just typecheck`                                                   | `tsc --noEmit` for the console and the client.                                                                                                                                                                                                                                                                                |
-| `just test`                                                        | Go unit tests with `-race` (`test-go`) and the TypeScript unit tests (`test-ts`).                                                                                                                                                                                                                                             |
-| `just test-integration`                                            | Go tests behind the `integration` build tag; starts real Postgres and TigerBeetle with testcontainers.                                                                                                                                                                                                                        |
-| `just generate`                                                    | sqlc, then the spec and the GraphQL schema from the Go registrations (`cmd/openapi`, `cmd/graphqlschema`), then the gqlgen executor, then the spec lint, the TypeScript client (orval), the console's GraphQL types and the route tree. `just generate-check` also fails when the result differs from the commit, as CI does. |
-| `just vulncheck`                                                   | govulncheck over the Go module.                                                                                                                                                                                                                                                                                               |
-| `just compose-up`, `compose-down`, `compose-logs`, `compose-reset` | Local stack lifecycle. `compose-reset` deletes the volumes.                                                                                                                                                                                                                                                                   |
-| `just tools-install`                                               | Installs the pinned tools again.                                                                                                                                                                                                                                                                                              |
-| `just versions-check`                                              | Verifies the TigerBeetle client in go.mod matches the server image in the compose file.                                                                                                                                                                                                                                       |
+| Command                                                            | What it does                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `just dev`                                                         | Dev servers side by side: `go run ./cmd/api` and the Vite console. Needs TigerBeetle and Postgres (the stack, or your own) and the variables from `.env.example`.                                                                                                                                                                                                    |
+| `just build`                                                       | `go build` for the API (`build-go`) and `vp build` for the console (`build-ts`).                                                                                                                                                                                                                                                                                     |
+| `just lint`                                                        | golangci-lint for Go (`lint-go`); `vp check` over the repository, each package's lint and Redocly for the spec (`lint-ts`). `just lint-spec` runs Redocly alone.                                                                                                                                                                                                     |
+| `just format`                                                      | golangci-lint formatters (gofumpt, goimports) and `vp check --fix`, writing changes.                                                                                                                                                                                                                                                                                 |
+| `just typecheck`                                                   | `tsc --noEmit` for the console and the client.                                                                                                                                                                                                                                                                                                                       |
+| `just test`                                                        | Go unit tests with `-race` (`test-go`) and the TypeScript unit tests (`test-ts`).                                                                                                                                                                                                                                                                                    |
+| `just test-integration`                                            | Go tests behind the `integration` build tag; starts real Postgres and TigerBeetle with testcontainers.                                                                                                                                                                                                                                                               |
+| `just generate`                                                    | sqlc, then the spec and the GraphQL schema from the Go registrations (`cmd/openapi`, `cmd/graphqlschema`), then the gqlgen executor and the protobuf code (`buf generate`), then the spec lint, the TypeScript client (orval), the console's GraphQL types and the route tree. `just generate-check` also fails when the result differs from the commit, as CI does. |
+| `just lint-proto`, `just proto-breaking`                           | `buf lint` over `packages/proto`; `buf breaking` against a revision (`main` by default), which CI runs against the base branch of a pull request.                                                                                                                                                                                                                    |
+| `just vulncheck`                                                   | govulncheck over the Go module.                                                                                                                                                                                                                                                                                                                                      |
+| `just compose-up`, `compose-down`, `compose-logs`, `compose-reset` | Local stack lifecycle. `compose-reset` deletes the volumes.                                                                                                                                                                                                                                                                                                          |
+| `just tools-install`                                               | Installs the pinned tools again.                                                                                                                                                                                                                                                                                                                                     |
+| `just versions-check`                                              | Verifies the TigerBeetle client in go.mod matches the server image in the compose file.                                                                                                                                                                                                                                                                              |
 
 The TypeScript toolchain is Vite+ (ADR-0011), pinned in `pnpm-workspace.yaml`. Run its CLI through
 pnpm (`pnpm exec vp check` at the root covers the whole repository; `just lint-ts` runs it).
@@ -69,8 +70,9 @@ Go-only recipes end in `-go` (`just lint-go`, `just test-go`), and plain `go tes
 
 ## Adding an endpoint
 
-The Go code is the source of both contracts: the REST spec and its TypeScript client (ADR-0018),
-and the GraphQL schema the console uses (ADR-0020).
+The Go code is the source of the REST spec and its TypeScript client (ADR-0018) and of the
+GraphQL schema the console uses (ADR-0020). The gRPC contract is written by hand in
+`packages/proto` (ADR-0021).
 
 1. Find the module that owns the data (`ledgers` or `bookkeeping` in `apps/api/internal/modules`).
    Implement the use case in its `application` package, on a command or query type, and export
@@ -93,18 +95,26 @@ and the GraphQL schema the console uses (ADR-0020).
    (the `dto` types); a mutation takes one `input` struct, and a money write has
    `IdempotencyKey` in it. The generator reads descriptions from `doc` tags and nullability from
    pointers.
-5. Run `just generate`: `cmd/openapi` rewrites `packages/openapi/openapi.yaml`, orval
+5. For gRPC, add the RPC and its `<Rpc>Request` and `<Rpc>Response` messages to the service of
+   the tag in `packages/proto/tigerbeetle/platform/v1` (buf STANDARD names), and the method to
+   the module's server in `interfaces/grpc/v1`, converting from the same `dto` types. Amounts and
+   IDs are strings, a money write has `idempotency_key`, and a list pages with `page_size` and
+   `page_token`. Return errors as Go errors; `internal/platform/grpcserver` maps them to a status
+   with `ErrorInfo`. Add the method to `internal/transport/grpc/register_test.go`.
+6. Run `just generate`: `cmd/openapi` rewrites `packages/openapi/openapi.yaml`, orval
    regenerates `packages/api-client/src/gen`, `cmd/graphqlschema` rewrites
-   `packages/graphql/schema.graphql`, gqlgen regenerates `internal/transport/graphql/exec`, and
-   graphql-codegen the console's `src/graphql/gen`. A gqlgen error naming a missing resolver
+   `packages/graphql/schema.graphql`, gqlgen regenerates `internal/transport/graphql/exec`, buf
+   regenerates `internal/platform/grpcapi/platformv1`, and graphql-codegen the console's
+   `src/graphql/gen`. A gqlgen error naming a missing resolver
    means the module's resolver type lacks the method. `just lint-spec` lints the spec and
    `just spec-diff` lists what changed against `main`; CI fails on a breaking change.
-6. Add tests: table-driven unit tests of the use case with hand-written fakes of the ports, an
+7. Add tests: table-driven unit tests of the use case with hand-written fakes of the ports, an
    `httptest` test of the handler with fakes of the use cases, and an integration test (build tag
    `integration`) when infrastructure changed.
-7. In the console, write the document in the feature's `api.ts` with `graphql()`, call it with
+8. In the console, write the document in the feature's `api.ts` with `graphql()`, call it with
    `request()` and return the REST type through `present()`.
-8. Commit the Go change, the regenerated spec, schema and clients, and the tests together.
+9. Commit the Go change, the protos, the regenerated spec, schema and clients, and the tests
+   together.
 
 ## Database changes
 
