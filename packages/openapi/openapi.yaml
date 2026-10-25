@@ -385,6 +385,9 @@ components:
       type: object
     Dependencies:
       properties:
+        kafka:
+          $ref: "#/components/schemas/DependencyCheck"
+          description: Present when the Kafka ledger event relay is enabled.
         nats:
           $ref: "#/components/schemas/DependencyCheck"
           description: Present when NATS RPC is enabled.
@@ -392,7 +395,7 @@ components:
           $ref: "#/components/schemas/DependencyCheck"
         rabbitmq:
           $ref: "#/components/schemas/DependencyCheck"
-          description: Present when AMQP RPC is enabled.
+          description: Present when AMQP RPC or the Kafka ledger event relay is enabled.
         tigerbeetle:
           $ref: "#/components/schemas/DependencyCheck"
       required:

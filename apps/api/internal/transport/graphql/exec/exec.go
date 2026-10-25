@@ -137,6 +137,7 @@ type ComplexityRoot struct {
 	}
 
 	Dependencies struct {
+		Kafka       func(childComplexity int) int
 		NATS        func(childComplexity int) int
 		Postgres    func(childComplexity int) int
 		RabbitMQ    func(childComplexity int) int
@@ -818,6 +819,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.DeclinedStats.Total(childComplexity), true
 
+	case "Dependencies.kafka":
+		if e.ComplexityRoot.Dependencies.Kafka == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Dependencies.Kafka(childComplexity), true
 	case "Dependencies.nats":
 		if e.ComplexityRoot.Dependencies.NATS == nil {
 			break
@@ -2386,10 +2393,12 @@ type DeclinedStats {
 type Dependencies {
   postgres: DependencyCheck!
   tigerbeetle: DependencyCheck!
-  "Present when AMQP RPC is enabled."
+  "Present when AMQP RPC or the Kafka ledger event relay is enabled."
   rabbitmq: DependencyCheck
   "Present when NATS RPC is enabled."
   nats: DependencyCheck
+  "Present when the Kafka ledger event relay is enabled."
+  kafka: DependencyCheck
 }
 
 "The result of probing one dependency."
@@ -3062,6 +3071,8 @@ func (ec *executionContext) childFields_Dependencies(ctx context.Context, field 
 		return ec.fieldContext_Dependencies_rabbitmq(ctx, field)
 	case "nats":
 		return ec.fieldContext_Dependencies_nats(ctx, field)
+	case "kafka":
+		return ec.fieldContext_Dependencies_kafka(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Dependencies", field.Name)
 }
@@ -5769,6 +5780,38 @@ func (ec *executionContext) _Dependencies_nats(ctx context.Context, field graphq
 	)
 }
 func (ec *executionContext) fieldContext_Dependencies_nats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Dependencies",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_DependencyCheck(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Dependencies_kafka(ctx context.Context, field graphql.CollectedField, obj *dto2.Dependencies) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Dependencies_kafka(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Kafka, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto2.DependencyCheck) graphql.Marshaler {
+			return ec.marshalODependencyCheck2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencyCheck(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Dependencies_kafka(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Dependencies",
 		Field:      field,
@@ -13320,6 +13363,11 @@ func (ec *executionContext) _Dependencies(ctx context.Context, sel ast.Selection
 			}
 		case "nats":
 			out.Values[i] = ec._Dependencies_nats(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "kafka":
+			out.Values[i] = ec._Dependencies_kafka(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}

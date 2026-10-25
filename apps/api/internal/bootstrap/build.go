@@ -13,6 +13,7 @@ import (
 	"time"
 
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/cdc"
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/amqprpc"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
@@ -34,9 +35,10 @@ type App struct {
 	handler http.Handler
 	// grpc is nil when GRPC_ENABLED is off.
 	grpc *grpcserver.Server
-	// amqp and nats are nil when their switch is off.
+	// amqp, nats and relay are nil when their switch is off.
 	amqp       *amqprpc.Server
 	nats       *natsrpc.Server
+	relay      *cdc.Consumer
 	reconciler *bookkeepingapp.Reconciler
 	runners    []Runner
 	// closers release the resources in construction order; close runs them in reverse.

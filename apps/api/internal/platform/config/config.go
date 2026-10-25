@@ -67,6 +67,17 @@ type Config struct {
 	RPCConcurrency int `env:"RPC_CONCURRENCY" envDefault:"16"`
 	// RPCTimeoutMax bounds every broker request, whatever deadline the client sends.
 	RPCTimeoutMax time.Duration `env:"RPC_TIMEOUT_MAX" envDefault:"30s"`
+	// KafkaEventsEnabled relays TigerBeetle change events to Kafka (ADR-0022); off by default,
+	// development only until authentication is decided. It needs KafkaBrokers and CDCAMQPURL.
+	KafkaEventsEnabled bool `env:"KAFKA_EVENTS_ENABLED" envDefault:"false"`
+	// KafkaBrokers lists the seed brokers, host:port.
+	KafkaBrokers []string `env:"KAFKA_BROKERS" envSeparator:","`
+	// KafkaEventsTopic is the topic of ledger events.
+	KafkaEventsTopic string `env:"KAFKA_EVENTS_TOPIC" envDefault:"tbp.ledger-events.v1"`
+	// CDCAMQPURL is the RabbitMQ the TigerBeetle CDC job publishes to.
+	CDCAMQPURL string `env:"CDC_AMQP_URL"`
+	// CDCQueue is the relay queue, bound to the CDC exchange tbp.cdc.
+	CDCQueue string `env:"CDC_QUEUE" envDefault:"tbp.ledger-events.relay"`
 }
 
 // Load reads the process environment.
@@ -103,6 +114,9 @@ func (c *Config) validate() error {
 	}
 	if c.NATSRPCEnabled && c.NATSURL == "" {
 		return fmt.Errorf("config: NATS_RPC_ENABLED needs NATS_URL")
+	}
+	if c.KafkaEventsEnabled && (len(c.KafkaBrokers) == 0 || c.CDCAMQPURL == "") {
+		return fmt.Errorf("config: KAFKA_EVENTS_ENABLED needs KAFKA_BROKERS and CDC_AMQP_URL")
 	}
 	if (c.AMQPRPCEnabled || c.NATSRPCEnabled) && (c.RPCConcurrency < 1 || c.RPCTimeoutMax <= 0) {
 		return fmt.Errorf("config: RPC_CONCURRENCY and RPC_TIMEOUT_MAX must be positive")

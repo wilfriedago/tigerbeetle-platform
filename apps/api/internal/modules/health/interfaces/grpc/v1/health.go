@@ -69,6 +69,9 @@ func (s *InfoServer) GetInfo(ctx context.Context, _ *pb.GetInfoRequest) (*pb.Get
 	if nats := info.Dependencies.NATS; nats != nil {
 		out.Dependencies[dto.ProbeNATS] = checkOf(*nats)
 	}
+	if kafka := info.Dependencies.Kafka; kafka != nil {
+		out.Dependencies[dto.ProbeKafka] = checkOf(*kafka)
+	}
 	if rt := info.Runtime; rt != nil {
 		out.Runtime = &pb.Runtime{
 			StartedAt:                grpcapi.Timestamp(rt.StartedAt),

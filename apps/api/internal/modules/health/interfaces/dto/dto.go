@@ -24,6 +24,7 @@ const (
 	ProbeTigerBeetle = "tigerbeetle"
 	ProbeRabbitMQ    = "rabbitmq"
 	ProbeNATS        = "nats"
+	ProbeKafka       = "kafka"
 )
 
 // DatabaseInfo reports the Postgres server and schema versions for GET /v1/_info.
@@ -64,8 +65,9 @@ func (DependencyCheck) TransformSchema(_ huma.Registry, s *huma.Schema) *huma.Sc
 type Dependencies struct {
 	Postgres    DependencyCheck  `json:"postgres"`
 	Tigerbeetle DependencyCheck  `json:"tigerbeetle"`
-	RabbitMQ    *DependencyCheck `json:"rabbitmq,omitempty" doc:"Present when AMQP RPC is enabled."`
+	RabbitMQ    *DependencyCheck `json:"rabbitmq,omitempty" doc:"Present when AMQP RPC or the Kafka ledger event relay is enabled."`
 	NATS        *DependencyCheck `json:"nats,omitempty" doc:"Present when NATS RPC is enabled."`
+	Kafka       *DependencyCheck `json:"kafka,omitempty" doc:"Present when the Kafka ledger event relay is enabled."`
 }
 
 // Readiness is the answer of GET /readyz. degraded means Postgres and TigerBeetle answer but a
@@ -169,6 +171,10 @@ func dependenciesOf(report readiness.Report) Dependencies {
 	if nats, ok := report.Result(ProbeNATS); ok {
 		check := checkOf(nats)
 		out.NATS = &check
+	}
+	if kafka, ok := report.Result(ProbeKafka); ok {
+		check := checkOf(kafka)
+		out.Kafka = &check
 	}
 	return out
 }

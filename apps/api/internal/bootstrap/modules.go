@@ -6,6 +6,7 @@ import (
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
+	bookkeepingdomain "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
 	bookkeepingpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure/postgres"
 	bookkeepingtb "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure/tigerbeetle"
 	ledgersapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/application"
@@ -17,6 +18,8 @@ import (
 type modules struct {
 	ledgers     ledgersapp.Application
 	bookkeeping bookkeepingapp.Application
+	// bookkeepingAccounts is what the ledger event relay enriches events from (ADR-0022).
+	bookkeepingAccounts bookkeepingdomain.AccountRepository
 }
 
 // buildModules builds the use cases in dependency order (plan section 4.5). The modules depend on
@@ -60,5 +63,5 @@ func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options
 		Addresses:  bk.Footprints,
 		Clock:      clock,
 	})
-	return modules{ledgers: lg, bookkeeping: bk}
+	return modules{ledgers: lg, bookkeeping: bk, bookkeepingAccounts: bookStore}
 }

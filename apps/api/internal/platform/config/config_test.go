@@ -42,6 +42,8 @@ func TestParse(t *testing.T) {
 				NATSRPCQueueGroup:     "tbp-api",
 				RPCConcurrency:        16,
 				RPCTimeoutMax:         30 * time.Second,
+				KafkaEventsTopic:      "tbp.ledger-events.v1",
+				CDCQueue:              "tbp.ledger-events.relay",
 			},
 		},
 		{
@@ -58,6 +60,7 @@ func TestParse(t *testing.T) {
 				TigerBeetleTimeout: 5 * time.Second, ReconcilerGracePeriod: 30 * time.Second, ReconcilerInterval: 10 * time.Second,
 				RESTEnabled: true, GraphQLEnabled: true, GRPCEnabled: true, GRPCAddr: ":9191",
 				AMQPRPCQueue: "tbp.rpc.v1", NATSRPCQueueGroup: "tbp-api", RPCConcurrency: 16, RPCTimeoutMax: 30 * time.Second,
+				KafkaEventsTopic: "tbp.ledger-events.v1", CDCQueue: "tbp.ledger-events.relay",
 			},
 		},
 		{name: "missing postgres url", environ: map[string]string{"TIGERBEETLE_ADDRESSES": "localhost:3000"}, wantErr: true},
@@ -68,6 +71,8 @@ func TestParse(t *testing.T) {
 		{name: "grace shorter than timeout", environ: merge(required, map[string]string{"RECONCILER_GRACE_PERIOD": "2s"}), wantErr: true},
 		{name: "amqp rpc without url", environ: merge(required, map[string]string{"AMQP_RPC_ENABLED": "true"}), wantErr: true},
 		{name: "nats rpc without url", environ: merge(required, map[string]string{"NATS_RPC_ENABLED": "true"}), wantErr: true},
+		{name: "kafka events without brokers", environ: merge(required, map[string]string{"KAFKA_EVENTS_ENABLED": "true", "CDC_AMQP_URL": "amqp://x"}), wantErr: true},
+		{name: "kafka events without cdc url", environ: merge(required, map[string]string{"KAFKA_EVENTS_ENABLED": "true", "KAFKA_BROKERS": "k:9092"}), wantErr: true},
 		{name: "zero rpc concurrency", environ: merge(required, map[string]string{"NATS_RPC_ENABLED": "true", "NATS_URL": "nats://x:4222", "RPC_CONCURRENCY": "0"}), wantErr: true},
 	}
 	for _, tt := range tests {

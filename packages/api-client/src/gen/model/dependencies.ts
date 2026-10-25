@@ -4,10 +4,12 @@
 import type { DependencyCheck } from './dependencyCheck';
 
 export interface Dependencies {
+  /** Present when the Kafka ledger event relay is enabled. */
+  kafka?: DependencyCheck;
   /** Present when NATS RPC is enabled. */
   nats?: DependencyCheck;
   postgres: DependencyCheck;
-  /** Present when AMQP RPC is enabled. */
+  /** Present when AMQP RPC or the Kafka ledger event relay is enabled. */
   rabbitmq?: DependencyCheck;
   tigerbeetle: DependencyCheck;
 }

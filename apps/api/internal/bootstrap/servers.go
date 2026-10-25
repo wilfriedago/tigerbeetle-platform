@@ -8,6 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
+	bookkeepingkafka "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure/kafka"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/cdc"
 	bookkeepingv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/rest/v1"
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	ledgersv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/rest/v1"
@@ -15,7 +18,9 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/httpserver"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/kafka"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/natsrpc"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/rpc"
 	graphqltransport "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/graphql"
@@ -86,10 +91,25 @@ func grpcServer(health healthdto.Source, m modules, cfg config.Config, logger *s
 	return srv
 }
 
-// brokerServers builds the enabled broker RPC servers on one router and dispatcher, so AMQP and
-// NATS answer every method the same way, and registers their readiness probes as optional: a
-// broker outage degrades the service without making it unready (plan section 13.2).
+// brokerServers builds what talks to a broker: the AMQP and NATS RPC servers on one router and
+// dispatcher, so both answer every method the same way, and the Kafka relay. Their readiness
+// probes are optional: a broker outage degrades the service without making it unready (plan
+// section 13.2). RabbitMQ is one dependency, reported once, even when both AMQP RPC and the relay
+// connect to it.
 func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger) error {
+	var rabbit []readiness.Probe
+	defer func() {
+		if len(rabbit) > 0 {
+			r.readiness.Optional(healthdto.ProbeRabbitMQ, allOf(rabbit))
+		}
+	}()
+	if cfg.KafkaEventsEnabled {
+		probe, err := a.kafkaRelay(r, m, cfg, logger)
+		if err != nil {
+			return err
+		}
+		rabbit = append(rabbit, probe)
+	}
 	if !cfg.AMQPRPCEnabled && !cfg.NATSRPCEnabled {
 		return nil
 	}
@@ -100,7 +120,7 @@ func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg
 			URL: cfg.AMQPURL, Queue: cfg.AMQPRPCQueue, Concurrency: cfg.RPCConcurrency,
 			ShutdownTimeout: cfg.ShutdownTimeout, Dispatcher: dispatcher, Logger: logger,
 		})
-		r.readiness.Optional(healthdto.ProbeRabbitMQ, a.amqp.Ready)
+		rabbit = append(rabbit, a.amqp.Ready)
 	}
 	if cfg.NATSRPCEnabled {
 		srv, err := natsrpc.New(natsrpc.Options{
@@ -117,6 +137,32 @@ func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg
 	return nil
 }
 
+// kafkaRelay builds the ledger event relay (ADR-0022): the Kafka producer, the publisher, the
+// relay use case and the CDC consumer. It registers the Kafka probe and returns the RabbitMQ one.
+func (a *App) kafkaRelay(r resources, m modules, cfg config.Config, logger *slog.Logger) (readiness.Probe, error) {
+	producer, err := kafka.New(cfg.KafkaBrokers, "tbp-api", 30*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	a.closers = append(a.closers, producer.Close)
+	r.readiness.Optional(healthdto.ProbeKafka, producer.Ping)
+	relay := bookkeepingapp.NewLedgerEventRelay(m.bookkeepingAccounts, bookkeepingkafka.NewEventPublisher(producer, cfg.KafkaEventsTopic))
+	a.relay = cdc.NewConsumer(cdc.Options{URL: cfg.CDCAMQPURL, Queue: cfg.CDCQueue, Relay: relay, Logger: logger})
+	return a.relay.Ready, nil
+}
+
+// allOf is a probe that passes when every probe passes.
+func allOf(probes []readiness.Probe) readiness.Probe {
+	return func(ctx context.Context) error {
+		for _, p := range probes {
+			if err := p(ctx); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
 // runners lists the enabled servers and workers.
 func runners(cfg config.Config, a *App, logger *slog.Logger) []Runner {
 	out := []Runner{httpRunner{cfg: cfg, handler: a.handler, logger: logger}}
@@ -128,6 +174,9 @@ func runners(cfg config.Config, a *App, logger *slog.Logger) []Runner {
 	}
 	if a.nats != nil {
 		out = append(out, funcRunner{name: "nats-rpc", run: a.nats.Run})
+	}
+	if a.relay != nil {
+		out = append(out, funcRunner{name: "cdc-relay", run: a.relay.Run})
 	}
 	if cfg.ReconcilerEnabled {
 		out = append(out, reconcilerRunner{a: a})
