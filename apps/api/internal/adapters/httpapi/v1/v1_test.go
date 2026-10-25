@@ -14,28 +14,12 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
 
 type readyFunc func(ctx context.Context) error
-
-func (f readyFunc) Ready(ctx context.Context) error { return f(ctx) }
-
-// metadataFake only needs Ready for the status use case.
-type metadataFake struct {
-	readyFunc
-}
-
-func (metadataFake) CreateLedger(context.Context, ledger.Ledger) (ledger.Ledger, error) {
-	return ledger.Ledger{}, errors.New("not implemented")
-}
-
-func (metadataFake) GetLedger(context.Context, string) (ledger.Ledger, error) {
-	return ledger.Ledger{}, errors.New("not implemented")
-}
 
 func up(context.Context) error { return nil }
 
@@ -49,10 +33,10 @@ func newTestServer(t *testing.T, deps Deps) (http.Handler, huma.API) {
 }
 
 func statusDeps(pg, tb readyFunc) Deps {
-	return Deps{
-		Status:  app.NewStatus(tb, metadataFake{readyFunc: pg}, 50*time.Millisecond),
-		Service: Service{Name: "test-service", Version: "1.2.3"},
-	}
+	checker := readiness.New(50 * time.Millisecond)
+	checker.Require(probePostgres, readiness.Probe(pg))
+	checker.Require(probeTigerBeetle, readiness.Probe(tb))
+	return Deps{Readiness: checker, Service: Service{Name: "test-service", Version: "1.2.3"}}
 }
 
 func get(t *testing.T, h http.Handler, path string) *httptest.ResponseRecorder {

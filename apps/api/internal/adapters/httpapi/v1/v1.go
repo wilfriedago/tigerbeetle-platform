@@ -5,17 +5,20 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
 )
 
 // Deps holds the use cases the handlers call. cmd/api wires it; cmd/openapi passes the zero value,
 // because registering an operation never calls a use case.
 type Deps struct {
-	Status       *app.Status
+	Readiness    *readiness.Checker
+	Database     DatabaseInfo
 	Ledgers      *app.Ledgers
 	Settings     *app.Settings
 	Accounts     *app.Accounts
@@ -24,6 +27,12 @@ type Deps struct {
 	Overview     *app.Overview
 	Reconciler   *app.Reconciler
 	Service      Service
+}
+
+// DatabaseInfo reports the Postgres server and schema versions for GET /v1/_info.
+type DatabaseInfo interface {
+	ServerVersion(ctx context.Context) (string, error)
+	SchemaVersion(ctx context.Context) (int64, error)
 }
 
 // Service describes the running binary for GET /v1/_info.

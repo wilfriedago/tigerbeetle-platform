@@ -10,8 +10,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/logging"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
@@ -154,7 +154,7 @@ func (*handlers) getLiveness(context.Context, *struct{}) (*body[Liveness], error
 
 // getReadiness probes both dependencies and answers 503 when any is down.
 func (h *handlers) getReadiness(ctx context.Context, _ *struct{}) (*readinessAnswer, error) {
-	report := h.Status.Check(ctx)
+	report := h.Readiness.Check(ctx)
 	logReport(ctx, report)
 	out := &readinessAnswer{Status: http.StatusOK, Body: Readiness{Status: "ready", Dependencies: dependenciesOf(report)}}
 	if !report.Ready() {
@@ -168,7 +168,7 @@ func (h *handlers) getReadiness(ctx context.Context, _ *struct{}) (*readinessAns
 // readiness it always answers 200: the dependency state is the payload, not the health of this
 // endpoint.
 func (h *handlers) getInfo(ctx context.Context, _ *struct{}) (*body[Info], error) {
-	report := h.Status.Check(ctx)
+	report := h.Readiness.Check(ctx)
 	logReport(ctx, report)
 	rt := Runtime{
 		StartedAt:                h.Service.StartedAt,
@@ -176,8 +176,8 @@ func (h *handlers) getInfo(ctx context.Context, _ *struct{}) (*body[Info], error
 		TigerbeetleClientVersion: h.Service.TigerBeetleClientVersion,
 		TigerbeetleClusterID:     h.Service.TigerBeetleClusterID,
 	}
-	if report.Postgres.Up() {
-		version, schema := h.Status.Database(ctx)
+	if pg, ok := report.Result(probePostgres); ok && pg.Up() && h.Database != nil {
+		version, schema := h.database(ctx)
 		rt.PostgresVersion = optional(version)
 		if schema > 0 {
 			rt.SchemaVersion = &schema
@@ -220,11 +220,29 @@ func (h *handlers) getReconcilerStatus(ctx context.Context, _ *struct{}) (*body[
 	return &body[ReconcilerStatus]{Body: out}, nil
 }
 
-func dependenciesOf(report app.Report) Dependencies {
-	return Dependencies{Postgres: checkOf(report.Postgres), Tigerbeetle: checkOf(report.TigerBeetle)}
+// The probe names the readiness checker reports, as bootstrap registers them.
+const (
+	probePostgres    = "postgres"
+	probeTigerBeetle = "tigerbeetle"
+)
+
+// database returns the Postgres server version and the last applied migration, or zero values
+// when Postgres does not tell within the probe timeout.
+func (h *handlers) database(ctx context.Context) (version string, schema int64) {
+	ctx, cancel := context.WithTimeout(ctx, h.Readiness.Timeout())
+	defer cancel()
+	version, _ = h.Database.ServerVersion(ctx)
+	schema, _ = h.Database.SchemaVersion(ctx)
+	return version, schema
 }
 
-func checkOf(p app.Probe) DependencyCheck {
+func dependenciesOf(report readiness.Report) Dependencies {
+	pg, _ := report.Result(probePostgres)
+	tb, _ := report.Result(probeTigerBeetle)
+	return Dependencies{Postgres: checkOf(pg), Tigerbeetle: checkOf(tb)}
+}
+
+func checkOf(p readiness.Result) DependencyCheck {
 	check := DependencyCheck{Status: scalar.DependencyUp, LatencyMs: p.Latency.Milliseconds()}
 	if !p.Up() {
 		reason := dependencyReason(p.Err)
@@ -244,13 +262,12 @@ func dependencyReason(err error) string {
 }
 
 // logReport records failed probes with their full error, which clients never see.
-func logReport(ctx context.Context, report app.Report) {
+func logReport(ctx context.Context, report readiness.Report) {
 	logger := logging.From(ctx)
-	if err := report.Postgres.Err; err != nil {
-		logger.WarnContext(ctx, "postgres probe failed", slog.Any("error", err))
-	}
-	if err := report.TigerBeetle.Err; err != nil {
-		logger.WarnContext(ctx, "tigerbeetle probe failed", slog.Any("error", err))
+	for _, r := range report {
+		if r.Err != nil {
+			logger.WarnContext(ctx, r.Name+" probe failed", slog.Any("error", r.Err))
+		}
 	}
 }
 

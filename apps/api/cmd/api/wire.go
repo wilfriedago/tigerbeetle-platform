@@ -14,6 +14,9 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
+	platformpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
+	platformtb "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/tigerbeetle"
 )
 
 // service is the wired application: the HTTP handler and the background reconciler.
@@ -40,31 +43,37 @@ func wire(ctx context.Context, cfg config.Config, logger *slog.Logger, opts ...w
 		opt(&w)
 	}
 
-	metadata, err := postgres.New(ctx, cfg.PostgresURL)
+	db, err := platformpg.Open(ctx, cfg.PostgresURL)
 	if err != nil {
 		return nil, err
 	}
 	if cfg.MigrateOnStart {
 		migrateCtx, cancel := context.WithTimeout(ctx, time.Minute)
-		err := metadata.Migrate(migrateCtx, logger)
+		err := db.Migrate(migrateCtx, logger)
 		cancel()
 		if err != nil {
-			metadata.Close()
+			db.Close()
 			return nil, err
 		}
 	}
 
 	// The TigerBeetle client wants IP addresses; compose and Kubernetes hand us names.
-	addresses, err := tigerbeetle.ResolveAddresses(ctx, cfg.TigerBeetleAddresses)
+	addresses, err := platformtb.ResolveAddresses(ctx, cfg.TigerBeetleAddresses)
 	if err != nil {
-		metadata.Close()
+		db.Close()
 		return nil, err
 	}
-	ledgerStore, err := tigerbeetle.New(cfg.TigerBeetleClusterID, addresses, tigerbeetle.WithRequestTimeout(cfg.TigerBeetleTimeout))
+	client, err := platformtb.New(cfg.TigerBeetleClusterID, addresses, platformtb.WithRequestTimeout(cfg.TigerBeetleTimeout))
 	if err != nil {
-		metadata.Close()
+		db.Close()
 		return nil, err
 	}
+	metadata := postgres.New(db)
+	ledgerStore := tigerbeetle.NewStore(client)
+
+	checker := readiness.New(cfg.ReadinessTimeout)
+	checker.Require("postgres", db.Ready)
+	checker.Require("tigerbeetle", client.Ready)
 
 	clock := app.ClockFunc(time.Now)
 	tb := w.wrapLedgerStore(ledgerStore)
@@ -82,7 +91,8 @@ func wire(ctx context.Context, cfg config.Config, logger *slog.Logger, opts ...w
 	reconciler := app.NewReconciler(metadata, transactions, holds, clock, cfg.ReconcilerGracePeriod, cfg.ReconcilerInterval, logger)
 
 	handler := httpapi.NewHandler(logger, v1.Deps{
-		Status:       app.NewStatus(ledgerStore, metadata, cfg.ReadinessTimeout),
+		Readiness:    checker,
+		Database:     db,
 		Ledgers:      app.NewLedgers(metadata, clock),
 		Settings:     app.NewSettings(metadata, metadata, metadata, metadata, metadata, clock),
 		Accounts:     accounts,
@@ -103,8 +113,8 @@ func wire(ctx context.Context, cfg config.Config, logger *slog.Logger, opts ...w
 		handler:    handler,
 		reconciler: reconciler,
 		close: func() {
-			ledgerStore.Close()
-			metadata.Close()
+			client.Close()
+			db.Close()
 		},
 	}, nil
 }

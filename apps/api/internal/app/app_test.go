@@ -82,54 +82,6 @@ func (f *fakeStore) ReplaceLedgerMetadata(_ context.Context, name string, metada
 	return nil
 }
 
-func TestStatusCheck(t *testing.T) {
-	t.Parallel()
-	errDown := errors.New("down")
-	tests := []struct {
-		name        string
-		postgres    *fakeStore
-		tigerbeetle *fakeStore
-		wantReady   bool
-		wantPGErr   error
-		wantTBErr   error
-	}{
-		{
-			name:        "both up",
-			postgres:    &fakeStore{},
-			tigerbeetle: &fakeStore{},
-			wantReady:   true,
-		},
-		{
-			name:        "postgres down",
-			postgres:    &fakeStore{readyErr: errDown},
-			tigerbeetle: &fakeStore{},
-			wantPGErr:   errDown,
-		},
-		{
-			name:        "tigerbeetle slow is reported as a timeout",
-			postgres:    &fakeStore{},
-			tigerbeetle: &fakeStore{readyDelay: time.Second},
-			wantTBErr:   context.DeadlineExceeded,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			status := NewStatus(tt.tigerbeetle, tt.postgres, 20*time.Millisecond)
-			report := status.Check(context.Background())
-			if report.Ready() != tt.wantReady {
-				t.Fatalf("Ready() = %v, want %v (report %+v)", report.Ready(), tt.wantReady, report)
-			}
-			if !errors.Is(report.Postgres.Err, tt.wantPGErr) {
-				t.Errorf("postgres err = %v, want %v", report.Postgres.Err, tt.wantPGErr)
-			}
-			if !errors.Is(report.TigerBeetle.Err, tt.wantTBErr) {
-				t.Errorf("tigerbeetle err = %v, want %v", report.TigerBeetle.Err, tt.wantTBErr)
-			}
-		})
-	}
-}
-
 func TestLedgers(t *testing.T) {
 	t.Parallel()
 	now := time.Date(2026, 10, 24, 12, 0, 0, 0, time.UTC)

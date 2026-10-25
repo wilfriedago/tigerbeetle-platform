@@ -56,3 +56,15 @@ func TestIDConversion(t *testing.T) {
 		}
 	})
 }
+
+func TestNewIDIsTimeOrdered(t *testing.T) {
+	t.Parallel()
+	var s Store
+	first, second := s.NewID(), s.NewID()
+	if first.IsZero() || second.IsZero() {
+		t.Fatal("NewID returned zero")
+	}
+	if bytes.Compare(first[:], second[:]) >= 0 {
+		t.Fatalf("NewID is not increasing: %s then %s", first, second)
+	}
+}

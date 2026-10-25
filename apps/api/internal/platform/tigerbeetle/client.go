@@ -1,6 +1,7 @@
-// Package tigerbeetle implements the ledger port with the official Go client. It owns the
-// mapping between TigerBeetle types and the domain, including identifier byte order and, as the
-// ledger use cases arrive, result codes to domain errors.
+// Package tigerbeetle owns the TigerBeetle client of the process: creating it from the cluster
+// addresses, readiness, and bounded calls that respect the caller's context. The bookkeeping
+// module builds its ledger store on top of it. The client uses cgo, so only the API binary and
+// its tests import this package.
 package tigerbeetle
 
 import (
@@ -49,7 +50,7 @@ func WithRequestTimeout(d time.Duration) Option {
 func New(clusterID uint64, addresses []string, opts ...Option) (*Client, error) {
 	client, err := tb.NewClient(tb.ToUint128(clusterID), addresses)
 	if err != nil {
-		return nil, fmt.Errorf("tigerbeetle: new client: %w", mapClientError(err))
+		return nil, fmt.Errorf("tigerbeetle: new client: %w", MapClientError(err))
 	}
 	c := &Client{tb: client}
 	for _, opt := range opts {
@@ -83,7 +84,7 @@ func (c *Client) Ready(ctx context.Context) error {
 	select {
 	case <-p.done:
 		if p.err != nil {
-			return fmt.Errorf("tigerbeetle: nop: %w", mapClientError(p.err))
+			return fmt.Errorf("tigerbeetle: nop: %w", MapClientError(p.err))
 		}
 		return nil
 	case <-ctx.Done():
@@ -91,18 +92,45 @@ func (c *Client) Ready(ctx context.Context) error {
 	}
 }
 
-// NewID mints a time-ordered 128-bit identifier with the client's helper (ADR-0006).
-func (c *Client) NewID() ledger.ID {
-	return ToDomainID(tb.ID())
-}
-
-// mapClientError wraps client-level failures as ledger.ErrUnavailable. Result codes for accounts
-// and transfers get their own mapping with the ledger use cases.
-func mapClientError(err error) error {
+// MapClientError wraps client-level failures as ledger.ErrUnavailable, or ledger.ErrInvalid for an
+// address the client refuses. Result codes of accounts and transfers are mapped by the store.
+func MapClientError(err error) error {
 	switch {
 	case errors.Is(err, tb.ErrInvalidAddress), errors.Is(err, tb.ErrAddressLimitExceeded):
 		return fmt.Errorf("%w: %w", ledger.ErrInvalid, err)
 	default:
 		return fmt.Errorf("%w: %w", ledger.ErrUnavailable, err)
+	}
+}
+
+// Call runs a client request and waits for it or for the context. The client has no per-call
+// cancellation and retries an unreachable cluster indefinitely, so on a deadline the request keeps
+// running in its goroutine and may still land. Writes cope with that through the pending
+// idempotency record and the reconciler (ADR-0007).
+func Call[T any](ctx context.Context, c *Client, op string, fn func(client tb.Client) (T, error)) (T, error) {
+	if c.timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.timeout)
+		defer cancel()
+	}
+	type result struct {
+		value T
+		err   error
+	}
+	done := make(chan result, 1)
+	go func() {
+		v, err := fn(c.tb)
+		done <- result{value: v, err: err}
+	}()
+	select {
+	case r := <-done:
+		if r.err != nil {
+			var zero T
+			return zero, fmt.Errorf("tigerbeetle: %s: %w", op, MapClientError(r.err))
+		}
+		return r.value, nil
+	case <-ctx.Done():
+		var zero T
+		return zero, fmt.Errorf("tigerbeetle: %s: %w: %w", op, ledger.ErrUnavailable, ctx.Err())
 	}
 }

@@ -15,10 +15,10 @@ import (
 // Migrate applies every pending goose migration embedded in the binary. goose is used as a
 // library through a Provider instead of its global functions, so nothing is configured through
 // package state.
-func (s *Store) Migrate(ctx context.Context, logger *slog.Logger) error {
+func (d *DB) Migrate(ctx context.Context, logger *slog.Logger) error {
 	// goose speaks database/sql; this bridge borrows connections from the pool and closing it
 	// does not close the pool.
-	db := stdlib.OpenDBFromPool(s.pool)
+	db := stdlib.OpenDBFromPool(d.pool)
 	defer func() { _ = db.Close() }()
 
 	// A Postgres advisory lock serialises replicas that start at the same time with
@@ -33,7 +33,7 @@ func (s *Store) Migrate(ctx context.Context, logger *slog.Logger) error {
 	}
 	results, err := provider.Up(ctx)
 	if err != nil {
-		return fmt.Errorf("postgres: migrate up: %w", mapError(err))
+		return fmt.Errorf("postgres: migrate up: %w", MapError(err))
 	}
 	for _, r := range results {
 		logger.InfoContext(ctx, "migration applied",

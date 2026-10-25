@@ -1,48 +1,39 @@
+// Package tigerbeetle implements the ledger port on the client of internal/platform/tigerbeetle.
 package tigerbeetle
 
 import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 	"unicode"
 
 	tb "github.com/tigerbeetle/tigerbeetle-go"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	platformtb "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/tigerbeetle"
 )
 
-// call runs a client request and waits for it or for the context. The client has no per-call
-// cancellation and retries an unreachable cluster indefinitely, so on a deadline the request keeps
-// running in its goroutine and may still land. Writes cope with that through the pending
-// idempotency record and the reconciler (ADR-0007).
-func call[T any](ctx context.Context, timeout time.Duration, op string, fn func() (T, error)) (T, error) {
-	if timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-	type result struct {
-		value T
-		err   error
-	}
-	done := make(chan result, 1)
-	go func() {
-		v, err := fn()
-		done <- result{value: v, err: err}
-	}()
-	select {
-	case r := <-done:
-		if r.err != nil {
-			var zero T
-			return zero, fmt.Errorf("tigerbeetle: %s: %w", op, mapClientError(r.err))
-		}
-		return r.value, nil
-	case <-ctx.Done():
-		var zero T
-		return zero, fmt.Errorf("tigerbeetle: %s: %w: %w", op, ledger.ErrUnavailable, ctx.Err())
-	}
+// Store implements the ledger port on the process's TigerBeetle client. It owns the mapping
+// between TigerBeetle types and the domain: identifier byte order, amounts, flags and result
+// names.
+type Store struct {
+	client *platformtb.Client
+}
+
+// NewStore builds the store on the client.
+func NewStore(client *platformtb.Client) *Store {
+	return &Store{client: client}
+}
+
+// Ready performs a round trip to the cluster.
+func (s *Store) Ready(ctx context.Context) error {
+	return s.client.Ready(ctx)
+}
+
+// NewID mints a time-ordered 128-bit identifier with the client's helper (ADR-0006).
+func (*Store) NewID() ledger.ID {
+	return ToDomainID(tb.ID())
 }
 
 // amountOf converts a client Uint128 (little-endian) to a domain amount.
@@ -81,7 +72,7 @@ func accountFlags(spec app.AccountSpec) uint16 {
 
 // CreateAccounts creates the accounts. exists counts as created: the fields come from the stored
 // row, so a repeat is identical (ADR-0006). Any other result is an invariant violation.
-func (c *Client) CreateAccounts(ctx context.Context, specs []app.AccountSpec) error {
+func (s *Store) CreateAccounts(ctx context.Context, specs []app.AccountSpec) error {
 	if len(specs) == 0 {
 		return nil
 	}
@@ -94,7 +85,7 @@ func (c *Client) CreateAccounts(ctx context.Context, specs []app.AccountSpec) er
 			Flags:  accountFlags(s),
 		}
 	}
-	results, err := call(ctx, c.timeout, "create_accounts", func() ([]tb.CreateAccountResult, error) { return c.tb.CreateAccounts(accounts) })
+	results, err := platformtb.Call(ctx, s.client, "create_accounts", func(client tb.Client) ([]tb.CreateAccountResult, error) { return client.CreateAccounts(accounts) })
 	if err != nil {
 		return err
 	}
@@ -122,7 +113,7 @@ func transferFlags(s app.TransferSpec) uint16 {
 }
 
 // CreateTransfers submits the transfers in one request and returns one outcome per transfer.
-func (c *Client) CreateTransfers(ctx context.Context, specs []app.TransferSpec) ([]app.TransferOutcome, error) {
+func (s *Store) CreateTransfers(ctx context.Context, specs []app.TransferSpec) ([]app.TransferOutcome, error) {
 	transfers := make([]tb.Transfer, len(specs))
 	for i := range specs {
 		s := &specs[i]
@@ -143,7 +134,7 @@ func (c *Client) CreateTransfers(ctx context.Context, specs []app.TransferSpec) 
 		}
 		transfers[i] = t
 	}
-	results, err := call(ctx, c.timeout, "create_transfers", func() ([]tb.CreateTransferResult, error) { return c.tb.CreateTransfers(transfers) })
+	results, err := platformtb.Call(ctx, s.client, "create_transfers", func(client tb.Client) ([]tb.CreateTransferResult, error) { return client.CreateTransfers(transfers) })
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +146,7 @@ func (c *Client) CreateTransfers(ctx context.Context, specs []app.TransferSpec) 
 }
 
 // LookupAccounts returns the accounts that exist.
-func (c *Client) LookupAccounts(ctx context.Context, ids []ledger.ID) ([]app.AccountState, error) {
+func (s *Store) LookupAccounts(ctx context.Context, ids []ledger.ID) ([]app.AccountState, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -163,7 +154,7 @@ func (c *Client) LookupAccounts(ctx context.Context, ids []ledger.ID) ([]app.Acc
 	for i, id := range ids {
 		tbIDs[i] = FromDomainID(id)
 	}
-	accounts, err := call(ctx, c.timeout, "lookup_accounts", func() ([]tb.Account, error) { return c.tb.LookupAccounts(tbIDs) })
+	accounts, err := platformtb.Call(ctx, s.client, "lookup_accounts", func(client tb.Client) ([]tb.Account, error) { return client.LookupAccounts(tbIDs) })
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +174,7 @@ func (c *Client) LookupAccounts(ctx context.Context, ids []ledger.ID) ([]app.Acc
 }
 
 // LookupTransfers returns the transfers that exist.
-func (c *Client) LookupTransfers(ctx context.Context, ids []ledger.ID) ([]app.TransferRecord, error) {
+func (s *Store) LookupTransfers(ctx context.Context, ids []ledger.ID) ([]app.TransferRecord, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -191,7 +182,7 @@ func (c *Client) LookupTransfers(ctx context.Context, ids []ledger.ID) ([]app.Tr
 	for i, id := range ids {
 		tbIDs[i] = FromDomainID(id)
 	}
-	transfers, err := call(ctx, c.timeout, "lookup_transfers", func() ([]tb.Transfer, error) { return c.tb.LookupTransfers(tbIDs) })
+	transfers, err := platformtb.Call(ctx, s.client, "lookup_transfers", func(client tb.Client) ([]tb.Transfer, error) { return client.LookupTransfers(tbIDs) })
 	if err != nil {
 		return nil, err
 	}
@@ -222,13 +213,13 @@ func (c *Client) LookupTransfers(ctx context.Context, ids []ledger.ID) ([]app.Tr
 
 // AccountBalances returns historical balances, newest first. Only accounts created with the
 // history flag have them.
-func (c *Client) AccountBalances(ctx context.Context, id ledger.ID, limit int) ([]app.BalancePoint, error) {
+func (s *Store) AccountBalances(ctx context.Context, id ledger.ID, limit int) ([]app.BalancePoint, error) {
 	filter := tb.AccountFilter{
 		AccountID: FromDomainID(id),
 		Limit:     uint32(limit),
 		Flags:     tb.AccountFilterFlags{Debits: true, Credits: true, Reversed: true}.ToUint32(),
 	}
-	balances, err := call(ctx, c.timeout, "get_account_balances", func() ([]tb.AccountBalance, error) { return c.tb.GetAccountBalances(filter) })
+	balances, err := platformtb.Call(ctx, s.client, "get_account_balances", func(client tb.Client) ([]tb.AccountBalance, error) { return client.GetAccountBalances(filter) })
 	if err != nil {
 		return nil, err
 	}

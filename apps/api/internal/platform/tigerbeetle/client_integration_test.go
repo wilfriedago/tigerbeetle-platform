@@ -37,11 +37,6 @@ func TestClientIntegration(t *testing.T) {
 			t.Fatalf("concurrent Ready: %v", err)
 		}
 	}
-
-	id := client.NewID()
-	if id.IsZero() {
-		t.Fatal("NewID returned zero")
-	}
 }
 
 func TestClientUnreachable(t *testing.T) {
