@@ -56,6 +56,7 @@ func newHarness(t *testing.T) *harness {
 		TigerBeetleAddresses:  []string{devstack.StartTigerBeetle(t)},
 		MigrateOnStart:        true,
 		RESTEnabled:           true,
+		GraphQLEnabled:        true,
 		ReadinessTimeout:      2 * time.Second,
 		TigerBeetleTimeout:    10 * time.Second,
 		ReconcilerGracePeriod: time.Millisecond,
