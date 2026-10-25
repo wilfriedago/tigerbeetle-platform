@@ -1,6 +1,6 @@
 # 2. TigerBeetle is the source of truth for money; Postgres holds context only
 
-Status: Accepted
+Status: Accepted, amended by [ADR-0022](0022-ledger-events-to-kafka-through-tigerbeetle-cdc.md)
 Date: 2026-10-24
 
 ## Context and Problem Statement
