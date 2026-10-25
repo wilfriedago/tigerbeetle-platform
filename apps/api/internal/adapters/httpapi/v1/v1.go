@@ -44,4 +44,5 @@ type handlers struct {
 func Register(api huma.API, deps Deps) {
 	h := &handlers{Deps: deps}
 	registerOperations(api, h)
+	registerLedgers(api, h)
 }

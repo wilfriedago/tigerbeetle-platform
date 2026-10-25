@@ -166,6 +166,13 @@ var registered = []struct {
 	{"getReadiness", http.MethodGet, "/readyz", "operations"},
 	{"getInfo", http.MethodGet, "/v1/_info", "operations"},
 	{"getReconcilerStatus", http.MethodGet, "/v1/_reconciler", "operations"},
+	{"listLedgers", http.MethodGet, "/v1/ledgers", "ledgers"},
+	{"getLedger", http.MethodGet, "/v1/ledgers/{ledger}", "ledgers"},
+	{"createLedger", http.MethodPost, "/v1/ledgers/{ledger}", "ledgers"},
+	{"replaceLedgerMetadata", http.MethodPut, "/v1/ledgers/{ledger}/metadata", "ledgers"},
+	{"getLedgerStats", http.MethodGet, "/v1/ledgers/{ledger}/stats", "ledgers"},
+	{"listAssets", http.MethodGet, "/v1/ledgers/{ledger}/assets", "ledgers"},
+	{"search", http.MethodGet, "/v1/ledgers/{ledger}/search", "ledgers"},
 }
 
 func TestOperationsAreRegistered(t *testing.T) {
