@@ -57,6 +57,7 @@ func newHarness(t *testing.T) *harness {
 		MigrateOnStart:        true,
 		RESTEnabled:           true,
 		GraphQLEnabled:        true,
+		GRPCEnabled:           true,
 		ReadinessTimeout:      2 * time.Second,
 		TigerBeetleTimeout:    10 * time.Second,
 		ReconcilerGracePeriod: time.Millisecond,
