@@ -8,7 +8,6 @@ RUN npm install --global pnpm@12.15.0
 
 WORKDIR /workspace
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/api/package.json apps/api/
 COPY apps/console/package.json apps/console/
 COPY packages/api-client/package.json packages/api-client/
 COPY packages/openapi/package.json packages/openapi/

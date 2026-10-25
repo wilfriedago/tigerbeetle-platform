@@ -229,8 +229,10 @@ export default defineConfig({
 
   staged: {
     '*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css,html,md,yaml,yml}': 'vp check --fix',
-    'apps/api/**/*.go': [(files: readonly string[]) => `pnpm --filter api exec golangci-lint fmt ${files.join(' ')}`, () => 'pnpm --filter api lint'],
-    'packages/openapi/**/*.yaml': () => 'pnpm --filter @tigerbeetle-platform/openapi lint'
+    // Go and the spec go through the just recipes (ADR-0016): format the staged Go files, then lint
+    // the module once.
+    'apps/api/**/*.go': [(files: readonly string[]) => `just fmt-go-files ${files.join(' ')}`, () => 'just lint-go'],
+    'packages/openapi/**/*.yaml': () => 'just lint-spec'
   },
 
   test: {
