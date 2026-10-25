@@ -37,6 +37,8 @@ type Config struct {
 	ReconcilerGracePeriod time.Duration `env:"RECONCILER_GRACE_PERIOD" envDefault:"30s"`
 	// ReconcilerInterval is how often the reconciler looks for interrupted writes.
 	ReconcilerInterval time.Duration `env:"RECONCILER_INTERVAL" envDefault:"10s"`
+	// ReconcilerEnabled runs the reconciler in this process (plan section 13.1).
+	ReconcilerEnabled bool `env:"RECONCILER_ENABLED" envDefault:"true"`
 }
 
 // Load reads the process environment.

@@ -20,7 +20,8 @@ that makes the new one true.
 ## Layout
 
 - `apps/api`: Go module `github.com/wilfriedago/tigerbeetle-platform/apps/api`.
-  - `cmd/api/main.go`: entrypoint, all wiring by hand. No DI framework, no globals, no `init()`.
+  - `cmd/api/main.go`: entrypoint. `internal/bootstrap` wires everything by hand and runs the
+    servers and workers. No DI framework, no globals, no `init()`.
   - `internal/kernel/ledger`: the shared kernel, pure types and rules, no I/O imports.
   - `internal/app`: use cases; `ports.go` declares the interfaces they need.
   - `internal/adapters/tigerbeetle`, `postgres`, `httpapi`: implement the ports. `httpapi/v1`

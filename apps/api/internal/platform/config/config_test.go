@@ -34,6 +34,7 @@ func TestParse(t *testing.T) {
 				TigerBeetleTimeout:    5 * time.Second,
 				ReconcilerGracePeriod: 30 * time.Second,
 				ReconcilerInterval:    10 * time.Second,
+				ReconcilerEnabled:     true,
 			},
 		},
 		{
@@ -41,6 +42,7 @@ func TestParse(t *testing.T) {
 			environ: merge(required, map[string]string{
 				"API_ADDR": ":9000", "LOG_LEVEL": "debug", "TIGERBEETLE_CLUSTER_ID": "7",
 				"MIGRATE_ON_START": "true", "SHUTDOWN_TIMEOUT": "1s", "READINESS_TIMEOUT": "500ms",
+				"RECONCILER_ENABLED": "false",
 			}),
 			want: Config{
 				Addr: ":9000", LogLevel: "debug", PostgresURL: "postgres://u:p@localhost:5432/db",

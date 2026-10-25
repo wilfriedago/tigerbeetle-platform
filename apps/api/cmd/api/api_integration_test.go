@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/devstack"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
@@ -44,7 +45,7 @@ func (f *faultyLedger) CreateTransfers(ctx context.Context, transfers []app.Tran
 type harness struct {
 	t      *testing.T
 	server *httptest.Server
-	svc    *service
+	app    *bootstrap.App
 	faults *faultyLedger
 }
 
@@ -61,18 +62,17 @@ func newHarness(t *testing.T) *harness {
 	}
 	h := &harness{t: t}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc, err := wire(context.Background(), cfg, logger, func(w *wiring) {
-		w.wrapLedgerStore = func(s app.LedgerStore) app.LedgerStore {
+	built, err := bootstrap.Build(context.Background(), cfg, bootstrap.Service{Name: serviceName, Version: version}, logger,
+		bootstrap.WithLedgerStore(func(s app.LedgerStore) app.LedgerStore {
 			h.faults = &faultyLedger{LedgerStore: s}
 			return h.faults
-		}
-	})
+		}))
 	if err != nil {
-		t.Fatalf("wire: %v", err)
+		t.Fatalf("build: %v", err)
 	}
-	t.Cleanup(svc.close)
-	h.svc = svc
-	h.server = httptest.NewServer(svc.handler)
+	t.Cleanup(built.Close)
+	h.app = built
+	h.server = httptest.NewServer(built.Handler())
 	t.Cleanup(h.server.Close)
 	return h
 }
@@ -385,7 +385,7 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		if inFlight.header.Get("Retry-After") == "" {
 			t.Fatal("409 request-in-flight without Retry-After")
 		}
-		if n := h.svc.reconciler.RunOnce(context.Background()); n != 1 {
+		if n := h.app.ReconcileOnce(context.Background()); n != 1 {
 			t.Fatalf("reconciler settled %d records, want 1", n)
 		}
 		h.expect(h.do(http.MethodPost, base+"/transactions", "lost-request", body), 201, "outcome after settling")
@@ -398,7 +398,7 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		h.faults.dropAfter.Store(true)
 		body := map[string]any{"postings": []any{posting("world", "users:5:wallet", "EUR/2", "900"), posting("users:5:wallet", "fees:card", "EUR/2", "100")}}
 		h.expect(h.do(http.MethodPost, base+"/transactions", "lost-answer", body), 503, "lost answer")
-		if n := h.svc.reconciler.RunOnce(context.Background()); n != 1 {
+		if n := h.app.ReconcileOnce(context.Background()); n != 1 {
 			t.Fatalf("reconciler settled %d records, want 1", n)
 		}
 		r := h.do(http.MethodPost, base+"/transactions", "lost-answer", body)

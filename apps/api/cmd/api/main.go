@@ -1,5 +1,6 @@
-// Command api is the platform API server. main wires every dependency by hand: no injection
-// framework, no globals, no init side effects.
+// Command api is the platform API server. main reads the configuration and hands it to
+// internal/bootstrap, which wires every dependency by hand: no injection framework, no globals, no
+// init side effects.
 package main
 
 import (
@@ -11,12 +12,11 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/httpserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/logging"
 )
 
@@ -54,7 +54,7 @@ func run(args []string, stdout io.Writer) error {
 		return probe(context.Background(), *probeURL, 5*time.Second)
 	}
 
-	// SIGINT and SIGTERM cancel ctx; everything below drains in reverse order of construction.
+	// SIGINT and SIGTERM cancel ctx.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -70,27 +70,13 @@ func run(args []string, stdout io.Writer) error {
 
 	logger := logging.New(stdout, level).With(slog.String("service", serviceName), slog.String("version", version))
 
-	svc, err := wire(ctx, cfg, logger)
+	app, err := bootstrap.Build(ctx, cfg, bootstrap.Service{Name: serviceName, Version: version}, logger)
 	if err != nil {
 		return err
 	}
 
-	defer svc.close()
-
-	// The reconciler settles writes interrupted by a crash or a TigerBeetle timeout. It stops with
-	// ctx and is waited for before the stores close (defers run in reverse order).
-	var background sync.WaitGroup
-	background.Go(func() { svc.reconciler.Run(ctx) })
-	defer background.Wait()
-
-	err = httpserver.Run(ctx, httpserver.Options{
-		Addr:            cfg.Addr,
-		Handler:         svc.handler,
-		ShutdownTimeout: cfg.ShutdownTimeout,
-		Logger:          logger,
-	})
-
-	if err != nil && !errors.Is(err, context.Canceled) {
+	// Run serves until SIGINT or SIGTERM, then drains the servers and closes the resources.
+	if err := app.Run(ctx); err != nil {
 		return err
 	}
 
