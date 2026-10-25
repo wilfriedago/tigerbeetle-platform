@@ -97,6 +97,15 @@ replies go to `reply_to` with the correlation ID, and the ack follows the reply;
 request runs once across replicas, and a client retries a write with the same key. Both are off
 by default (`AMQP_RPC_ENABLED`, `NATS_RPC_ENABLED`) and turned on by `just compose-up-brokers`.
 
+Ledger events leave through Kafka (ADR-0022), outbound only. TigerBeetle's own change data
+capture, the `amqp` subcommand of the server image, publishes every committed transfer to the
+RabbitMQ exchange `tbp.cdc`; the relay in the bookkeeping module (`interfaces/cdc`, then
+`application/relay_ledger_event.go`, then `infrastructure/kafka`) reads the queue
+`tbp.ledger-events.relay` in order, adds the ledger, asset and addresses Postgres holds, and
+writes one record per transfer to `tbp.ledger-events.v1`, acknowledging RabbitMQ only once Kafka
+has the record. The source is TigerBeetle's committed state, so there is no dual-write gap: a
+crash delays an event, it cannot lose it. `docs/ledger-events.md` is the record format.
+
 ## Code layout of apps/api
 
 ```
@@ -119,8 +128,8 @@ internal/platform/...              config, logging, httpserver, postgres (pool, 
                                    tigerbeetle (client), readiness, restapi (Huma),
                                    graphqlschema (the SDL generator), grpcserver, grpcapi (the
                                    protobuf code and its conversions), rpc, amqp, amqprpc,
-                                   natsrpc (broker RPC), problem, scalar, requestid: process and
-                                   transport plumbing
+                                   natsrpc (broker RPC), kafka (the producer), problem, scalar,
+                                   requestid: process and transport plumbing
 migrations/                        goose SQL, one sequence, embedded with go:embed
 testdata/depguard/                 one deliberate violation per depguard rule
 ```
@@ -274,10 +283,9 @@ Cursor pagination orders by the stored big-endian ID, which is time order.
 
 - The posting-rule DSL: versioned rules that compile a business event into one linked chain,
   with the event type in `code` and the rule version recorded in Postgres.
-- A live feed in the console fed by change data capture: TigerBeetle streams transfers and
-  balance updates to an AMQP 0.9.1 broker with its `tigerbeetle amqp` command
-  (https://docs.tigerbeetle.com/operating/cdc/), and a consumer would join those events with
-  Postgres metadata.
+- A live feed in the console fed by change data capture. The ledger events of
+  `docs/ledger-events.md` already flow through RabbitMQ and Kafka; the console would subscribe
+  through the API and join them with Postgres metadata.
 - A custom seccomp profile allowing only the io_uring syscalls, replacing `seccomp=unconfined`.
 
 ## Decision records
