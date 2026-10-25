@@ -86,8 +86,12 @@ services:
       TIGERBEETLE_TIMEOUT: ${TIGERBEETLE_TIMEOUT:-5s}
       RECONCILER_GRACE_PERIOD: ${RECONCILER_GRACE_PERIOD:-30s}
       RECONCILER_INTERVAL: ${RECONCILER_INTERVAL:-10s}
+      # gRPC stays off unless asked for: development only until authentication is decided.
+      GRPC_ENABLED: ${GRPC_ENABLED:-false}
+      GRPC_ADDR: ':9090'
     ports:
       - '${API_PORT:-8080}:8080'
+      - '${GRPC_PORT:-9090}:9090'
     # The TigerBeetle Go client embeds the same io_uring-based I/O as the server, so the api
     # container needs the seccomp override too; without it the client fails to initialise.
     security_opt:
