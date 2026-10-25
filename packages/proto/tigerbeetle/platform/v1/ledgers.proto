@@ -1,0 +1,161 @@
+syntax = "proto3";
+
+package tigerbeetle.platform.v1;
+
+import "google/protobuf/timestamp.proto";
+import "tigerbeetle/platform/v1/holds.proto";
+import "tigerbeetle/platform/v1/requests.proto";
+
+option go_package = "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1;platformv1";
+
+// LedgerService manages ledgers and reads their overview, as the REST "ledgers" tag does.
+service LedgerService {
+  // Lists every ledger in name order.
+  rpc ListLedgers(ListLedgersRequest) returns (ListLedgersResponse);
+  // Reads a ledger by name.
+  rpc GetLedger(GetLedgerRequest) returns (GetLedgerResponse);
+  // Creates a ledger. The name is permanent: TigerBeetle accounts and transfers are permanent.
+  rpc CreateLedger(CreateLedgerRequest) returns (CreateLedgerResponse);
+  // Replaces the metadata of a ledger.
+  rpc ReplaceLedgerMetadata(ReplaceLedgerMetadataRequest) returns (ReplaceLedgerMetadataResponse);
+  // Lists the assets used so far, with their TigerBeetle ledger numbers and the money issued.
+  rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse);
+  // Reads the counts and amounts of the ledger overview.
+  rpc GetLedgerStats(GetLedgerStatsRequest) returns (GetLedgerStatsResponse);
+  // Finds what a query names: an ID, an address or prefix, a reference or an Idempotency-Key.
+  rpc Search(SearchRequest) returns (SearchResponse);
+}
+
+// A ledger is a namespace for accounts and transactions. Money never crosses ledgers.
+message Ledger {
+  string name = 1;
+  map<string, string> metadata = 2;
+  google.protobuf.Timestamp created_at = 3;
+  // The assets used so far, in canonical form such as EUR/2.
+  repeated string assets = 4;
+  // The number of addresses in the ledger.
+  int64 accounts = 5;
+}
+
+message ListLedgersRequest {
+  // 1 to 100; 25 when zero.
+  int32 page_size = 1;
+  // The next_page_token of the previous page.
+  string page_token = 2;
+}
+
+message ListLedgersResponse {
+  repeated Ledger ledgers = 1;
+  // Empty on the last page.
+  string next_page_token = 2;
+}
+
+message GetLedgerRequest {
+  string ledger = 1;
+}
+
+message GetLedgerResponse {
+  Ledger ledger = 1;
+}
+
+message CreateLedgerRequest {
+  string ledger = 1;
+  map<string, string> metadata = 2;
+}
+
+message CreateLedgerResponse {
+  Ledger ledger = 1;
+}
+
+message ReplaceLedgerMetadataRequest {
+  string ledger = 1;
+  map<string, string> metadata = 2;
+}
+
+message ReplaceLedgerMetadataResponse {
+  Ledger ledger = 1;
+}
+
+// An asset of a ledger and the TigerBeetle ledger number that keeps its accounts apart.
+message AssetSummary {
+  string asset = 1;
+  int64 tb_ledger = 2;
+  // First use of the asset in the ledger.
+  google.protobuf.Timestamp created_at = 3;
+  int64 accounts = 4;
+  // Money issued: minus the balance of world. A signed decimal string.
+  string issued = 5;
+}
+
+message ListAssetsRequest {
+  string ledger = 1;
+}
+
+message ListAssetsResponse {
+  repeated AssetSummary assets = 1;
+}
+
+message DeclinedReason {
+  string reason = 1;
+  int64 count = 2;
+}
+
+// Declined writes of the last 24 hours.
+message DeclinedStats {
+  int64 total = 1;
+  repeated DeclinedReason reasons = 2;
+}
+
+message LedgerStats {
+  int64 accounts = 1;
+  // Accounts created since midnight UTC.
+  int64 accounts_today = 2;
+  repeated AssetSummary assets = 3;
+  HoldStats holds = 4;
+  DeclinedStats declined = 5;
+}
+
+message GetLedgerStatsRequest {
+  string ledger = 1;
+}
+
+message GetLedgerStatsResponse {
+  LedgerStats stats = 1;
+}
+
+message SearchRequest {
+  string ledger = 1;
+  // 1 to 255 characters.
+  string query = 2;
+}
+
+message SearchResponse {
+  string query = 1;
+  repeated SearchAccount accounts = 2;
+  repeated SearchTransaction transactions = 3;
+  repeated SearchHold holds = 4;
+  repeated SearchWriteRequest requests = 5;
+}
+
+message SearchAccount {
+  string address = 1;
+  repeated string assets = 2;
+}
+
+message SearchTransaction {
+  // 32 hex.
+  string id = 1;
+  optional string reference = 2;
+  google.protobuf.Timestamp committed_at = 3;
+}
+
+message SearchHold {
+  string id = 1;
+  HoldStatus status = 2;
+}
+
+message SearchWriteRequest {
+  string key = 1;
+  Operation operation = 2;
+  RequestStatus status = 3;
+}

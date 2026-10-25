@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package tigerbeetle.platform.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1;platformv1";
+
+// WriteRequestService reads the idempotency records of a ledger: the only place declined and
+// in-flight writes are visible.
+service WriteRequestService {
+  // Lists write requests, newest first.
+  rpc ListWriteRequests(ListWriteRequestsRequest) returns (ListWriteRequestsResponse);
+  // Reads a write request by Idempotency-Key.
+  rpc GetWriteRequest(GetWriteRequestRequest) returns (GetWriteRequestResponse);
+}
+
+enum Operation {
+  OPERATION_UNSPECIFIED = 0;
+  OPERATION_TRANSACTION = 1;
+  OPERATION_REVERT = 2;
+  OPERATION_HOLD = 3;
+  OPERATION_CAPTURE = 4;
+  OPERATION_VOID = 5;
+}
+
+enum RequestStatus {
+  REQUEST_STATUS_UNSPECIFIED = 0;
+  REQUEST_STATUS_PENDING = 1;
+  REQUEST_STATUS_COMMITTED = 2;
+  REQUEST_STATUS_DECLINED = 3;
+  REQUEST_STATUS_FAILED = 4;
+}
+
+message WriteRequest {
+  string key = 1;
+  Operation operation = 2;
+  RequestStatus status = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp resolved_at = 5;
+  // The transaction or hold minted for this write, 32 hex.
+  string target_id = 6;
+  // The problem type of a declined or failed write.
+  optional string problem_type = 7;
+  // The stored outcome, numbered like an HTTP status.
+  optional int32 response_status = 8;
+  optional string request_id = 9;
+  // SHA-256 of the canonical request body, hex.
+  string body_hash = 10;
+  // TigerBeetle submissions, including reconciler retries.
+  int32 attempts = 11;
+}
+
+message ListWriteRequestsRequest {
+  string ledger = 1;
+  // 1 to 100; 25 when zero.
+  int32 page_size = 2;
+  string page_token = 3;
+  // Every status when unspecified.
+  RequestStatus status = 4;
+  // Every operation when unspecified.
+  Operation operation = 5;
+  // An Idempotency-Key, or the start of one, or a request ID.
+  optional string search = 6;
+}
+
+message ListWriteRequestsResponse {
+  repeated WriteRequest requests = 1;
+  string next_page_token = 2;
+}
+
+message GetWriteRequestRequest {
+  string ledger = 1;
+  // The Idempotency-Key.
+  string key = 2;
+}
+
+message GetWriteRequestResponse {
+  WriteRequest request = 1;
+  // The canonical request body as stored, JSON. Kept as text so no number goes through a double.
+  string request_json = 2;
+  // The stored response or problem body, JSON.
+  optional string response_json = 3;
+  // The transfer IDs minted before the first submission, in chain order.
+  repeated string transfer_ids = 4;
+}

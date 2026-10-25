@@ -1,0 +1,16 @@
+# Generates the Go messages and service stubs into apps/api/internal/platform/grpcapi/platformv1.
+# Both plugins run from PATH (scripts/install-tools.sh pins them), so nothing is fetched from the
+# Buf Schema Registry. require_unimplemented_servers=false makes a missing method a compile error
+# instead of an Unimplemented answer at run time.
+version: v2
+clean: true
+plugins:
+  - local: protoc-gen-go
+    out: ../../apps/api/internal/platform/grpcapi/platformv1
+    opt:
+      - module=github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1
+  - local: protoc-gen-go-grpc
+    out: ../../apps/api/internal/platform/grpcapi/platformv1
+    opt:
+      - module=github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1
+      - require_unimplemented_servers=false

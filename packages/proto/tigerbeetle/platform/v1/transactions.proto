@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package tigerbeetle.platform.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1;platformv1";
+
+// TransactionService writes and reads transactions, as the REST "transactions" tag does. One
+// transaction is one linked chain of TigerBeetle transfers: every posting is applied, or none is.
+service TransactionService {
+  // Lists committed transactions, newest first.
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+  // Reads a transaction by ID.
+  rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse);
+  // Creates a transaction. The same idempotency_key and content replay the first answer.
+  rpc CreateTransaction(CreateTransactionRequest) returns (CreateTransactionResponse);
+  // Reverts a transaction with a new one that swaps every source and destination.
+  rpc RevertTransaction(RevertTransactionRequest) returns (RevertTransactionResponse);
+  // Replaces the metadata of a transaction.
+  rpc ReplaceTransactionMetadata(ReplaceTransactionMetadataRequest) returns (ReplaceTransactionMetadataResponse);
+}
+
+// A posting moves an amount of one asset from a source to a destination.
+message Posting {
+  // The debited account.
+  string source = 1;
+  // The credited account.
+  string destination = 2;
+  string asset = 3;
+  // A decimal string in the asset's smallest unit.
+  string amount = 4;
+}
+
+// A posting as committed, with the TigerBeetle transfer that carries it.
+message PostingRecord {
+  string source = 1;
+  string destination = 2;
+  string asset = 3;
+  string amount = 4;
+  // 32 hex.
+  string transfer_id = 5;
+  int64 tb_ledger = 6;
+}
+
+// The event type of a write and its TigerBeetle code.
+message EventTypeRef {
+  string name = 1;
+  uint32 code = 2;
+}
+
+message Transaction {
+  // 32 hex.
+  string id = 1;
+  string ledger = 2;
+  repeated PostingRecord postings = 3;
+  optional string reference = 4;
+  EventTypeRef event_type = 5;
+  // The client's business time. Not the committed time.
+  google.protobuf.Timestamp business_time = 6;
+  map<string, string> metadata = 7;
+  // The TigerBeetle timestamp of the chain, the only time the ledger knows.
+  google.protobuf.Timestamp committed_at = 8;
+  // The TigerBeetle timestamp, u64 nanoseconds as a decimal string.
+  string timestamp = 9;
+  // The transaction this one reverts.
+  optional string reverts = 10;
+  // The transaction that reverted this one.
+  optional string reverted_by = 11;
+  string idempotency_key = 12;
+  optional string request_id = 13;
+}
+
+message ListTransactionsRequest {
+  string ledger = 1;
+  // 1 to 100; 25 when zero.
+  int32 page_size = 2;
+  string page_token = 3;
+  // Only transactions with a posting from or to an account at or below this prefix.
+  optional string address = 4;
+  optional string asset = 5;
+  optional string reference = 6;
+  optional string event_type = 7;
+  // Committed at or after this time.
+  google.protobuf.Timestamp committed_after = 8;
+  // Committed before this time.
+  google.protobuf.Timestamp committed_before = 9;
+}
+
+message ListTransactionsResponse {
+  repeated Transaction transactions = 1;
+  string next_page_token = 2;
+}
+
+message GetTransactionRequest {
+  string ledger = 1;
+  string id = 2;
+}
+
+message GetTransactionResponse {
+  Transaction transaction = 1;
+}
+
+message CreateTransactionRequest {
+  string ledger = 1;
+  // Makes the write safe to retry: the same key and content replay the first answer (ADR-0007).
+  string idempotency_key = 2;
+  // 1 to 64 postings, applied atomically.
+  repeated Posting postings = 3;
+  optional string reference = 4;
+  // An event type name of the ledger; the default event type when unset.
+  optional string event_type = 5;
+  // Stored in user_data_64. Not the committed time.
+  google.protobuf.Timestamp business_time = 6;
+  map<string, string> metadata = 7;
+}
+
+message CreateTransactionResponse {
+  Transaction transaction = 1;
+}
+
+message RevertTransactionRequest {
+  string ledger = 1;
+  string id = 2;
+  string idempotency_key = 3;
+  optional string reference = 4;
+  map<string, string> metadata = 5;
+}
+
+message RevertTransactionResponse {
+  Transaction transaction = 1;
+}
+
+message ReplaceTransactionMetadataRequest {
+  string ledger = 1;
+  string id = 2;
+  map<string, string> metadata = 3;
+}
+
+message ReplaceTransactionMetadataResponse {
+  Transaction transaction = 1;
+}

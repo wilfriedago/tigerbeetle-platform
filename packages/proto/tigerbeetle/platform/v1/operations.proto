@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package tigerbeetle.platform.v1;
+
+import "google/protobuf/timestamp.proto";
+import "tigerbeetle/platform/v1/requests.proto";
+
+option go_package = "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1;platformv1";
+
+// OperationsService reports on the service itself, as the REST "operations" tag does. Liveness
+// and readiness are the standard grpc.health.v1.Health service.
+service OperationsService {
+  // Reads the service, its dependencies and its runtime.
+  rpc GetInfo(GetInfoRequest) returns (GetInfoResponse);
+  // Reads the state of the reconciler, which settles writes a crash left pending.
+  rpc GetReconcilerStatus(GetReconcilerStatusRequest) returns (GetReconcilerStatusResponse);
+}
+
+// Whether a dependency answered the readiness probe in time.
+enum DependencyStatus {
+  DEPENDENCY_STATUS_UNSPECIFIED = 0;
+  DEPENDENCY_STATUS_UP = 1;
+  DEPENDENCY_STATUS_DOWN = 2;
+}
+
+message DependencyCheck {
+  DependencyStatus status = 1;
+  // Round-trip time of the probe in milliseconds.
+  int64 latency_ms = 2;
+  // A short, client-safe reason when the status is down. Never raw driver output.
+  optional string error = 3;
+}
+
+message Runtime {
+  google.protobuf.Timestamp started_at = 1;
+  string go_version = 2;
+  string tigerbeetle_client_version = 3;
+  // The cluster ID, a u128 in decimal.
+  string tigerbeetle_cluster_id = 4;
+  // The server version reported by Postgres, when reachable.
+  optional string postgres_version = 5;
+  // The last applied migration, when reachable.
+  optional int64 schema_version = 6;
+}
+
+message GetInfoRequest {}
+
+message GetInfoResponse {
+  // tigerbeetle-platform-api, the domain of every ErrorInfo detail.
+  string service = 1;
+  string version = 2;
+  // Keyed by dependency: postgres, tigerbeetle.
+  map<string, DependencyCheck> dependencies = 3;
+  Runtime runtime = 4;
+}
+
+message StuckRequest {
+  string ledger = 1;
+  string key = 2;
+  Operation operation = 3;
+  google.protobuf.Timestamp created_at = 4;
+  int32 attempts = 5;
+  optional string note = 6;
+}
+
+message GetReconcilerStatusRequest {}
+
+message GetReconcilerStatusResponse {
+  bool running = 1;
+  // A pending record younger than this is a write in progress, not a crash.
+  int32 grace_period_seconds = 2;
+  int32 interval_seconds = 3;
+  google.protobuf.Timestamp last_run_at = 4;
+  // Records settled by the last run.
+  optional int32 last_settled = 5;
+  // Pending records, across all ledgers.
+  int64 pending = 6;
+  // Pending records older than the grace period that the reconciler could not settle.
+  int64 stuck = 7;
+  repeated StuckRequest stuck_requests = 8;
+}

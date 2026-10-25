@@ -1,0 +1,11 @@
+# The gRPC contract of the platform API (ADR-0021). buf lint runs the STANDARD rules; buf breaking
+# compares each file with the base branch, the protobuf counterpart of the oasdiff gate.
+version: v2
+modules:
+  - path: .
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE

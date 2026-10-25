@@ -240,7 +240,8 @@ export default defineConfig({
     // Go and the spec go through the just recipes (ADR-0016): format the staged Go files, then lint
     // the module once.
     'apps/api/**/*.go': [(files: readonly string[]) => `just fmt-go-files ${files.join(' ')}`, () => 'just lint-go'],
-    'packages/openapi/**/*.yaml': () => 'just lint-spec'
+    'packages/openapi/**/*.yaml': () => 'just lint-spec',
+    'packages/proto/**/*.proto': () => 'just lint-proto'
   },
 
   test: {

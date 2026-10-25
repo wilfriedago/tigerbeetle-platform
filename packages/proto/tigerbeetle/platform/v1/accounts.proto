@@ -1,0 +1,179 @@
+syntax = "proto3";
+
+package tigerbeetle.platform.v1;
+
+import "google/protobuf/timestamp.proto";
+import "tigerbeetle/platform/v1/settings.proto";
+
+option go_package = "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1;platformv1";
+
+// AccountService reads accounts and their balances, as the REST "accounts" tag does. Accounts are
+// created by their first write; there is no call to create one.
+service AccountService {
+  // Lists accounts in address order, with their balance per asset read from TigerBeetle.
+  rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse);
+  // Reads an account by address.
+  rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
+  // Reads point-in-time balances of one account, newest first. Only accounts created with the
+  // history flag keep them.
+  rpc GetAccountHistory(GetAccountHistoryRequest) returns (GetAccountHistoryResponse);
+  // Replaces the metadata of an account.
+  rpc ReplaceAccountMetadata(ReplaceAccountMetadataRequest) returns (ReplaceAccountMetadataResponse);
+  // Sums the balances of every account under an address prefix, per asset.
+  rpc AggregateBalances(AggregateBalancesRequest) returns (AggregateBalancesResponse);
+  // Lists the next address segment under a prefix, with the accounts below each one.
+  rpc ListSegments(ListSegmentsRequest) returns (ListSegmentsResponse);
+}
+
+// The balance of an account in one asset. Amounts are decimal strings in the asset's smallest
+// unit; balance and available are signed.
+message AssetBalance {
+  string asset = 1;
+  // The TigerBeetle account ID, 32 hex.
+  string account_id = 2;
+  int64 tb_ledger = 3;
+  // Credits posted minus debits posted.
+  string balance = 4;
+  // Balance minus reserved.
+  string available = 5;
+  // Pending debits, the amount held by open holds.
+  string reserved = 6;
+  // Pending credits. Not part of available.
+  string incoming = 7;
+  string credits = 8;
+  string debits = 9;
+  BalanceLimit limit = 10;
+  bool history = 11;
+  // The TigerBeetle account code.
+  uint32 code = 12;
+  // The pattern of the rule that created the account.
+  string rule = 13;
+  google.protobuf.Timestamp created_at = 14;
+}
+
+message AccountSummary {
+  string address = 1;
+  google.protobuf.Timestamp created_at = 2;
+  map<string, string> metadata = 3;
+  repeated AssetBalance balances = 4;
+}
+
+message Account {
+  string address = 1;
+  google.protobuf.Timestamp created_at = 2;
+  map<string, string> metadata = 3;
+  repeated AssetBalance balances = 4;
+  // Open holds from this address.
+  int64 open_holds = 5;
+}
+
+message ListAccountsRequest {
+  string ledger = 1;
+  // 1 to 100; 25 when zero.
+  int32 page_size = 2;
+  string page_token = 3;
+  // Only addresses equal to or below this prefix, on whole segments.
+  optional string prefix = 4;
+  // Only addresses starting with this text.
+  optional string search = 5;
+  // Only accounts holding this asset.
+  optional string asset = 6;
+}
+
+message ListAccountsResponse {
+  repeated AccountSummary accounts = 1;
+  string next_page_token = 2;
+}
+
+message GetAccountRequest {
+  string ledger = 1;
+  string address = 2;
+}
+
+message GetAccountResponse {
+  Account account = 1;
+}
+
+message BalancePoint {
+  // The TigerBeetle timestamp, u64 nanoseconds as a decimal string.
+  string timestamp = 1;
+  google.protobuf.Timestamp at = 2;
+  string balance = 3;
+  string reserved = 4;
+  string credits = 5;
+  string debits = 6;
+}
+
+message GetAccountHistoryRequest {
+  string ledger = 1;
+  string address = 2;
+  string asset = 3;
+  // 1 to 200; 50 when zero.
+  int32 limit = 4;
+}
+
+message GetAccountHistoryResponse {
+  string address = 1;
+  string asset = 2;
+  repeated BalancePoint points = 3;
+}
+
+message ReplaceAccountMetadataRequest {
+  string ledger = 1;
+  string address = 2;
+  map<string, string> metadata = 3;
+}
+
+message ReplaceAccountMetadataResponse {
+  Account account = 1;
+}
+
+message AggregateBalance {
+  string asset = 1;
+  int64 accounts = 2;
+  string balance = 3;
+  string available = 4;
+  string reserved = 5;
+  string incoming = 6;
+}
+
+message AggregateBalancesRequest {
+  string ledger = 1;
+  // The prefix, on whole segments.
+  string address = 2;
+}
+
+message AggregateBalancesResponse {
+  string prefix = 1;
+  // When the last chunk was read.
+  google.protobuf.Timestamp as_of = 2;
+  // Addresses summed.
+  int64 accounts = 3;
+  // TigerBeetle lookups made. More than one means the sum is not one snapshot.
+  int32 chunks = 4;
+  repeated AggregateBalance assets = 5;
+}
+
+message Segment {
+  string segment = 1;
+  // The full path of the segment.
+  string prefix = 2;
+  // Addresses at or below the segment.
+  int64 accounts = 3;
+  repeated string assets = 4;
+  // The prefix is itself an address.
+  bool is_account = 5;
+  bool has_children = 6;
+}
+
+message ListSegmentsRequest {
+  string ledger = 1;
+  // The top level when unset.
+  optional string prefix = 2;
+}
+
+message ListSegmentsResponse {
+  // The prefix as normalised, unset at the top level.
+  optional string prefix = 1;
+  repeated Segment segments = 2;
+}

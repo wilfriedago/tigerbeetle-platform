@@ -49,9 +49,10 @@ generate-ts:
 generate-check: generate
     @if [ -n "$(git status --porcelain)" ]; then git status --short; echo "generated files are out of date: run just generate and commit the result" >&2; exit 1; fi
 
-# Every linter: golangci-lint for Go; vp check, the packages' linters and Redocly for the rest.
+# golangci-lint for Go; vp check, the packages' linters and Redocly for the rest; buf for the protos.
+[doc('Every linter.')]
 [group('quality')]
-lint: lint-go lint-ts
+lint: lint-go lint-ts lint-proto
 
 # golangci-lint, including the depguard dependency rules.
 [group('quality')]
@@ -69,6 +70,11 @@ lint-ts:
 lint-spec:
     pnpm --filter @tigerbeetle-platform/openapi lint
 
+# buf lint with the STANDARD rules over packages/proto (ADR-0021).
+[group('quality')]
+lint-proto:
+    cd packages/proto && buf lint
+
 # Each fixture in apps/api/testdata/depguard must trip exactly the rule it names (plan 14.2).
 [doc('Prove that every depguard rule fires on its fixture.')]
 [group('quality')]
@@ -82,6 +88,19 @@ lint-depguard-probe:
 spec-diff base="main":
     oasdiff breaking "{{ base }}:packages/openapi/openapi.yaml" packages/openapi/openapi.yaml --flatten-params --fail-on ERR
     oasdiff changelog "{{ base }}:packages/openapi/openapi.yaml" packages/openapi/openapi.yaml --flatten-params
+
+# FILE rules: a field or message removed, renumbered or retyped in a file breaks generated clients.
+# A base without packages/proto has nothing to compare.
+[doc('Breaking changes of the protos against a git revision (CI: the base branch).')]
+[group('quality')]
+proto-breaking base="main":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! git cat-file -e "{{ base }}:packages/proto/buf.yaml" 2>/dev/null; then
+      echo "{{ base }} has no packages/proto: nothing to compare"
+      exit 0
+    fi
+    cd packages/proto && buf breaking --against "../../.git#ref={{ base }},subdir=packages/proto"
 
 # golangci-lint runs gofumpt and goimports on Go; vp check --fix runs Oxfmt and Oxlint fixes.
 [doc('Format everything and write the changes.')]
@@ -173,8 +192,8 @@ compose-logs:
 compose-reset:
     {{ compose }} down --volumes
 
-# Install the pinned tools (golangci-lint, sqlc, govulncheck, just, oasdiff, buf, protoc-gen-go,
-# protoc-gen-go-grpc) into $(go env GOPATH)/bin.
+# golangci-lint, sqlc, govulncheck, just, oasdiff, buf, protoc-gen-go and protoc-gen-go-grpc.
+[doc('Install the pinned tools into $(go env GOPATH)/bin.')]
 [group('tools')]
 tools-install:
     scripts/install-tools.sh

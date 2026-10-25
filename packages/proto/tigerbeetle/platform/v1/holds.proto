@@ -1,0 +1,136 @@
+syntax = "proto3";
+
+package tigerbeetle.platform.v1;
+
+import "google/protobuf/timestamp.proto";
+import "tigerbeetle/platform/v1/transactions.proto";
+
+option go_package = "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1;platformv1";
+
+// HoldService reserves funds with TigerBeetle pending transfers, as the REST "holds" tag does.
+service HoldService {
+  // Lists holds, newest first, with the counts by status.
+  rpc ListHolds(ListHoldsRequest) returns (ListHoldsResponse);
+  // Reads a hold by ID.
+  rpc GetHold(GetHoldRequest) returns (GetHoldResponse);
+  // Reserves an amount on the source until the hold is captured, voided or expires.
+  rpc CreateHold(CreateHoldRequest) returns (CreateHoldResponse);
+  // Posts all or part of a hold to the destination.
+  rpc CaptureHold(CaptureHoldRequest) returns (CaptureHoldResponse);
+  // Releases a hold to the source.
+  rpc VoidHold(VoidHoldRequest) returns (VoidHoldResponse);
+}
+
+enum HoldStatus {
+  HOLD_STATUS_UNSPECIFIED = 0;
+  HOLD_STATUS_OPEN = 1;
+  HOLD_STATUS_CAPTURED = 2;
+  HOLD_STATUS_VOIDED = 3;
+  HOLD_STATUS_EXPIRED = 4;
+}
+
+message Hold {
+  // 32 hex.
+  string id = 1;
+  string ledger = 2;
+  string source = 3;
+  string destination = 4;
+  string asset = 5;
+  string amount = 6;
+  optional string captured_amount = 7;
+  HoldStatus status = 8;
+  // Seconds on the cluster clock; 0 means no timeout.
+  int64 timeout_seconds = 9;
+  google.protobuf.Timestamp created_at = 10;
+  // The TigerBeetle timestamp, u64 nanoseconds as a decimal string.
+  string timestamp = 11;
+  google.protobuf.Timestamp expires_at = 12;
+  google.protobuf.Timestamp resolved_at = 13;
+  optional string reference = 14;
+  EventTypeRef event_type = 15;
+  map<string, string> metadata = 16;
+  string idempotency_key = 17;
+  string pending_transfer_id = 18;
+  optional string resolution_transfer_id = 19;
+  int64 tb_ledger = 20;
+}
+
+message AssetAmount {
+  string asset = 1;
+  string amount = 2;
+}
+
+message HoldStats {
+  int64 open = 1;
+  int64 captured = 2;
+  int64 voided = 3;
+  int64 expired = 4;
+  // The amount held by open holds, per asset.
+  repeated AssetAmount reserved = 5;
+}
+
+message ListHoldsRequest {
+  string ledger = 1;
+  // 1 to 100; 25 when zero.
+  int32 page_size = 2;
+  string page_token = 3;
+  // Every status when unspecified.
+  HoldStatus status = 4;
+  // Only holds from or to an account at or below this prefix.
+  optional string address = 5;
+}
+
+message ListHoldsResponse {
+  repeated Hold holds = 1;
+  string next_page_token = 2;
+  HoldStats counts = 3;
+}
+
+message GetHoldRequest {
+  string ledger = 1;
+  string id = 2;
+}
+
+message GetHoldResponse {
+  Hold hold = 1;
+}
+
+message CreateHoldRequest {
+  string ledger = 1;
+  string idempotency_key = 2;
+  string source = 3;
+  string destination = 4;
+  string asset = 5;
+  string amount = 6;
+  // Releases the hold after this many seconds on the cluster clock; 0 or unset means never.
+  optional int64 timeout_seconds = 7;
+  optional string reference = 8;
+  optional string event_type = 9;
+  map<string, string> metadata = 10;
+}
+
+message CreateHoldResponse {
+  Hold hold = 1;
+}
+
+message CaptureHoldRequest {
+  string ledger = 1;
+  string id = 2;
+  string idempotency_key = 3;
+  // The full hold when unset. Must not be zero.
+  optional string amount = 4;
+}
+
+message CaptureHoldResponse {
+  Hold hold = 1;
+}
+
+message VoidHoldRequest {
+  string ledger = 1;
+  string id = 2;
+  string idempotency_key = 3;
+}
+
+message VoidHoldResponse {
+  Hold hold = 1;
+}

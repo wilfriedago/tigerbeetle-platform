@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package tigerbeetle.platform.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1;platformv1";
+
+// SettingsService manages the account rules and event types of a ledger, as the REST "settings"
+// tag does.
+service SettingsService {
+  // Lists the rules, most specific first, built-in defaults included.
+  rpc ListRules(ListRulesRequest) returns (ListRulesResponse);
+  // Reports which rule wins for an address.
+  rpc MatchRule(MatchRuleRequest) returns (MatchRuleResponse);
+  // Creates or replaces the rule for a pattern. It applies to accounts created afterwards.
+  rpc PutRule(PutRuleRequest) returns (PutRuleResponse);
+  // Deletes a stored rule. Deleting a stored * or world restores the built-in default.
+  rpc DeleteRule(DeleteRuleRequest) returns (DeleteRuleResponse);
+  // Lists the event types, the built-in default first.
+  rpc ListEventTypes(ListEventTypesRequest) returns (ListEventTypesResponse);
+  // Registers an event type. Without a code, the next free one is assigned.
+  rpc CreateEventType(CreateEventTypeRequest) returns (CreateEventTypeResponse);
+}
+
+// The balance limit flag of TigerBeetle accounts created by a rule.
+enum BalanceLimit {
+  BALANCE_LIMIT_UNSPECIFIED = 0;
+  BALANCE_LIMIT_NONE = 1;
+  BALANCE_LIMIT_DEBITS_MUST_NOT_EXCEED_CREDITS = 2;
+  BALANCE_LIMIT_CREDITS_MUST_NOT_EXCEED_DEBITS = 3;
+}
+
+// An account rule: the flags of the accounts created for the addresses it matches (ADR-0006).
+message Rule {
+  string pattern = 1;
+  BalanceLimit limit = 2;
+  bool history = 3;
+  // The TigerBeetle account code, 1 to 65535.
+  uint32 code = 4;
+  // A default that applies without being stored.
+  bool built_in = 5;
+  // Specificity; the most specific matching rule wins.
+  int32 segments = 6;
+  // Unset for a built-in rule.
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message RuleCandidate {
+  Rule rule = 1;
+  bool matches = 2;
+}
+
+message ListRulesRequest {
+  string ledger = 1;
+}
+
+message ListRulesResponse {
+  repeated Rule rules = 1;
+}
+
+message MatchRuleRequest {
+  string ledger = 1;
+  string address = 2;
+}
+
+message MatchRuleResponse {
+  string address = 1;
+  Rule rule = 2;
+  repeated RuleCandidate candidates = 3;
+  // Assets this address already has accounts in; those keep their frozen flags.
+  repeated string existing = 4;
+}
+
+message PutRuleRequest {
+  string ledger = 1;
+  string pattern = 2;
+  BalanceLimit limit = 3;
+  // False when unset.
+  optional bool history = 4;
+  uint32 code = 5;
+}
+
+message PutRuleResponse {
+  Rule rule = 1;
+}
+
+message DeleteRuleRequest {
+  string ledger = 1;
+  string pattern = 2;
+}
+
+message DeleteRuleResponse {}
+
+// An event type, carried in the code of every transfer of its writes.
+message EventType {
+  string name = 1;
+  uint32 code = 2;
+  bool built_in = 3;
+  // Unset for the built-in default.
+  google.protobuf.Timestamp created_at = 4;
+  // Transactions and holds recorded with this event type.
+  int64 transactions = 5;
+}
+
+message ListEventTypesRequest {
+  string ledger = 1;
+}
+
+message ListEventTypesResponse {
+  repeated EventType event_types = 1;
+}
+
+message CreateEventTypeRequest {
+  string ledger = 1;
+  string name = 2;
+  // The next free code when unset.
+  optional uint32 code = 3;
+}
+
+message CreateEventTypeResponse {
+  EventType event_type = 1;
+}
