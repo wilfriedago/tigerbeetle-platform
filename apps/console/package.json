@@ -15,6 +15,7 @@
     "format:fix": "vp fmt --write",
     "check": "vp check",
     "check:fix": "vp check --fix",
+    "typecheck": "tsc --noEmit",
     "test": "vp test run",
     "generate": "tsr generate"
   },
