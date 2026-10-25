@@ -51,7 +51,13 @@ export function NewLedgerDialog({ open, onOpenChange }: NewLedgerDialogProps) {
   const form = useAppForm({
     defaultValues: { metadata: [] as MetadataRow[], name: '' },
     onSubmit: async ({ value }) => {
-      const ledger = await create.mutateAsync({ body: { metadata: rowsToMetadata(value.metadata) }, name: value.name })
+      let ledger
+      try {
+        ledger = await create.mutateAsync({ body: { metadata: rowsToMetadata(value.metadata) }, name: value.name })
+      } catch {
+        // The problem panel shows create.error.
+        return
+      }
       setLastLedger(ledger.name)
       onOpenChange(false)
       await navigate({ params: { ledger: ledger.name }, to: '/ledgers/$ledger' })

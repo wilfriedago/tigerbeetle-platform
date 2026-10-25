@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { randomRequestId } from '@tigerbeetle-platform/api-client'
+import { ApiError, randomRequestId } from '@tigerbeetle-platform/api-client'
 
 /** A new Idempotency-Key, "idem_" plus 32 random hex characters split like a UUID. */
 export function newIdempotencyKey(): string {
@@ -44,4 +44,18 @@ export function useIdempotencyKey(): IdempotencyKey {
     keyFor,
     renew: () => setState({ body: undefined, key: newIdempotencyKey() })
   }
+}
+
+/**
+ * Whether a failed write already has its final answer under its key (ADR-0007): a declined or
+ * rejected request is stored with its key, so sending the key again only replays that answer and
+ * the next attempt needs a new key. Network failures, 5xx answers, `request-in-flight` and
+ * `write-pending` are not final: retrying with the same key is the safe move.
+ */
+export function keyIsSpent(error: unknown): boolean {
+  if (!(error instanceof ApiError) || error.status >= 500) {
+    return false
+  }
+  const { type } = error
+  return !type.endsWith('/request-in-flight') && !type.endsWith('/write-pending')
 }

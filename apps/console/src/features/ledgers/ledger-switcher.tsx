@@ -32,7 +32,7 @@ export function LedgerSwitcher({ current }: { current: string | undefined }) {
         <DropdownMenuTrigger className="flex h-11 w-full items-center gap-2.5 rounded-md border border-border bg-surface px-2 py-1.5 text-left outline-none hover:bg-surface-hover focus-visible:ring-3 focus-visible:ring-focus-ring aria-expanded:bg-surface-hover">
           <span
             aria-hidden="true"
-            className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary font-mono text-[14px] font-semibold text-primary-foreground uppercase"
+            className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary font-mono text-[14px] font-semibold text-primary-foreground"
           >
             {current ? current.charAt(0) : '?'}
           </span>

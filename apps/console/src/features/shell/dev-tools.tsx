@@ -14,8 +14,9 @@ export function DevTools() {
   }
   return (
     <Suspense fallback={null}>
-      <RouterDevtools position="bottom-left" />
-      <QueryDevtools buttonPosition="bottom-left" />
+      {/* Both toggles sit bottom right, clear of the sidebar footer and the top bar actions. */}
+      <RouterDevtools position="bottom-right" toggleButtonProps={{ style: { marginRight: 56 } }} />
+      <QueryDevtools buttonPosition="bottom-right" />
     </Suspense>
   )
 }

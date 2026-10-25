@@ -45,9 +45,23 @@ type ButtonProps = ButtonPrimitive.Props &
     loading?: boolean
   }
 
-function Button({ className, variant = 'default', size = 'default', loading = false, disabled, children, ...props }: ButtonProps) {
+function Button({
+  className,
+  variant = 'default',
+  size = 'default',
+  loading = false,
+  disabled,
+  children,
+  render,
+  nativeButton,
+  ...props
+}: ButtonProps) {
   return (
     <ButtonPrimitive
+      // A button rendered as a link (render={<Link />}) keeps link semantics instead of button ones.
+      // A render target that is itself a native button (a Base UI trigger) passes nativeButton.
+      nativeButton={nativeButton ?? render === undefined}
+      render={render}
       data-slot="button"
       data-loading={loading || undefined}
       aria-busy={loading || undefined}

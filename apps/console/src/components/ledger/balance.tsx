@@ -57,7 +57,7 @@ function LegendRow({ swatch, label, value, asset }: { swatch: string; label: Rea
 interface BalanceCardProps {
   balance: AssetBalance
   /** "Reserved by 2 holds" when the count is known. */
-  holds?: number
+  holds?: number | undefined
   className?: string
 }
 

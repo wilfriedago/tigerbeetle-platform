@@ -115,3 +115,15 @@ export function formatRelative(value: string | Date, now = new Date()): string {
   }
   return ''
 }
+
+/** "14:32:07.104", for activity logs where milliseconds tell the steps apart. */
+export function formatClock(value: Date, mode: TimeZoneMode = 'local'): string {
+  return formatter(`clock-${mode}`, {
+    ...zoneOptions(mode),
+    fractionalSecondDigits: 3,
+    hour: '2-digit',
+    hourCycle: 'h23',
+    minute: '2-digit',
+    second: '2-digit'
+  }).format(value)
+}
