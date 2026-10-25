@@ -38,3 +38,30 @@ func cursorParam() *huma.Param {
 func inline[T any](r huma.Registry) *huma.Schema {
 	return huma.SchemaFromType(r, reflect.TypeFor[T]())
 }
+
+// AccountPath is the account named in the paths below /accounts/{address}.
+type AccountPath struct {
+	Address scalar.Address `path:"address"`
+}
+
+// addressParam documents the address path parameter of AccountPath, whose description holds
+// backticks.
+func addressParam(api huma.API) *huma.Param {
+	return &huma.Param{
+		Name: "address", In: "path", Required: true,
+		Description: "The account address, such as `users:1234:wallet`.",
+		Schema:      scalar.Address("").Schema(api.OpenAPI().Components.Schemas),
+	}
+}
+
+// componentPrefix is where the spec keeps its named schemas.
+const componentPrefix = "#/components/schemas/"
+
+// component registers s under name the first time it is asked for and returns a $ref to it, for
+// types that describe themselves, such as the allOf of Account.
+func component(r huma.Registry, name string, s func() *huma.Schema) *huma.Schema {
+	if _, ok := r.Map()[name]; !ok {
+		r.Map()[name] = s()
+	}
+	return &huma.Schema{Ref: componentPrefix + name}
+}
