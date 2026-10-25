@@ -83,6 +83,20 @@ ID, access log, error and recovery interceptors, `grpc.health.v1` and reflection
 the standard `google.rpc` details: `ErrorInfo` with an AIP-193 reason derived from the problem
 type, `RetryInfo` when a retry later makes sense, `BadRequest` when an input error names a field.
 
+AMQP RPC and NATS RPC (ADR-0021) serve one method per REST operation, `v1.<operationId>`, with
+the REST names: a request is `{"params": {...}, "body": {...}}`, a reply `{"ok": true, "data":
+...}` or `{"ok": false, "error": {...}}` with the problem members GraphQL uses. The idempotency
+key and request ID travel as message headers, and `x-deadline` (Unix milliseconds) bounds a call
+together with `RPC_TIMEOUT_MAX`; a call past its deadline is answered without running. Each
+module registers its methods in `interfaces/rpc/v1`, `internal/transport/rpc` builds one router,
+and `internal/platform/rpc` dispatches it with a worker pool of `RPC_CONCURRENCY`. Over RabbitMQ
+every replica consumes the durable queue `tbp.rpc.v1` (bound to the direct exchange `tbp.rpc`),
+replies go to `reply_to` with the correlation ID, and the ack follows the reply;
+`internal/platform/amqp` redials a dropped connection, because amqp091-go does not. Over NATS a
+`micro` service in the queue group `tbp-api` serves `tbp.rpc.v1.<operationId>`. Either way each
+request runs once across replicas, and a client retries a write with the same key. Both are off
+by default (`AMQP_RPC_ENABLED`, `NATS_RPC_ENABLED`) and turned on by `just compose-up-brokers`.
+
 ## Code layout of apps/api
 
 ```
@@ -100,11 +114,13 @@ internal/transport/rest            the one list of REST operations, every module
 internal/transport/graphql         POST /graphql: handler, resolver root, schema registry, and
                                    the gqlgen executor in exec (generated)
 internal/transport/grpc            every gRPC service, registered on one server
+internal/transport/rpc             every broker RPC method, on the router AMQP and NATS share
 internal/platform/...              config, logging, httpserver, postgres (pool, migrations),
                                    tigerbeetle (client), readiness, restapi (Huma),
                                    graphqlschema (the SDL generator), grpcserver, grpcapi (the
-                                   protobuf code and its conversions), problem, scalar,
-                                   requestid: process and transport plumbing
+                                   protobuf code and its conversions), rpc, amqp, amqprpc,
+                                   natsrpc (broker RPC), problem, scalar, requestid: process and
+                                   transport plumbing
 migrations/                        goose SQL, one sequence, embedded with go:embed
 testdata/depguard/                 one deliberate violation per depguard rule
 ```
@@ -118,7 +134,7 @@ have their own life cycle and are never written in a chain.
 Inside a module the layers are `domain` (rules and the ports infrastructure implements),
 `application` (one type per command family and one per query family, exported as interfaces in
 `usecases.go`), `infrastructure` (Postgres through its own sqlc queries, TigerBeetle) and
-`interfaces` (`dto`, the wire types every transport shares, `rest/v1`, `graphql` and `grpc/v1`). A use case holds
+`interfaces` (`dto`, the wire types every transport shares, `rest/v1`, `graphql`, `grpc/v1` and `rpc/v1`). A use case holds
 interfaces, never concrete types, so the application tests run on hand-written fakes and never
 start a database.
 
@@ -231,7 +247,9 @@ Cursor pagination orders by the stored big-endian ID, which is time order.
 
 - `GET /healthz` is liveness only: a liveness failure restarts the process, which does not help
   when a dependency is down. `GET /readyz` probes Postgres and TigerBeetle concurrently with a
-  2 second timeout each (`READINESS_TIMEOUT`) and answers 503 when either is down. `GET /v1/_info`
+  2 second timeout each (`READINESS_TIMEOUT`) and answers 503 when either is down. With a broker
+  transport enabled it probes that broker too, but a broker outage only makes the status
+  `degraded`, still 200: readiness gates HTTP traffic, which no broker carries. `GET /v1/_info`
   always answers 200 with the dependency state as payload. The runtime image has no shell, so
   `/app/api -probe http://127.0.0.1:8080/readyz` is the container healthcheck.
 - Every error path answers `application/problem+json`, including unknown routes, binding errors
