@@ -84,11 +84,12 @@ lint-depguard-probe:
     scripts/depguard-probe.sh
 
 # Path parameters are flattened: the generated spec declares them on each operation, the
-# hand-written one declared them once per path (ADR-0018).
+# hand-written one declared them once per path (ADR-0018). packages/openapi/oasdiff-ignore.txt
+# lists the breaking changes made on purpose.
 [doc('Breaking changes, then the changelog, of the REST spec against a git revision (CI: the base branch).')]
 [group('quality')]
 spec-diff base="main":
-    oasdiff breaking "{{ base }}:packages/openapi/openapi.yaml" packages/openapi/openapi.yaml --flatten-params --fail-on ERR
+    oasdiff breaking "{{ base }}:packages/openapi/openapi.yaml" packages/openapi/openapi.yaml --flatten-params --fail-on ERR --err-ignore packages/openapi/oasdiff-ignore.txt
     oasdiff changelog "{{ base }}:packages/openapi/openapi.yaml" packages/openapi/openapi.yaml --flatten-params
 
 # FILE rules: a field or message removed, renumbered or retyped in a file breaks generated clients.

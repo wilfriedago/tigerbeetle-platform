@@ -137,7 +137,9 @@ type ComplexityRoot struct {
 	}
 
 	Dependencies struct {
+		NATS        func(childComplexity int) int
 		Postgres    func(childComplexity int) int
+		RabbitMQ    func(childComplexity int) int
 		Tigerbeetle func(childComplexity int) int
 	}
 
@@ -816,12 +818,24 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.DeclinedStats.Total(childComplexity), true
 
+	case "Dependencies.nats":
+		if e.ComplexityRoot.Dependencies.NATS == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Dependencies.NATS(childComplexity), true
 	case "Dependencies.postgres":
 		if e.ComplexityRoot.Dependencies.Postgres == nil {
 			break
 		}
 
 		return e.ComplexityRoot.Dependencies.Postgres(childComplexity), true
+	case "Dependencies.rabbitmq":
+		if e.ComplexityRoot.Dependencies.RabbitMQ == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Dependencies.RabbitMQ(childComplexity), true
 	case "Dependencies.tigerbeetle":
 		if e.ComplexityRoot.Dependencies.Tigerbeetle == nil {
 			break
@@ -2372,6 +2386,10 @@ type DeclinedStats {
 type Dependencies {
   postgres: DependencyCheck!
   tigerbeetle: DependencyCheck!
+  "Present when AMQP RPC is enabled."
+  rabbitmq: DependencyCheck
+  "Present when NATS RPC is enabled."
+  nats: DependencyCheck
 }
 
 "The result of probing one dependency."
@@ -3040,6 +3058,10 @@ func (ec *executionContext) childFields_Dependencies(ctx context.Context, field 
 		return ec.fieldContext_Dependencies_postgres(ctx, field)
 	case "tigerbeetle":
 		return ec.fieldContext_Dependencies_tigerbeetle(ctx, field)
+	case "rabbitmq":
+		return ec.fieldContext_Dependencies_rabbitmq(ctx, field)
+	case "nats":
+		return ec.fieldContext_Dependencies_nats(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Dependencies", field.Name)
 }
@@ -5683,6 +5705,70 @@ func (ec *executionContext) _Dependencies_tigerbeetle(ctx context.Context, field
 	)
 }
 func (ec *executionContext) fieldContext_Dependencies_tigerbeetle(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Dependencies",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_DependencyCheck(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Dependencies_rabbitmq(ctx context.Context, field graphql.CollectedField, obj *dto2.Dependencies) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Dependencies_rabbitmq(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RabbitMQ, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto2.DependencyCheck) graphql.Marshaler {
+			return ec.marshalODependencyCheck2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencyCheck(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Dependencies_rabbitmq(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Dependencies",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_DependencyCheck(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Dependencies_nats(ctx context.Context, field graphql.CollectedField, obj *dto2.Dependencies) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Dependencies_nats(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.NATS, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto2.DependencyCheck) graphql.Marshaler {
+			return ec.marshalODependencyCheck2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencyCheck(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Dependencies_nats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Dependencies",
 		Field:      field,
@@ -13227,6 +13313,16 @@ func (ec *executionContext) _Dependencies(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "rabbitmq":
+			out.Values[i] = ec._Dependencies_rabbitmq(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "nats":
+			out.Values[i] = ec._Dependencies_nats(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -16512,6 +16608,13 @@ func (ec *executionContext) marshalODateTime2ᚖtimeᚐTime(ctx context.Context,
 	_ = ctx
 	res := graphql.MarshalTime(*v)
 	return res
+}
+
+func (ec *executionContext) marshalODependencyCheck2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencyCheck(ctx context.Context, sel ast.SelectionSet, v *dto2.DependencyCheck) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._DependencyCheck(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOHold2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHold(ctx context.Context, sel ast.SelectionSet, v *dto1.Hold) graphql.Marshaler {

@@ -385,8 +385,14 @@ components:
       type: object
     Dependencies:
       properties:
+        nats:
+          $ref: "#/components/schemas/DependencyCheck"
+          description: Present when NATS RPC is enabled.
         postgres:
           $ref: "#/components/schemas/DependencyCheck"
+        rabbitmq:
+          $ref: "#/components/schemas/DependencyCheck"
+          description: Present when AMQP RPC is enabled.
         tigerbeetle:
           $ref: "#/components/schemas/DependencyCheck"
       required:
@@ -784,6 +790,7 @@ components:
           enum:
             - ready
             - not_ready
+            - degraded
           type: string
       required:
         - status

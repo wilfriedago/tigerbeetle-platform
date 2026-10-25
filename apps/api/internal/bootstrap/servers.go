@@ -11,13 +11,17 @@ import (
 	bookkeepingv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/rest/v1"
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	ledgersv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/rest/v1"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/amqprpc"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/httpserver"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/natsrpc"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/rpc"
 	graphqltransport "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/graphql"
 	grpctransport "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/grpc"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/rest"
+	rpctransport "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/rpc"
 )
 
 // healthSource is what the health answers of every transport read.
@@ -82,11 +86,48 @@ func grpcServer(health healthdto.Source, m modules, cfg config.Config, logger *s
 	return srv
 }
 
+// brokerServers builds the enabled broker RPC servers on one router and dispatcher, so AMQP and
+// NATS answer every method the same way, and registers their readiness probes as optional: a
+// broker outage degrades the service without making it unready (plan section 13.2).
+func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger) error {
+	if !cfg.AMQPRPCEnabled && !cfg.NATSRPCEnabled {
+		return nil
+	}
+	router := rpctransport.Router(rpctransport.Modules{Health: health, Ledgers: m.ledgers, Bookkeeping: m.bookkeeping})
+	dispatcher := rpc.NewDispatcher(router, cfg.RPCTimeoutMax, logger)
+	if cfg.AMQPRPCEnabled {
+		a.amqp = amqprpc.New(amqprpc.Options{
+			URL: cfg.AMQPURL, Queue: cfg.AMQPRPCQueue, Concurrency: cfg.RPCConcurrency,
+			ShutdownTimeout: cfg.ShutdownTimeout, Dispatcher: dispatcher, Logger: logger,
+		})
+		r.readiness.Optional(healthdto.ProbeRabbitMQ, a.amqp.Ready)
+	}
+	if cfg.NATSRPCEnabled {
+		srv, err := natsrpc.New(natsrpc.Options{
+			URL: cfg.NATSURL, QueueGroup: cfg.NATSRPCQueueGroup, Concurrency: cfg.RPCConcurrency,
+			ShutdownTimeout: cfg.ShutdownTimeout, Router: router, Dispatcher: dispatcher, Logger: logger,
+		})
+		if err != nil {
+			return err
+		}
+		a.closers = append(a.closers, srv.Close)
+		a.nats = srv
+		r.readiness.Optional(healthdto.ProbeNATS, srv.Ready)
+	}
+	return nil
+}
+
 // runners lists the enabled servers and workers.
 func runners(cfg config.Config, a *App, logger *slog.Logger) []Runner {
 	out := []Runner{httpRunner{cfg: cfg, handler: a.handler, logger: logger}}
 	if a.grpc != nil {
 		out = append(out, grpcRunner{srv: a.grpc})
+	}
+	if a.amqp != nil {
+		out = append(out, funcRunner{name: "amqp-rpc", run: a.amqp.Run})
+	}
+	if a.nats != nil {
+		out = append(out, funcRunner{name: "nats-rpc", run: a.nats.Run})
 	}
 	if cfg.ReconcilerEnabled {
 		out = append(out, reconcilerRunner{a: a})
@@ -122,6 +163,16 @@ func (grpcRunner) Name() string { return "grpc" }
 func (g grpcRunner) Run(ctx context.Context) error {
 	return g.srv.Run(ctx)
 }
+
+// funcRunner runs a server whose Run already has the Runner shape.
+type funcRunner struct {
+	name string
+	run  func(context.Context) error
+}
+
+func (f funcRunner) Name() string { return f.name }
+
+func (f funcRunner) Run(ctx context.Context) error { return f.run(ctx) }
 
 // reconcilerRunner settles writes interrupted by a crash or a TigerBeetle timeout (ADR-0007).
 type reconcilerRunner struct {

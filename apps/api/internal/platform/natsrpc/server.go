@@ -164,3 +164,6 @@ func headerOf(h micro.Headers, key string) string {
 	}
 	return ""
 }
+
+// Close closes the connection, for a server built but never run. Closing twice is harmless.
+func (s *Server) Close() { s.nc.Close() }

@@ -63,6 +63,12 @@ func (s *InfoServer) GetInfo(ctx context.Context, _ *pb.GetInfoRequest) (*pb.Get
 			dto.ProbeTigerBeetle: checkOf(info.Dependencies.Tigerbeetle),
 		},
 	}
+	if mq := info.Dependencies.RabbitMQ; mq != nil {
+		out.Dependencies[dto.ProbeRabbitMQ] = checkOf(*mq)
+	}
+	if nats := info.Dependencies.NATS; nats != nil {
+		out.Dependencies[dto.ProbeNATS] = checkOf(*nats)
+	}
 	if rt := info.Runtime; rt != nil {
 		out.Runtime = &pb.Runtime{
 			StartedAt:                grpcapi.Timestamp(rt.StartedAt),

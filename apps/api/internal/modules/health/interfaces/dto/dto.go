@@ -22,6 +22,8 @@ import (
 const (
 	ProbePostgres    = "postgres"
 	ProbeTigerBeetle = "tigerbeetle"
+	ProbeRabbitMQ    = "rabbitmq"
+	ProbeNATS        = "nats"
 )
 
 // DatabaseInfo reports the Postgres server and schema versions for GET /v1/_info.
@@ -57,15 +59,19 @@ func (DependencyCheck) TransformSchema(_ huma.Registry, s *huma.Schema) *huma.Sc
 	return s
 }
 
-// Dependencies reports each dependency the service needs.
+// Dependencies reports each dependency the service needs. The brokers appear only when a
+// transport that uses them is enabled.
 type Dependencies struct {
-	Postgres    DependencyCheck `json:"postgres"`
-	Tigerbeetle DependencyCheck `json:"tigerbeetle"`
+	Postgres    DependencyCheck  `json:"postgres"`
+	Tigerbeetle DependencyCheck  `json:"tigerbeetle"`
+	RabbitMQ    *DependencyCheck `json:"rabbitmq,omitempty" doc:"Present when AMQP RPC is enabled."`
+	NATS        *DependencyCheck `json:"nats,omitempty" doc:"Present when NATS RPC is enabled."`
 }
 
-// Readiness is the answer of GET /readyz.
+// Readiness is the answer of GET /readyz. degraded means Postgres and TigerBeetle answer but a
+// broker does not: the service still serves HTTP, so the answer stays 200.
 type Readiness struct {
-	Status       string       `json:"status" enum:"ready,not_ready"`
+	Status       string       `json:"status" enum:"ready,not_ready,degraded"`
 	Dependencies Dependencies `json:"dependencies"`
 }
 
@@ -113,8 +119,11 @@ func (s Source) ReadinessNow(ctx context.Context) (Readiness, bool) {
 	report := s.Readiness.Check(ctx)
 	logReport(ctx, report)
 	out := Readiness{Status: "ready", Dependencies: dependenciesOf(report)}
-	if !report.Ready() {
+	switch {
+	case !report.Ready():
 		out.Status = "not_ready"
+	case report.Degraded():
+		out.Status = "degraded"
 	}
 	return out, report.Ready()
 }
@@ -152,7 +161,16 @@ func (s Source) database(ctx context.Context) (version string, schema int64) {
 func dependenciesOf(report readiness.Report) Dependencies {
 	pg, _ := report.Result(ProbePostgres)
 	tb, _ := report.Result(ProbeTigerBeetle)
-	return Dependencies{Postgres: checkOf(pg), Tigerbeetle: checkOf(tb)}
+	out := Dependencies{Postgres: checkOf(pg), Tigerbeetle: checkOf(tb)}
+	if mq, ok := report.Result(ProbeRabbitMQ); ok {
+		check := checkOf(mq)
+		out.RabbitMQ = &check
+	}
+	if nats, ok := report.Result(ProbeNATS); ok {
+		check := checkOf(nats)
+		out.NATS = &check
+	}
+	return out
 }
 
 func checkOf(p readiness.Result) DependencyCheck {

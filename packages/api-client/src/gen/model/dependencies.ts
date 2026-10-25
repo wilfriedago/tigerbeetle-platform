@@ -4,6 +4,10 @@
 import type { DependencyCheck } from './dependencyCheck';
 
 export interface Dependencies {
+  /** Present when NATS RPC is enabled. */
+  nats?: DependencyCheck;
   postgres: DependencyCheck;
+  /** Present when AMQP RPC is enabled. */
+  rabbitmq?: DependencyCheck;
   tigerbeetle: DependencyCheck;
 }

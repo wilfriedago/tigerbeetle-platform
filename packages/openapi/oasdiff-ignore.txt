@@ -1,0 +1,7 @@
+# Changes made on purpose that oasdiff reports as breaking (just spec-diff reads this file). One
+# line each: the method and path, then the error text. Remove a line once the base branch has it.
+#
+# ADR-0021: readiness gains "degraded" (a broker is down, the service still serves); a client
+# that switches on the status must handle the new value.
+GET /readyz added the new `degraded` enum value to the `status` response property for the response status `200`
+GET /readyz added the new `degraded` enum value to the `status` response property for the response status `503`

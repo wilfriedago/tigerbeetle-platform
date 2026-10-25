@@ -8,4 +8,5 @@ export type ReadinessStatus = typeof ReadinessStatus[keyof typeof ReadinessStatu
 export const ReadinessStatus = {
   ready: 'ready',
   not_ready: 'not_ready',
+  degraded: 'degraded',
 } as const;

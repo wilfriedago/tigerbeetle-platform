@@ -28,6 +28,20 @@ func (r Result) Up() bool { return r.Err == nil }
 // Report holds the result of every probe, in the order the probes were added.
 type Report []Result
 
+// Degraded is true when every required dependency is up but an optional one is down: the
+// process serves, without one of its transports (plan section 13.2).
+func (r Report) Degraded() bool {
+	if !r.Ready() {
+		return false
+	}
+	for _, res := range r {
+		if !res.Required && !res.Up() {
+			return true
+		}
+	}
+	return false
+}
+
 // Ready is true when every required dependency is up.
 func (r Report) Ready() bool {
 	for _, res := range r {
@@ -68,6 +82,12 @@ func New(timeout time.Duration) *Checker {
 // Require adds a dependency the process cannot serve without, such as Postgres.
 func (c *Checker) Require(name string, check Probe) {
 	c.probes = append(c.probes, probe{name: name, required: true, check: check})
+}
+
+// Optional adds a dependency the process serves without, such as a broker: it is reported, and
+// its outage makes the process degraded, not unready.
+func (c *Checker) Optional(name string, check Probe) {
+	c.probes = append(c.probes, probe{name: name, required: false, check: check})
 }
 
 // Timeout is the time each probe gets to answer.

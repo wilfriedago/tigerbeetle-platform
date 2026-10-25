@@ -139,3 +139,30 @@ func checkDeps(t *testing.T, deps dto.Dependencies, wantTB scalar.DependencyStat
 		t.Errorf("driver error leaked to the client: %q", gotErr)
 	}
 }
+
+// TestReadinessDegraded: a broker that is down makes the service degraded, still 200, because
+// readiness gates HTTP traffic and the brokers carry none of it (plan section 13.2). A broker
+// that is off does not appear at all.
+func TestReadinessDegraded(t *testing.T) {
+	t.Parallel()
+	deps := statusDeps(up, up)
+	deps.Readiness.Optional(dto.ProbeRabbitMQ, func(context.Context) error { return errors.New("secret broker text") })
+	deps.Readiness.Optional(dto.ProbeNATS, up)
+	rec := get(t, newTestServer(t, deps), "/readyz")
+	body := decode[dto.Readiness](t, rec)
+	if rec.Code != http.StatusOK || body.Status != "degraded" {
+		t.Fatalf("status %d body %s", rec.Code, rec.Body.String())
+	}
+	if body.Dependencies.RabbitMQ == nil || body.Dependencies.RabbitMQ.Status != scalar.DependencyDown ||
+		body.Dependencies.NATS == nil || body.Dependencies.NATS.Status != scalar.DependencyUp {
+		t.Fatalf("dependencies = %+v", body.Dependencies)
+	}
+	if strings.Contains(rec.Body.String(), "secret") {
+		t.Fatalf("readiness leaks the probe error: %s", rec.Body.String())
+	}
+
+	plain := get(t, newTestServer(t, statusDeps(up, up)), "/readyz")
+	if strings.Contains(plain.Body.String(), "rabbitmq") || strings.Contains(plain.Body.String(), "nats") {
+		t.Fatalf("brokers reported while off: %s", plain.Body.String())
+	}
+}

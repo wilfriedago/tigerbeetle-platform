@@ -14,8 +14,10 @@ import (
 
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/amqprpc"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcserver"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/natsrpc"
 	platformpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
 	platformtb "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/tigerbeetle"
@@ -31,7 +33,10 @@ type Service struct {
 type App struct {
 	handler http.Handler
 	// grpc is nil when GRPC_ENABLED is off.
-	grpc       *grpcserver.Server
+	grpc *grpcserver.Server
+	// amqp and nats are nil when their switch is off.
+	amqp       *amqprpc.Server
+	nats       *natsrpc.Server
 	reconciler *bookkeepingapp.Reconciler
 	runners    []Runner
 	// closers release the resources in construction order; close runs them in reverse.
@@ -65,6 +70,9 @@ func Build(ctx context.Context, cfg config.Config, svc Service, logger *slog.Log
 	a.handler = httpHandler(health, m, cfg, logger)
 	if cfg.GRPCEnabled {
 		a.grpc = grpcServer(health, m, cfg, logger)
+	}
+	if err := a.brokerServers(r, health, m, cfg, logger); err != nil {
+		return nil, err
 	}
 	a.reconciler = m.bookkeeping.Reconciler
 	a.runners = runners(cfg, a, logger)

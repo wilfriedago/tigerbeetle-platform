@@ -217,6 +217,10 @@ type DeclinedStats {
 type Dependencies {
   postgres: DependencyCheck!
   tigerbeetle: DependencyCheck!
+  "Present when AMQP RPC is enabled."
+  rabbitmq: DependencyCheck
+  "Present when NATS RPC is enabled."
+  nats: DependencyCheck
 }
 
 "The result of probing one dependency."

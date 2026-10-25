@@ -38,6 +38,10 @@ func TestParse(t *testing.T) {
 				GraphQLEnabled:        true,
 				ReconcilerEnabled:     true,
 				GRPCAddr:              ":9090",
+				AMQPRPCQueue:          "tbp.rpc.v1",
+				NATSRPCQueueGroup:     "tbp-api",
+				RPCConcurrency:        16,
+				RPCTimeoutMax:         30 * time.Second,
 			},
 		},
 		{
@@ -53,6 +57,7 @@ func TestParse(t *testing.T) {
 				MigrateOnStart: true, ShutdownTimeout: time.Second, ReadinessTimeout: 500 * time.Millisecond,
 				TigerBeetleTimeout: 5 * time.Second, ReconcilerGracePeriod: 30 * time.Second, ReconcilerInterval: 10 * time.Second,
 				RESTEnabled: true, GraphQLEnabled: true, GRPCEnabled: true, GRPCAddr: ":9191",
+				AMQPRPCQueue: "tbp.rpc.v1", NATSRPCQueueGroup: "tbp-api", RPCConcurrency: 16, RPCTimeoutMax: 30 * time.Second,
 			},
 		},
 		{name: "missing postgres url", environ: map[string]string{"TIGERBEETLE_ADDRESSES": "localhost:3000"}, wantErr: true},
@@ -61,6 +66,9 @@ func TestParse(t *testing.T) {
 		{name: "bad duration", environ: merge(required, map[string]string{"SHUTDOWN_TIMEOUT": "soon"}), wantErr: true},
 		{name: "zero timeout", environ: merge(required, map[string]string{"READINESS_TIMEOUT": "0s"}), wantErr: true},
 		{name: "grace shorter than timeout", environ: merge(required, map[string]string{"RECONCILER_GRACE_PERIOD": "2s"}), wantErr: true},
+		{name: "amqp rpc without url", environ: merge(required, map[string]string{"AMQP_RPC_ENABLED": "true"}), wantErr: true},
+		{name: "nats rpc without url", environ: merge(required, map[string]string{"NATS_RPC_ENABLED": "true"}), wantErr: true},
+		{name: "zero rpc concurrency", environ: merge(required, map[string]string{"NATS_RPC_ENABLED": "true", "NATS_URL": "nats://x:4222", "RPC_CONCURRENCY": "0"}), wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

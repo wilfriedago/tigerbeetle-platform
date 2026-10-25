@@ -54,3 +54,27 @@ func TestCheck(t *testing.T) {
 		t.Fatal("Result found a probe that was never added")
 	}
 }
+
+func TestDegraded(t *testing.T) {
+	t.Parallel()
+	down := func(context.Context) error { return errors.New("down") }
+	up := func(context.Context) error { return nil }
+	tests := []struct {
+		name                string
+		required, optional  Probe
+		wantReady, wantDegr bool
+	}{
+		{name: "all up", required: up, optional: up, wantReady: true},
+		{name: "optional down", required: up, optional: down, wantReady: true, wantDegr: true},
+		{name: "required down", required: down, optional: down},
+	}
+	for _, tt := range tests {
+		c := New(time.Second)
+		c.Require("pg", tt.required)
+		c.Optional("broker", tt.optional)
+		r := c.Check(t.Context())
+		if r.Ready() != tt.wantReady || r.Degraded() != tt.wantDegr {
+			t.Errorf("%s: ready %v degraded %v", tt.name, r.Ready(), r.Degraded())
+		}
+	}
+}

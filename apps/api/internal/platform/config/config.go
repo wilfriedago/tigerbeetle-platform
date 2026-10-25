@@ -49,6 +49,24 @@ type Config struct {
 	GRPCEnabled bool `env:"GRPC_ENABLED" envDefault:"false"`
 	// GRPCAddr is the listen address of the gRPC server.
 	GRPCAddr string `env:"GRPC_ADDR" envDefault:":9090"`
+	// AMQPRPCEnabled serves the RPC methods over RabbitMQ (ADR-0021); off by default, development
+	// only until authentication is decided. It needs AMQPURL.
+	AMQPRPCEnabled bool `env:"AMQP_RPC_ENABLED" envDefault:"false"`
+	// AMQPURL is the RabbitMQ URL, amqp://user:password@host:5672/vhost.
+	AMQPURL string `env:"AMQP_URL"`
+	// AMQPRPCQueue is the durable request queue every replica consumes.
+	AMQPRPCQueue string `env:"AMQP_RPC_QUEUE" envDefault:"tbp.rpc.v1"`
+	// NATSRPCEnabled serves the RPC methods over NATS; off by default, like AMQP RPC. It needs
+	// NATSURL.
+	NATSRPCEnabled bool `env:"NATS_RPC_ENABLED" envDefault:"false"`
+	// NATSURL is the NATS URL, nats://host:4222.
+	NATSURL string `env:"NATS_URL"`
+	// NATSRPCQueueGroup is the queue group every replica joins, so each request runs once.
+	NATSRPCQueueGroup string `env:"NATS_RPC_QUEUE_GROUP" envDefault:"tbp-api"`
+	// RPCConcurrency bounds the requests each broker server runs at once.
+	RPCConcurrency int `env:"RPC_CONCURRENCY" envDefault:"16"`
+	// RPCTimeoutMax bounds every broker request, whatever deadline the client sends.
+	RPCTimeoutMax time.Duration `env:"RPC_TIMEOUT_MAX" envDefault:"30s"`
 }
 
 // Load reads the process environment.
@@ -79,6 +97,15 @@ func Parse(environ map[string]string) (Config, error) {
 func (c *Config) validate() error {
 	if _, err := c.Level(); err != nil {
 		return err
+	}
+	if c.AMQPRPCEnabled && c.AMQPURL == "" {
+		return fmt.Errorf("config: AMQP_RPC_ENABLED needs AMQP_URL")
+	}
+	if c.NATSRPCEnabled && c.NATSURL == "" {
+		return fmt.Errorf("config: NATS_RPC_ENABLED needs NATS_URL")
+	}
+	if (c.AMQPRPCEnabled || c.NATSRPCEnabled) && (c.RPCConcurrency < 1 || c.RPCTimeoutMax <= 0) {
+		return fmt.Errorf("config: RPC_CONCURRENCY and RPC_TIMEOUT_MAX must be positive")
 	}
 	if c.ShutdownTimeout <= 0 || c.ReadinessTimeout <= 0 || c.TigerBeetleTimeout <= 0 {
 		return fmt.Errorf("config: SHUTDOWN_TIMEOUT, READINESS_TIMEOUT and TIGERBEETLE_TIMEOUT must be positive")
