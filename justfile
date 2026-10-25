@@ -34,10 +34,12 @@ generate-contracts:
     cd {{ api }} && CGO_ENABLED=0 go run ./cmd/openapi -out ../../packages/openapi/openapi.yaml
     cd {{ api }} && CGO_ENABLED=0 go run ./cmd/graphqlschema -out ../../packages/graphql/schema.graphql
 
-# Step 3: the GraphQL executor, from the schema step 2 wrote.
+# Step 3: the GraphQL executor, from the schema step 2 wrote, and the protobuf code from
+# packages/proto (buf runs the pinned protoc plugins from PATH).
 [group('generate')]
 generate-servers:
     cd {{ api }} && go tool gqlgen generate --config gqlgen.yml
+    cd packages/proto && buf generate
 
 # Step 4: the spec lint and TypeScript types, and the console's route tree, through Turborepo.
 [group('generate')]
