@@ -4,10 +4,29 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
+/** The balance limit flag of the TigerBeetle accounts a rule creates. */
+export type BalanceLimit =
+  | 'credits_must_not_exceed_debits'
+  | 'debits_must_not_exceed_credits'
+  | 'none';
+
+export type CreateEventTypeInput = {
+  /** 2 to 65535; the next free code when absent. */
+  code?: number | null | undefined;
+  ledger: string;
+  /** Lowercase, starting with a letter, such as card.authorized. */
+  name: string;
+};
+
 export type CreateLedgerInput = {
   metadata?: Record<string, string> | null | undefined;
   /** Lowercase letters, digits, dash and underscore, 1 to 63 characters. */
   name: string;
+};
+
+export type DeleteRuleInput = {
+  ledger: string;
+  pattern: string;
 };
 
 /** The life cycle of a hold. expired is derived from the cluster clock. */
@@ -24,6 +43,16 @@ export type Operation =
   | 'revert'
   | 'transaction'
   | 'void';
+
+export type PutRuleInput = {
+  /** The TigerBeetle account code, 1 to 65535. */
+  code: number;
+  history?: boolean | null | undefined;
+  ledger: string;
+  limit: BalanceLimit;
+  /** *, an address such as world, or a prefix ending with a colon such as users:. */
+  pattern: string;
+};
 
 export type ReplaceLedgerMetadataInput = {
   ledger: string;
@@ -92,6 +121,53 @@ export type ReplaceLedgerMetadataMutationVariables = Exact<{
 
 export type ReplaceLedgerMetadataMutation = { replaceLedgerMetadata: { name: string, metadata: Record<string, string>, createdAt: string, assetCodes: Array<string>, accountCount: number } };
 
+export type RuleFieldsFragment = { pattern: string, limit: BalanceLimit, history: boolean, code: number, builtIn: boolean, segments: number, createdAt: string | null, updatedAt: string | null };
+
+export type EventTypeFieldsFragment = { name: string, code: number, builtIn: boolean, createdAt: string | null, transactions: number };
+
+export type RulesQueryVariables = Exact<{
+  name: string;
+}>;
+
+
+export type RulesQuery = { ledger: { rules: Array<{ pattern: string, limit: BalanceLimit, history: boolean, code: number, builtIn: boolean, segments: number, createdAt: string | null, updatedAt: string | null }> } | null };
+
+export type RuleMatchQueryVariables = Exact<{
+  name: string;
+  address: string;
+}>;
+
+
+export type RuleMatchQuery = { ledger: { ruleMatch: { address: string, existing: Array<string>, rule: { pattern: string, limit: BalanceLimit, history: boolean, code: number, builtIn: boolean, segments: number, createdAt: string | null, updatedAt: string | null }, candidates: Array<{ matches: boolean, rule: { pattern: string, limit: BalanceLimit, history: boolean, code: number, builtIn: boolean, segments: number, createdAt: string | null, updatedAt: string | null } }> } } | null };
+
+export type EventTypesQueryVariables = Exact<{
+  name: string;
+}>;
+
+
+export type EventTypesQuery = { ledger: { eventTypes: Array<{ name: string, code: number, builtIn: boolean, createdAt: string | null, transactions: number }> } | null };
+
+export type PutRuleMutationVariables = Exact<{
+  input: PutRuleInput;
+}>;
+
+
+export type PutRuleMutation = { putRule: { pattern: string, limit: BalanceLimit, history: boolean, code: number, builtIn: boolean, segments: number, createdAt: string | null, updatedAt: string | null } };
+
+export type DeleteRuleMutationVariables = Exact<{
+  input: DeleteRuleInput;
+}>;
+
+
+export type DeleteRuleMutation = { deleteRule: boolean };
+
+export type CreateEventTypeMutationVariables = Exact<{
+  input: CreateEventTypeInput;
+}>;
+
+
+export type CreateEventTypeMutation = { createEventType: { name: string, code: number, builtIn: boolean, createdAt: string | null, transactions: number } };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -128,6 +204,27 @@ export const AssetSummaryFieldsFragmentDoc = new TypedDocumentString(`
   issued
 }
     `, {"fragmentName":"AssetSummaryFields"}) as unknown as TypedDocumentString<AssetSummaryFieldsFragment, unknown>;
+export const RuleFieldsFragmentDoc = new TypedDocumentString(`
+    fragment RuleFields on Rule {
+  pattern
+  limit
+  history
+  code
+  builtIn
+  segments
+  createdAt
+  updatedAt
+}
+    `, {"fragmentName":"RuleFields"}) as unknown as TypedDocumentString<RuleFieldsFragment, unknown>;
+export const EventTypeFieldsFragmentDoc = new TypedDocumentString(`
+    fragment EventTypeFields on EventType {
+  name
+  code
+  builtIn
+  createdAt
+  transactions
+}
+    `, {"fragmentName":"EventTypeFields"}) as unknown as TypedDocumentString<EventTypeFieldsFragment, unknown>;
 export const LedgersDocument = new TypedDocumentString(`
     query Ledgers($first: Int, $after: String) {
   ledgers(first: $first, after: $after) {
@@ -263,3 +360,98 @@ export const ReplaceLedgerMetadataDocument = new TypedDocumentString(`
   assetCodes
   accountCount
 }`) as unknown as TypedDocumentString<ReplaceLedgerMetadataMutation, ReplaceLedgerMetadataMutationVariables>;
+export const RulesDocument = new TypedDocumentString(`
+    query Rules($name: String!) {
+  ledger(name: $name) {
+    rules {
+      ...RuleFields
+    }
+  }
+}
+    fragment RuleFields on Rule {
+  pattern
+  limit
+  history
+  code
+  builtIn
+  segments
+  createdAt
+  updatedAt
+}`) as unknown as TypedDocumentString<RulesQuery, RulesQueryVariables>;
+export const RuleMatchDocument = new TypedDocumentString(`
+    query RuleMatch($name: String!, $address: String!) {
+  ledger(name: $name) {
+    ruleMatch(address: $address) {
+      address
+      rule {
+        ...RuleFields
+      }
+      candidates {
+        matches
+        rule {
+          ...RuleFields
+        }
+      }
+      existing
+    }
+  }
+}
+    fragment RuleFields on Rule {
+  pattern
+  limit
+  history
+  code
+  builtIn
+  segments
+  createdAt
+  updatedAt
+}`) as unknown as TypedDocumentString<RuleMatchQuery, RuleMatchQueryVariables>;
+export const EventTypesDocument = new TypedDocumentString(`
+    query EventTypes($name: String!) {
+  ledger(name: $name) {
+    eventTypes {
+      ...EventTypeFields
+    }
+  }
+}
+    fragment EventTypeFields on EventType {
+  name
+  code
+  builtIn
+  createdAt
+  transactions
+}`) as unknown as TypedDocumentString<EventTypesQuery, EventTypesQueryVariables>;
+export const PutRuleDocument = new TypedDocumentString(`
+    mutation PutRule($input: PutRuleInput!) {
+  putRule(input: $input) {
+    ...RuleFields
+  }
+}
+    fragment RuleFields on Rule {
+  pattern
+  limit
+  history
+  code
+  builtIn
+  segments
+  createdAt
+  updatedAt
+}`) as unknown as TypedDocumentString<PutRuleMutation, PutRuleMutationVariables>;
+export const DeleteRuleDocument = new TypedDocumentString(`
+    mutation DeleteRule($input: DeleteRuleInput!) {
+  deleteRule(input: $input)
+}
+    `) as unknown as TypedDocumentString<DeleteRuleMutation, DeleteRuleMutationVariables>;
+export const CreateEventTypeDocument = new TypedDocumentString(`
+    mutation CreateEventType($input: CreateEventTypeInput!) {
+  createEventType(input: $input) {
+    ...EventTypeFields
+  }
+}
+    fragment EventTypeFields on EventType {
+  name
+  code
+  builtIn
+  createdAt
+  transactions
+}`) as unknown as TypedDocumentString<CreateEventTypeMutation, CreateEventTypeMutationVariables>;

@@ -24,6 +24,14 @@ type Documents = {
     "\n  query Search($name: String!, $q: String!) {\n    ledger(name: $name) {\n      search(q: $q) {\n        query\n        accounts {\n          address\n          assets\n        }\n        transactions {\n          id\n          reference\n          committedAt\n        }\n        holds {\n          id\n          status\n        }\n        requests {\n          key\n          operation\n          status\n        }\n      }\n    }\n  }\n": typeof types.SearchDocument,
     "\n  mutation CreateLedger($input: CreateLedgerInput!) {\n    createLedger(input: $input) {\n      ...LedgerFields\n    }\n  }\n": typeof types.CreateLedgerDocument,
     "\n  mutation ReplaceLedgerMetadata($input: ReplaceLedgerMetadataInput!) {\n    replaceLedgerMetadata(input: $input) {\n      ...LedgerFields\n    }\n  }\n": typeof types.ReplaceLedgerMetadataDocument,
+    "\n  fragment RuleFields on Rule {\n    pattern\n    limit\n    history\n    code\n    builtIn\n    segments\n    createdAt\n    updatedAt\n  }\n": typeof types.RuleFieldsFragmentDoc,
+    "\n  fragment EventTypeFields on EventType {\n    name\n    code\n    builtIn\n    createdAt\n    transactions\n  }\n": typeof types.EventTypeFieldsFragmentDoc,
+    "\n  query Rules($name: String!) {\n    ledger(name: $name) {\n      rules {\n        ...RuleFields\n      }\n    }\n  }\n": typeof types.RulesDocument,
+    "\n  query RuleMatch($name: String!, $address: String!) {\n    ledger(name: $name) {\n      ruleMatch(address: $address) {\n        address\n        rule {\n          ...RuleFields\n        }\n        candidates {\n          matches\n          rule {\n            ...RuleFields\n          }\n        }\n        existing\n      }\n    }\n  }\n": typeof types.RuleMatchDocument,
+    "\n  query EventTypes($name: String!) {\n    ledger(name: $name) {\n      eventTypes {\n        ...EventTypeFields\n      }\n    }\n  }\n": typeof types.EventTypesDocument,
+    "\n  mutation PutRule($input: PutRuleInput!) {\n    putRule(input: $input) {\n      ...RuleFields\n    }\n  }\n": typeof types.PutRuleDocument,
+    "\n  mutation DeleteRule($input: DeleteRuleInput!) {\n    deleteRule(input: $input)\n  }\n": typeof types.DeleteRuleDocument,
+    "\n  mutation CreateEventType($input: CreateEventTypeInput!) {\n    createEventType(input: $input) {\n      ...EventTypeFields\n    }\n  }\n": typeof types.CreateEventTypeDocument,
 };
 const documents: Documents = {
     "\n  fragment LedgerFields on Ledger {\n    name\n    metadata\n    createdAt\n    assetCodes\n    accountCount\n  }\n": types.LedgerFieldsFragmentDoc,
@@ -35,6 +43,14 @@ const documents: Documents = {
     "\n  query Search($name: String!, $q: String!) {\n    ledger(name: $name) {\n      search(q: $q) {\n        query\n        accounts {\n          address\n          assets\n        }\n        transactions {\n          id\n          reference\n          committedAt\n        }\n        holds {\n          id\n          status\n        }\n        requests {\n          key\n          operation\n          status\n        }\n      }\n    }\n  }\n": types.SearchDocument,
     "\n  mutation CreateLedger($input: CreateLedgerInput!) {\n    createLedger(input: $input) {\n      ...LedgerFields\n    }\n  }\n": types.CreateLedgerDocument,
     "\n  mutation ReplaceLedgerMetadata($input: ReplaceLedgerMetadataInput!) {\n    replaceLedgerMetadata(input: $input) {\n      ...LedgerFields\n    }\n  }\n": types.ReplaceLedgerMetadataDocument,
+    "\n  fragment RuleFields on Rule {\n    pattern\n    limit\n    history\n    code\n    builtIn\n    segments\n    createdAt\n    updatedAt\n  }\n": types.RuleFieldsFragmentDoc,
+    "\n  fragment EventTypeFields on EventType {\n    name\n    code\n    builtIn\n    createdAt\n    transactions\n  }\n": types.EventTypeFieldsFragmentDoc,
+    "\n  query Rules($name: String!) {\n    ledger(name: $name) {\n      rules {\n        ...RuleFields\n      }\n    }\n  }\n": types.RulesDocument,
+    "\n  query RuleMatch($name: String!, $address: String!) {\n    ledger(name: $name) {\n      ruleMatch(address: $address) {\n        address\n        rule {\n          ...RuleFields\n        }\n        candidates {\n          matches\n          rule {\n            ...RuleFields\n          }\n        }\n        existing\n      }\n    }\n  }\n": types.RuleMatchDocument,
+    "\n  query EventTypes($name: String!) {\n    ledger(name: $name) {\n      eventTypes {\n        ...EventTypeFields\n      }\n    }\n  }\n": types.EventTypesDocument,
+    "\n  mutation PutRule($input: PutRuleInput!) {\n    putRule(input: $input) {\n      ...RuleFields\n    }\n  }\n": types.PutRuleDocument,
+    "\n  mutation DeleteRule($input: DeleteRuleInput!) {\n    deleteRule(input: $input)\n  }\n": types.DeleteRuleDocument,
+    "\n  mutation CreateEventType($input: CreateEventTypeInput!) {\n    createEventType(input: $input) {\n      ...EventTypeFields\n    }\n  }\n": types.CreateEventTypeDocument,
 };
 
 /**
@@ -73,6 +89,38 @@ export function graphql(source: "\n  mutation CreateLedger($input: CreateLedgerI
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  mutation ReplaceLedgerMetadata($input: ReplaceLedgerMetadataInput!) {\n    replaceLedgerMetadata(input: $input) {\n      ...LedgerFields\n    }\n  }\n"): typeof import('./graphql').ReplaceLedgerMetadataDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  fragment RuleFields on Rule {\n    pattern\n    limit\n    history\n    code\n    builtIn\n    segments\n    createdAt\n    updatedAt\n  }\n"): typeof import('./graphql').RuleFieldsFragmentDoc;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  fragment EventTypeFields on EventType {\n    name\n    code\n    builtIn\n    createdAt\n    transactions\n  }\n"): typeof import('./graphql').EventTypeFieldsFragmentDoc;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Rules($name: String!) {\n    ledger(name: $name) {\n      rules {\n        ...RuleFields\n      }\n    }\n  }\n"): typeof import('./graphql').RulesDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query RuleMatch($name: String!, $address: String!) {\n    ledger(name: $name) {\n      ruleMatch(address: $address) {\n        address\n        rule {\n          ...RuleFields\n        }\n        candidates {\n          matches\n          rule {\n            ...RuleFields\n          }\n        }\n        existing\n      }\n    }\n  }\n"): typeof import('./graphql').RuleMatchDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query EventTypes($name: String!) {\n    ledger(name: $name) {\n      eventTypes {\n        ...EventTypeFields\n      }\n    }\n  }\n"): typeof import('./graphql').EventTypesDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation PutRule($input: PutRuleInput!) {\n    putRule(input: $input) {\n      ...RuleFields\n    }\n  }\n"): typeof import('./graphql').PutRuleDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation DeleteRule($input: DeleteRuleInput!) {\n    deleteRule(input: $input)\n  }\n"): typeof import('./graphql').DeleteRuleDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation CreateEventType($input: CreateEventTypeInput!) {\n    createEventType(input: $input) {\n      ...EventTypeFields\n    }\n  }\n"): typeof import('./graphql').CreateEventTypeDocument;
 
 
 export function graphql(source: string) {
