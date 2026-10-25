@@ -41,10 +41,18 @@ export function toProblem(error: unknown): ProblemView {
     }
     return view
   }
-  if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'TypeError')) {
+  if (isUnreachable(error)) {
     return { detail: 'The API did not answer. Check that it is running and reachable.', extensions: {}, title: 'API unreachable' }
   }
   return { detail: error instanceof Error ? error.message : String(error), extensions: {}, title: 'Something went wrong' }
+}
+
+/**
+ * Whether the API never answered: fetch rejects with a TypeError when the network fails, and with
+ * a TimeoutError DOMException when the client's timeout ends an attempt.
+ */
+function isUnreachable(error: unknown): boolean {
+  return error instanceof TypeError || (error instanceof DOMException && error.name === 'TimeoutError')
 }
 
 /** The problem type of an error, when the API sent one: "/problems/exceeds-credits". */
