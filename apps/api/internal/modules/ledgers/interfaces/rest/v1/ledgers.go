@@ -11,17 +11,6 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
 
-// LedgerList is a page of ledgers.
-type LedgerList struct {
-	Data []dto.Ledger `json:"data"`
-	Next *string      `json:"next,omitempty" doc:"The cursor of the next page; absent on the last page."`
-}
-
-// CreateLedgerRequest is the body of POST /v1/ledgers/{ledger}.
-type CreateLedgerRequest struct {
-	Metadata scalar.Metadata `json:"metadata,omitempty"`
-}
-
 func registerLedgers(api huma.API, h *handlers) {
 	tags := []string{"ledgers"}
 	restapi.Register(api, huma.Operation{
@@ -57,16 +46,16 @@ func registerLedgers(api huma.API, h *handlers) {
 	}, h.replaceLedgerMetadata)
 }
 
-func (h *handlers) listLedgers(ctx context.Context, in *struct{ restapi.Page }) (*restapi.Body[LedgerList], error) {
+func (h *handlers) listLedgers(ctx context.Context, in *struct{ restapi.Page }) (*restapi.Body[dto.LedgerList], error) {
 	views, next, err := h.LedgerQueries.List(ctx, in.Cursor, in.Limit)
 	if err != nil {
 		return nil, err
 	}
-	out := LedgerList{Data: make([]dto.Ledger, len(views)), Next: restapi.Optional(next)}
+	out := dto.LedgerList{Data: make([]dto.Ledger, len(views)), Next: restapi.Optional(next)}
 	for i, v := range views {
 		out.Data[i] = dto.LedgerFrom(v)
 	}
-	return &restapi.Body[LedgerList]{Body: out}, nil
+	return &restapi.Body[dto.LedgerList]{Body: out}, nil
 }
 
 func (h *handlers) getLedger(ctx context.Context, in *restapi.LedgerPath) (*restapi.Body[dto.Ledger], error) {
@@ -79,7 +68,7 @@ func (h *handlers) getLedger(ctx context.Context, in *restapi.LedgerPath) (*rest
 
 func (h *handlers) createLedger(ctx context.Context, in *struct {
 	restapi.LedgerPath
-	Body CreateLedgerRequest
+	Body dto.CreateLedgerRequest
 },
 ) (*restapi.Body[dto.Ledger], error) {
 	v, err := h.LedgerCommands.Create(ctx, string(in.Ledger), in.Body.Metadata.Map())

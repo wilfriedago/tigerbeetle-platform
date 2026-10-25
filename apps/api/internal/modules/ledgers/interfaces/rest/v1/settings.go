@@ -12,29 +12,6 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
 
-// RuleList lists the rules of a ledger, most specific first.
-type RuleList struct {
-	Data []dto.Rule `json:"data"`
-}
-
-// PutRuleRequest is the body of PUT .../rules/{pattern}.
-type PutRuleRequest struct {
-	Limit   scalar.BalanceLimit `json:"limit"`
-	History *bool               `json:"history,omitempty" default:"false"`
-	Code    int                 `json:"code" minimum:"1" maximum:"65535"`
-}
-
-// EventTypeList lists the event types of a ledger.
-type EventTypeList struct {
-	Data []dto.EventType `json:"data"`
-}
-
-// CreateEventTypeRequest is the body of POST .../event-types.
-type CreateEventTypeRequest struct {
-	Name string `json:"name" maxLength:"63"`
-	Code *int   `json:"code,omitempty" minimum:"2" maximum:"65535"`
-}
-
 // RulePath is the rule named in a path by its pattern.
 type RulePath struct {
 	Pattern string `path:"pattern"`
@@ -102,16 +79,16 @@ func registerSettings(api huma.API, h *handlers) {
 	}, h.createEventType)
 }
 
-func (h *handlers) listRules(ctx context.Context, in *restapi.LedgerPath) (*restapi.Body[RuleList], error) {
+func (h *handlers) listRules(ctx context.Context, in *restapi.LedgerPath) (*restapi.Body[dto.RuleList], error) {
 	rules, err := h.SettingsQueries.Rules(ctx, string(in.Ledger))
 	if err != nil {
 		return nil, err
 	}
-	out := RuleList{Data: make([]dto.Rule, len(rules))}
+	out := dto.RuleList{Data: make([]dto.Rule, len(rules))}
 	for i, r := range rules {
 		out.Data[i] = dto.RuleFrom(r)
 	}
-	return &restapi.Body[RuleList]{Body: out}, nil
+	return &restapi.Body[dto.RuleList]{Body: out}, nil
 }
 
 func (h *handlers) matchRule(ctx context.Context, in *struct {
@@ -129,7 +106,7 @@ func (h *handlers) matchRule(ctx context.Context, in *struct {
 func (h *handlers) putRule(ctx context.Context, in *struct {
 	restapi.LedgerPath
 	RulePath
-	Body PutRuleRequest
+	Body dto.PutRuleRequest
 },
 ) (*restapi.Body[dto.Rule], error) {
 	if in.Body.Code < 1 || in.Body.Code > 65535 {
@@ -159,21 +136,21 @@ func (h *handlers) deleteRule(ctx context.Context, in *struct {
 	return &struct{}{}, nil
 }
 
-func (h *handlers) listEventTypes(ctx context.Context, in *restapi.LedgerPath) (*restapi.Body[EventTypeList], error) {
+func (h *handlers) listEventTypes(ctx context.Context, in *restapi.LedgerPath) (*restapi.Body[dto.EventTypeList], error) {
 	types, err := h.SettingsQueries.EventTypes(ctx, string(in.Ledger))
 	if err != nil {
 		return nil, err
 	}
-	out := EventTypeList{Data: make([]dto.EventType, len(types))}
+	out := dto.EventTypeList{Data: make([]dto.EventType, len(types))}
 	for i, t := range types {
 		out.Data[i] = dto.EventTypeFrom(t)
 	}
-	return &restapi.Body[EventTypeList]{Body: out}, nil
+	return &restapi.Body[dto.EventTypeList]{Body: out}, nil
 }
 
 func (h *handlers) createEventType(ctx context.Context, in *struct {
 	restapi.LedgerPath
-	Body CreateEventTypeRequest
+	Body dto.CreateEventTypeRequest
 },
 ) (*restapi.Body[dto.EventType], error) {
 	code := 0

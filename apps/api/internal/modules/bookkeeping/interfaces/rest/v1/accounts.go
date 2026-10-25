@@ -12,18 +12,6 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
 
-// AccountList is a page of accounts.
-type AccountList struct {
-	Data []dto.AccountSummary `json:"data"`
-	Next *string              `json:"next,omitempty"`
-}
-
-// SegmentList lists the child segments of a prefix.
-type SegmentList struct {
-	Prefix *string       `json:"prefix,omitempty"`
-	Data   []dto.Segment `json:"data"`
-}
-
 func registerAccounts(api huma.API, h *handlers) {
 	tags := []string{"accounts"}
 	restapi.Register(api, huma.Operation{
@@ -90,18 +78,18 @@ func (h *handlers) listAccounts(ctx context.Context, in *struct {
 	Asset  scalar.Asset         `query:"asset" doc:"Only accounts holding this asset."`
 	restapi.Page
 },
-) (*restapi.Body[AccountList], error) {
+) (*restapi.Body[dto.AccountList], error) {
 	views, next, err := h.AccountQueries.List(ctx, application.ListAccountsInput{
 		Ledger: string(in.Ledger), Prefix: string(in.Prefix), Search: in.Search, Asset: string(in.Asset), Cursor: in.Cursor, Limit: in.Limit,
 	})
 	if err != nil {
 		return nil, err
 	}
-	out := AccountList{Data: make([]dto.AccountSummary, len(views)), Next: restapi.Optional(next)}
+	out := dto.AccountList{Data: make([]dto.AccountSummary, len(views)), Next: restapi.Optional(next)}
 	for i := range views {
 		out.Data[i] = dto.AccountSummaryFrom(&views[i])
 	}
-	return &restapi.Body[AccountList]{Body: out}, nil
+	return &restapi.Body[dto.AccountList]{Body: out}, nil
 }
 
 func (h *handlers) getAccount(ctx context.Context, in *struct {
@@ -159,14 +147,14 @@ func (h *handlers) listSegments(ctx context.Context, in *struct {
 	restapi.LedgerPath
 	Prefix scalar.AddressPrefix `query:"prefix"`
 },
-) (*restapi.Body[SegmentList], error) {
+) (*restapi.Body[dto.SegmentList], error) {
 	prefix, rows, err := h.AccountQueries.Segments(ctx, string(in.Ledger), string(in.Prefix))
 	if err != nil {
 		return nil, err
 	}
-	out := SegmentList{Prefix: restapi.Optional(prefix), Data: make([]dto.Segment, len(rows))}
+	out := dto.SegmentList{Prefix: restapi.Optional(prefix), Data: make([]dto.Segment, len(rows))}
 	for i := range rows {
 		out.Data[i] = dto.SegmentFrom(&rows[i])
 	}
-	return &restapi.Body[SegmentList]{Body: out}, nil
+	return &restapi.Body[dto.SegmentList]{Body: out}, nil
 }

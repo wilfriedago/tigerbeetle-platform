@@ -15,30 +15,6 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
 
-// HoldList is a page of holds with the count per status.
-type HoldList struct {
-	Data   []dto.Hold    `json:"data"`
-	Next   *string       `json:"next,omitempty"`
-	Counts dto.HoldStats `json:"counts"`
-}
-
-// CreateHoldRequest is the body of POST .../holds.
-type CreateHoldRequest struct {
-	Source         scalar.Address  `json:"source"`
-	Destination    scalar.Address  `json:"destination"`
-	Asset          scalar.Asset    `json:"asset"`
-	Amount         scalar.Amount   `json:"amount"`
-	TimeoutSeconds *int64          `json:"timeoutSeconds,omitempty" minimum:"0" maximum:"4294967295" doc:"Releases the hold after this many seconds on the cluster clock; 0 or absent means never."`
-	Reference      *string         `json:"reference,omitempty" maxLength:"255"`
-	EventType      *string         `json:"eventType,omitempty" maxLength:"63"`
-	Metadata       scalar.Metadata `json:"metadata,omitempty"`
-}
-
-// CaptureHoldRequest is the optional body of POST .../capture.
-type CaptureHoldRequest struct {
-	Amount *scalar.Amount `json:"amount,omitempty" doc:"The amount to capture; the full hold when absent. Must not be zero."`
-}
-
 func registerHolds(api huma.API, h *handlers) {
 	tags := []string{"holds"}
 	restapi.Register(api, huma.Operation{
@@ -91,24 +67,24 @@ func (h *handlers) listHolds(ctx context.Context, in *struct {
 	Address scalar.AddressPrefix `query:"address" doc:"Only holds from or to an account at or below this prefix."`
 	restapi.Page
 },
-) (*restapi.Body[HoldList], error) {
+) (*restapi.Body[dto.HoldList], error) {
 	views, next, counts, err := h.HoldQueries.List(ctx, application.ListHoldsInput{
 		Ledger: string(in.Ledger), Status: string(in.Status), Address: string(in.Address), Cursor: in.Cursor, Limit: in.Limit,
 	})
 	if err != nil {
 		return nil, err
 	}
-	out := HoldList{Data: make([]dto.Hold, len(views)), Next: restapi.Optional(next), Counts: dto.HoldStatsFrom(counts, nil)}
+	out := dto.HoldList{Data: make([]dto.Hold, len(views)), Next: restapi.Optional(next), Counts: dto.HoldStatsFrom(counts, nil)}
 	for i := range views {
 		out.Data[i] = dto.HoldFrom(&views[i])
 	}
-	return &restapi.Body[HoldList]{Body: out}, nil
+	return &restapi.Body[dto.HoldList]{Body: out}, nil
 }
 
 func (h *handlers) createHold(ctx context.Context, in *struct {
 	restapi.LedgerPath
 	WriteKey
-	Body CreateHoldRequest
+	Body dto.CreateHoldRequest
 },
 ) (*restapi.Body[dto.Hold], error) {
 	if err := requireIdempotencyKey(in.IdempotencyKey); err != nil {
@@ -155,7 +131,7 @@ func (h *handlers) captureHold(ctx context.Context, in *struct {
 	restapi.LedgerPath
 	ResourcePath
 	WriteKey
-	Body *CaptureHoldRequest
+	Body *dto.CaptureHoldRequest
 },
 ) (*restapi.Body[dto.Hold], error) {
 	if err := requireIdempotencyKey(in.IdempotencyKey); err != nil {

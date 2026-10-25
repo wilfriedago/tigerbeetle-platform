@@ -10,11 +10,6 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 )
 
-// AssetList lists the assets of a ledger.
-type AssetList struct {
-	Data []dto.AssetSummary `json:"data"`
-}
-
 // registerOverview adds the bookkeeping operations under the tag ledgers: what a ledger holds.
 func registerOverview(api huma.API, h *handlers) {
 	tags := []string{"ledgers"}
@@ -52,12 +47,12 @@ func (h *handlers) getLedgerStats(ctx context.Context, in *restapi.LedgerPath) (
 	return &restapi.Body[dto.LedgerStats]{Body: dto.LedgerStatsFrom(&st)}, nil
 }
 
-func (h *handlers) listAssets(ctx context.Context, in *restapi.LedgerPath) (*restapi.Body[AssetList], error) {
+func (h *handlers) listAssets(ctx context.Context, in *restapi.LedgerPath) (*restapi.Body[dto.AssetList], error) {
 	assets, err := h.AccountQueries.Assets(ctx, string(in.Ledger))
 	if err != nil {
 		return nil, err
 	}
-	return &restapi.Body[AssetList]{Body: AssetList{Data: dto.AssetSummariesFrom(assets)}}, nil
+	return &restapi.Body[dto.AssetList]{Body: dto.AssetList{Data: dto.AssetSummariesFrom(assets)}}, nil
 }
 
 func (h *handlers) search(ctx context.Context, in *struct {

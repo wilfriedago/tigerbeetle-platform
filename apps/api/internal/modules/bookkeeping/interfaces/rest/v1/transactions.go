@@ -14,33 +14,6 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
 
-// TransactionList is a page of transactions.
-type TransactionList struct {
-	Data []dto.Transaction `json:"data"`
-	Next *string           `json:"next,omitempty"`
-}
-
-// CreateTransactionRequest is the body of POST .../transactions.
-type CreateTransactionRequest struct {
-	Postings     []dto.Posting   `json:"postings" minItems:"1" maxItems:"64"`
-	Reference    *string         `json:"reference,omitempty" maxLength:"255"`
-	EventType    *string         `json:"eventType,omitempty" maxLength:"63" doc:"An event type name of the ledger; the default event type when absent."`
-	BusinessTime *time.Time      `json:"businessTime,omitempty"`
-	Metadata     scalar.Metadata `json:"metadata,omitempty"`
-}
-
-// RevertTransactionRequest is the optional body of POST .../revert.
-type RevertTransactionRequest struct {
-	Reference *string         `json:"reference,omitempty" maxLength:"255"`
-	Metadata  scalar.Metadata `json:"metadata,omitempty"`
-}
-
-// WriteRequestList is a page of write requests.
-type WriteRequestList struct {
-	Data []dto.WriteRequest `json:"data"`
-	Next *string            `json:"next,omitempty"`
-}
-
 func registerTransactions(api huma.API, h *handlers) {
 	tags := []string{"transactions"}
 	restapi.Register(api, huma.Operation{
@@ -118,7 +91,7 @@ func (h *handlers) listTransactions(ctx context.Context, in *struct {
 	Before    time.Time            `query:"before" doc:"Committed before this time."`
 	restapi.Page
 },
-) (*restapi.Body[TransactionList], error) {
+) (*restapi.Body[dto.TransactionList], error) {
 	views, next, err := h.TransactionQueries.List(ctx, application.ListTransactionsInput{
 		Ledger:    string(in.Ledger),
 		Address:   string(in.Address),
@@ -133,17 +106,17 @@ func (h *handlers) listTransactions(ctx context.Context, in *struct {
 	if err != nil {
 		return nil, err
 	}
-	out := TransactionList{Data: make([]dto.Transaction, len(views)), Next: restapi.Optional(next)}
+	out := dto.TransactionList{Data: make([]dto.Transaction, len(views)), Next: restapi.Optional(next)}
 	for i := range views {
 		out.Data[i] = dto.TransactionFrom(&views[i])
 	}
-	return &restapi.Body[TransactionList]{Body: out}, nil
+	return &restapi.Body[dto.TransactionList]{Body: out}, nil
 }
 
 func (h *handlers) createTransaction(ctx context.Context, in *struct {
 	restapi.LedgerPath
 	WriteKey
-	Body CreateTransactionRequest
+	Body dto.CreateTransactionRequest
 },
 ) (*restapi.Body[dto.Transaction], error) {
 	if err := requireIdempotencyKey(in.IdempotencyKey); err != nil {
@@ -198,7 +171,7 @@ func (h *handlers) revertTransaction(ctx context.Context, in *struct {
 	restapi.LedgerPath
 	ResourcePath
 	WriteKey
-	Body *RevertTransactionRequest
+	Body *dto.RevertTransactionRequest
 },
 ) (*restapi.Body[dto.Transaction], error) {
 	if err := requireIdempotencyKey(in.IdempotencyKey); err != nil {
@@ -223,18 +196,18 @@ func (h *handlers) listWriteRequests(ctx context.Context, in *struct {
 	Search    string               `query:"search" maxLength:"255" doc:"An Idempotency-Key, or the start of one, or a request ID."`
 	restapi.Page
 },
-) (*restapi.Body[WriteRequestList], error) {
+) (*restapi.Body[dto.WriteRequestList], error) {
 	rows, next, err := h.RequestQueries.List(ctx, application.ListRequestsInput{
 		Ledger: string(in.Ledger), Status: string(in.Status), Operation: string(in.Operation), Search: in.Search, Cursor: in.Cursor, Limit: in.Limit,
 	})
 	if err != nil {
 		return nil, err
 	}
-	out := WriteRequestList{Data: make([]dto.WriteRequest, len(rows)), Next: restapi.Optional(next)}
+	out := dto.WriteRequestList{Data: make([]dto.WriteRequest, len(rows)), Next: restapi.Optional(next)}
 	for i := range rows {
 		out.Data[i] = dto.WriteRequestFrom(&rows[i])
 	}
-	return &restapi.Body[WriteRequestList]{Body: out}, nil
+	return &restapi.Body[dto.WriteRequestList]{Body: out}, nil
 }
 
 func (h *handlers) getWriteRequest(ctx context.Context, in *struct {
