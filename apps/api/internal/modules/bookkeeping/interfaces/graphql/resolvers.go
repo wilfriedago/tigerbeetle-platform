@@ -3,7 +3,6 @@ package graphql
 import (
 	"context"
 	"errors"
-	"strconv"
 	"time"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
@@ -11,7 +10,6 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/dto"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/graphqlschema"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
@@ -79,7 +77,7 @@ func (m *Mutations) ReplaceTransactionMetadata(ctx context.Context, input Replac
 
 // CreateHold resolves Mutation.createHold.
 func (m *Mutations) CreateHold(ctx context.Context, input CreateHoldInput) (*dto.Hold, error) {
-	posting, err := postingIn(dto.Posting{Source: input.Source, Destination: input.Destination, Asset: input.Asset, Amount: input.Amount})
+	posting, err := dto.Posting{Source: input.Source, Destination: input.Destination, Asset: input.Asset, Amount: input.Amount}.Parse()
 	if err != nil {
 		return nil, err
 	}
@@ -360,41 +358,13 @@ func notFound(err error) bool {
 	return errors.Is(err, ledger.ErrNotFound)
 }
 
-// postingsIn parses the postings of a transaction. A posting that does not parse is an invalid
-// request that names the posting, as on REST.
+// postingsIn parses the postings of a transaction input.
 func postingsIn(in []PostingInput) ([]domain.Posting, error) {
-	out := make([]domain.Posting, len(in))
+	postings := make([]dto.Posting, len(in))
 	for i, p := range in {
-		posting, err := postingIn(dto.Posting(p))
-		if err != nil {
-			return nil, &ledger.Problem{
-				Kind: ledger.ErrInvalid, Reason: "invalid-request", Posting: i,
-				Detail: "posting " + strconv.Itoa(i+1) + ": " + problem.From(err).Detail,
-			}
-		}
-		out[i] = posting
+		postings[i] = dto.Posting(p)
 	}
-	return out, nil
-}
-
-func postingIn(p dto.Posting) (domain.Posting, error) {
-	src, err := ledger.ParseAddress(string(p.Source))
-	if err != nil {
-		return domain.Posting{}, err
-	}
-	dst, err := ledger.ParseAddress(string(p.Destination))
-	if err != nil {
-		return domain.Posting{}, err
-	}
-	a, err := ledger.ParseAsset(string(p.Asset))
-	if err != nil {
-		return domain.Posting{}, err
-	}
-	amt, err := ledger.ParseAmount(string(p.Amount))
-	if err != nil {
-		return domain.Posting{}, err
-	}
-	return domain.Posting{Source: src, Destination: dst, Asset: a, Amount: amt}, nil
+	return dto.ParsePostings(postings)
 }
 
 func metadataIn(m *scalar.Metadata) map[string]string {

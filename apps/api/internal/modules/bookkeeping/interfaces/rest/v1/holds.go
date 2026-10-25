@@ -115,7 +115,7 @@ func (h *handlers) createHold(ctx context.Context, in *struct {
 		return nil, err
 	}
 	b := &in.Body
-	posting, err := postingIn(b.Source, b.Destination, b.Asset, b.Amount)
+	posting, err := dto.Posting{Source: b.Source, Destination: b.Destination, Asset: b.Asset, Amount: b.Amount}.Parse()
 	if err != nil {
 		return nil, err
 	}

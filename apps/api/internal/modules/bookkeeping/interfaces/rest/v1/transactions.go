@@ -3,16 +3,12 @@ package v1
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/dto"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
@@ -153,7 +149,7 @@ func (h *handlers) createTransaction(ctx context.Context, in *struct {
 	if err := requireIdempotencyKey(in.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	postings, err := postingsIn(in.Body.Postings)
+	postings, err := dto.ParsePostings(in.Body.Postings)
 	if err != nil {
 		return nil, err
 	}
@@ -251,43 +247,6 @@ func (h *handlers) getWriteRequest(ctx context.Context, in *struct {
 		return nil, err
 	}
 	return &restapi.Body[dto.WriteRequestDetail]{Body: dto.WriteRequestDetailFrom(&rec)}, nil
-}
-
-// postingsIn parses the postings of a request. A posting that does not parse is an invalid request
-// that names the posting.
-func postingsIn(in []dto.Posting) ([]domain.Posting, error) {
-	out := make([]domain.Posting, len(in))
-	for i, p := range in {
-		posting, err := postingIn(p.Source, p.Destination, p.Asset, p.Amount)
-		if err != nil {
-			return nil, &ledger.Problem{
-				Kind: ledger.ErrInvalid, Reason: "invalid-request", Posting: i,
-				Detail: "posting " + strconv.Itoa(i+1) + ": " + problem.From(err).Detail,
-			}
-		}
-		out[i] = posting
-	}
-	return out, nil
-}
-
-func postingIn(source, destination scalar.Address, asset scalar.Asset, amount scalar.Amount) (domain.Posting, error) {
-	src, err := ledger.ParseAddress(string(source))
-	if err != nil {
-		return domain.Posting{}, err
-	}
-	dst, err := ledger.ParseAddress(string(destination))
-	if err != nil {
-		return domain.Posting{}, err
-	}
-	a, err := ledger.ParseAsset(string(asset))
-	if err != nil {
-		return domain.Posting{}, err
-	}
-	amt, err := ledger.ParseAmount(string(amount))
-	if err != nil {
-		return domain.Posting{}, err
-	}
-	return domain.Posting{Source: src, Destination: dst, Asset: a, Amount: amt}, nil
 }
 
 // optionalTime returns nil for the zero time: an absent query parameter.
