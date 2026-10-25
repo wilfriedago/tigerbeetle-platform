@@ -1,5 +1,3 @@
-
-
 import { cn } from '~/lib/utils'
 
 // 15 Data display, table parts: tables are the main surface. Header cells are 12 px medium on the
