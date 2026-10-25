@@ -27,6 +27,11 @@
       "cache": false,
       "persistent": true,
       "env": ["API_PROXY_TARGET", "VITE_*"]
+    },
+    "console#generate": {
+      "dependsOn": ["^generate"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/graphql/schema.graphql"],
+      "outputs": []
     }
   }
 }
