@@ -1,0 +1,7 @@
+# Go tools are installed in $(go env GOPATH)/bin by scripts/install-tools.sh, which is not always
+# on PATH. Skipped when Go is absent; the Go tasks only run when .go files are staged.
+if command -v go >/dev/null 2>&1; then
+  PATH="$(go env GOPATH)/bin:$PATH"
+  export PATH
+fi
+vp staged

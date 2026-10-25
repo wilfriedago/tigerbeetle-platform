@@ -18,7 +18,7 @@ coverage/
 
 # Editors, OS and local design references
 .DS_Store
-.design/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json

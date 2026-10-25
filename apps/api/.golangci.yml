@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
-version: "2"
+version: '2'
 
 run:
   timeout: 5m
@@ -32,7 +32,7 @@ linters:
         domain:
           list-mode: lax
           files:
-            - "**/internal/domain/**"
+            - '**/internal/domain/**'
           deny:
             - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal
               desc: domain must not import other internal packages
@@ -45,7 +45,7 @@ linters:
         app:
           list-mode: lax
           files:
-            - "**/internal/app/**"
+            - '**/internal/app/**'
           deny:
             - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters
               desc: app depends on ports, not adapters
@@ -58,7 +58,7 @@ linters:
         adapter-tigerbeetle:
           list-mode: lax
           files:
-            - "**/internal/adapters/tigerbeetle/**"
+            - '**/internal/adapters/tigerbeetle/**'
           deny:
             - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres
               desc: adapters never import each other
@@ -67,7 +67,7 @@ linters:
         adapter-postgres:
           list-mode: lax
           files:
-            - "**/internal/adapters/postgres/**"
+            - '**/internal/adapters/postgres/**'
           deny:
             - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle
               desc: adapters never import each other
@@ -76,7 +76,7 @@ linters:
         adapter-httpapi:
           list-mode: lax
           files:
-            - "**/internal/adapters/httpapi/**"
+            - '**/internal/adapters/httpapi/**'
           deny:
             - pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle
               desc: adapters never import each other

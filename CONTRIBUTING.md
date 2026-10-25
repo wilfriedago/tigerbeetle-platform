@@ -19,7 +19,7 @@ macOS note: the TigerBeetle Go client v0.17.10 is required to link on macOS 27; 
 ## Setup
 
 ```sh
-pnpm install          # workspace dependencies and the git hooks (lefthook)
+pnpm install          # workspace dependencies and the git hooks (vp config, ADR-0012)
 pnpm tools:install    # golangci-lint, sqlc, govulncheck at the pinned versions
 pnpm stack:up         # TigerBeetle, Postgres, API and console in Docker
 ```
@@ -31,15 +31,20 @@ All of them run through Turborepo and apply to every package that defines the ta
 | Command                                                                   | What it does                                                                                                                                          |
 | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm dev`                                                                | Dev servers: `go run ./cmd/api` and the Vite console. Needs the stack's TigerBeetle and Postgres (or your own) and the variables from `.env.example`. |
-| `pnpm build`                                                              | `go build` for the API, `vite build` for the console.                                                                                                 |
-| `pnpm lint`                                                               | golangci-lint for Go, Biome for TypeScript, Redocly for the spec.                                                                                     |
-| `pnpm format`                                                             | golangci-lint formatters (gofumpt, goimports) and Biome, writing changes.                                                                             |
+| `pnpm build`                                                              | `go build` for the API, `vp build` (Vite+) for the console.                                                                                           |
+| `pnpm lint`                                                               | golangci-lint for Go, `vp check` (Oxfmt, Oxlint, type-aware checks) for TypeScript, Redocly for the spec.                                             |
+| `pnpm format`                                                             | golangci-lint formatters (gofumpt, goimports) and `vp check --fix`, writing changes.                                                                  |
 | `pnpm typecheck`                                                          | `tsc --noEmit` for the console and the client.                                                                                                        |
 | `pnpm test`                                                               | Go unit tests with `-race`.                                                                                                                           |
 | `pnpm test:integration`                                                   | Go tests behind the `integration` build tag; starts real Postgres and TigerBeetle with testcontainers.                                                |
 | `pnpm generate`                                                           | Lints the spec, then regenerates the Go server (oapi-codegen), the SQL accessors (sqlc) and the TypeScript types (openapi-typescript).                |
 | `pnpm stack:up`, `pnpm stack:down`, `pnpm stack:logs`, `pnpm stack:reset` | Local stack lifecycle. `stack:reset` deletes the volumes.                                                                                             |
 | `pnpm versions:check`                                                     | Verifies the TigerBeetle client in go.mod matches the server image in the compose file.                                                               |
+
+The TypeScript toolchain is Vite+ (ADR-0011), pinned in `pnpm-workspace.yaml`. Run its CLI through
+pnpm (`pnpm exec vp check` at the root covers the whole repository, as CI does). `vp dev`,
+`vp build` and `vp test` are the built-in tools; `vp run <task>` would run a package script, but
+Turborepo stays the task runner, so prefer the `pnpm` commands above.
 
 Go-only shortcuts live in `apps/api/package.json` (`pnpm --filter api vulncheck`, for example),
 and plain `go test ./...` inside `apps/api` works as usual.
@@ -49,8 +54,9 @@ and plain `go test ./...` inside `apps/api` works as usual.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
   `feat(api): add ledger endpoints`, `fix(console): handle 503 from readiness`, `docs: ...`,
   `chore(deps): ...`. The `commit-msg` hook enforces it.
-- The `pre-commit` hook formats and lints staged files (Biome, golangci-lint) and lints the spec
-  when it changed. Fix what it reports rather than skipping it.
+- The `pre-commit` hook runs `vp staged` (the `staged` block in `vite.config.ts`): `vp check --fix`
+  on web files, `golangci-lint fmt` and lint on Go files, Redocly when the spec changed. Fix what it
+  reports rather than skipping it. `VP_GIT_HOOKS=0` skips hooks for one command.
 - Keep commits small; each one should leave `pnpm lint`, `pnpm test` and `pnpm build` green.
 - Generated code is committed. CI fails when `pnpm generate` produces a diff.
 - No emojis anywhere: code, comments, commit messages, documentation.

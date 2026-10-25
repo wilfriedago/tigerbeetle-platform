@@ -5,7 +5,7 @@ Date: 2026-10-24
 
 ## Context and Problem Statement
 
-The platform exposes a Formance-style ledger API in front of TigerBeetle. TigerBeetle is a
+The platform exposes a ledger API in front of TigerBeetle (ADR-0004). TigerBeetle is a
 purpose-built database for double-entry accounting: it stores accounts with debit and credit
 totals and transfers between them, and it enforces balance limits inside the cluster. It is also
 deliberately narrow. It has no string keys, no secondary indexes, no prefix queries and no free-form
@@ -44,6 +44,7 @@ throughput. Option 2 is the tempting middle ground and is rejected below.
 Option 1. The two stores have disjoint responsibilities.
 
 TigerBeetle holds every fact about money:
+
 - accounts, one per (address, asset) pair, with their debit and credit totals (posted and
   pending) and their immutable flags;
 - transfers, including pending transfers for holds, each with its ledger number, code and
@@ -52,6 +53,7 @@ TigerBeetle holds every fact about money:
   cluster at write time.
 
 Postgres holds context, and only context:
+
 - ledger names and metadata (`apps/api/migrations/00001_create_ledgers.sql` is the first table);
 - the (ledger, asset) to TigerBeetle ledger number allocation;
 - account rows: address, asset, the TigerBeetle account id, metadata, flags applied at creation;
@@ -117,8 +119,8 @@ is enforced in one place and covered by `apps/api/internal/adapters/tigerbeetle/
 - Bad: most reads join both systems. Listing accounts means resolving addresses and metadata in
   Postgres, then calling `lookup_accounts` (up to 8189 ids per request) for the balances. Two
   round trips, two failure modes, two readiness probes (`apps/api/internal/app/status.go`).
-- Bad: no balance filters or sorts in SQL. Formance's `balance` filter and ordering by balance
-  are not offered; the API sorts by id or address and clients filter balances themselves.
+- Bad: no balance filters or sorts in SQL. Filtering or ordering list endpoints by balance is
+  not offered; the API sorts by id or address and clients filter balances themselves.
 - Bad: aggregated balances by address prefix (for example everything under `users:`) are
   computed by resolving the prefix to account ids in Postgres and summing chunks of
   `lookup_accounts` results. Each chunk is consistent, but the sum is not one snapshot when
@@ -131,7 +133,7 @@ is enforced in one place and covered by `apps/api/internal/adapters/tigerbeetle/
 
 ## More Information
 
-- [ADR-0004](0004-formance-style-api-surface.md) covers the JSON side of decision 11 (amounts
+- [ADR-0004](0004-ledger-api-surface.md) covers the JSON side of decision 11 (amounts
   as strings, ids as hex).
 - [ADR-0005](0005-assets-on-postings-ledger-per-ledger-asset.md) covers the (ledger, asset) to
   ledger number allocation that Postgres owns.

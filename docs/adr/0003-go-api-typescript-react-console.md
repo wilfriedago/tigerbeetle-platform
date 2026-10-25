@@ -29,12 +29,14 @@ structure do we commit to, and what does the TigerBeetle client force on the bui
 ## Considered Options
 
 API language and style:
+
 1. Go, standard library only for HTTP and logging, generated code for the contract.
 2. Go with a web framework (chi, echo, gin) and a dependency injection library.
 3. Node.js with the TigerBeetle Node client, sharing TypeScript with the console.
 4. Rust with the TigerBeetle Rust client.
 
 Console stack:
+
 1. React 19 with Vite, a hand-written ky client over generated OpenAPI types, Biome.
 2. A meta-framework (Next.js, Remix) with server-side rendering.
 3. No console until the API is further along.
@@ -53,6 +55,7 @@ injection framework, no globals, no `init` side effects. A newcomer can read `ma
 bottom and see every dependency being built and closed in reverse order.
 
 The layout is ports and adapters:
+
 - `internal/domain/ledger` holds pure types and typed errors (`ErrNotFound`,
   `ErrAlreadyExists`, `ErrInvalid`, `ErrUnavailable`). It imports nothing from `internal`.
 - `internal/app` holds use cases and `ports.go`, the interfaces the use cases need
@@ -72,6 +75,7 @@ text never reaches a client.
 
 The TigerBeetle Go client is a cgo binding around a static C library that links libdl and
 libm, and this shapes the container (`apps/api/Dockerfile`):
+
 - `CGO_ENABLED=1` and a Debian builder (`golang:1.27.3-trixie`) with gcc and glibc. Alpine
   would build against musl and break.
 - A glibc distroless runtime (`gcr.io/distroless/base-debian13:nonroot`), the same glibc 2.41

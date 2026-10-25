@@ -6,12 +6,15 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
-    "build": "vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "lint": "biome check .",
-    "format": "biome check --write ."
+    "dev": "vp dev",
+    "build": "vp build",
+    "preview": "vp preview",
+    "lint": "vp lint",
+    "lint:fix": "vp lint --fix",
+    "format": "vp fmt --check",
+    "format:fix": "vp fmt --write",
+    "check": "vp check",
+    "check:fix": "vp check --fix"
   },
   "dependencies": {
     "@tigerbeetle-platform/api-client": "workspace:*",
@@ -19,11 +22,12 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
     "typescript": "7.0.2",
-    "vite": "8.3.5"
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

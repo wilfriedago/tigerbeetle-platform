@@ -8,17 +8,19 @@ page). The write and read paths below describe the design that slice was built t
 
 ## Overview
 
-The platform makes TigerBeetle approachable in a Formance-style shape. It has three layers,
-built in this order:
+The platform makes TigerBeetle easier to work with: it adds the naming, context and tooling that
+applications otherwise build around TigerBeetle themselves, and leaves every balance to
+TigerBeetle. It has three layers, built in this order:
+
 1. A Go API service (`apps/api`) in front of TigerBeetle, with Postgres holding metadata.
 2. A web console (`apps/console`) that only talks to that API through `packages/api-client`.
 3. Later, a versioned posting-rule DSL that compiles to batches of linked transfers.
 
-The API surface follows Formance Ledger v2: ledgers as namespaces, accounts addressed by
-hierarchical strings such as `users:1234:wallet`, multi-posting transactions, metadata, revert,
-aggregated balances by address prefix, volumes and cursor pagination. Holds (two-phase pending
-transfers with capture, partial capture and void) are our extension beyond that surface. JSON
-amounts are strings in the asset's smallest unit.
+The API surface is built on TigerBeetle's own primitives: ledgers as namespaces, accounts
+addressed by hierarchical strings such as `users:1234:wallet`, multi-posting transactions that
+become linked transfers, metadata, revert, aggregated balances by address prefix, volumes and
+cursor pagination. Holds expose TigerBeetle's two-phase pending transfers, with capture, partial
+capture and void. JSON amounts are strings in the asset's smallest unit.
 
 ## Components
 
@@ -196,11 +198,13 @@ Cursor pagination orders by the stored big-endian ID, which is time order.
 - `docs/adr/0001-record-architecture-decisions.md`: why these records exist.
 - `docs/adr/0002-tigerbeetle-source-of-truth-postgres-context.md`: who owns money and context.
 - `docs/adr/0003-go-api-typescript-react-console.md`: languages, layout, what cgo forces.
-- `docs/adr/0004-formance-style-api-surface.md`: the API shape, amounts as strings, the Formance
-  deltas we will not offer (client timestamps, forced revert, revert at an effective date).
+- `docs/adr/0004-ledger-api-surface.md`: the API shape, amounts as strings, the features
+  TigerBeetle rules out (client timestamps, forced revert, revert at an effective date).
 - `docs/adr/0005-assets-on-postings-ledger-per-ledger-asset.md`: one ledger number per asset.
 - `docs/adr/0006-lazy-account-creation-and-address-rules.md`: lazy accounts and flag rules.
 - `docs/adr/0007-linked-transfers-ids-idempotency.md`: linked chains, IDs, idempotency.
 - `docs/adr/0008-openapi-first-generated-server-and-client.md`: the spec as the contract.
 - `docs/adr/0009-pnpm-turborepo-monorepo-with-go-module.md`: the monorepo and pinned tooling.
 - `docs/adr/0010-holds-as-two-phase-transfers.md`: holds as two-phase transfers.
+- `docs/adr/0011-vite-plus-toolchain-for-typescript.md`: Vite+ (`vp check`) replaces Biome.
+- `docs/adr/0012-vite-plus-git-hooks.md`: Vite+ git hooks (`vp staged`) replace lefthook.

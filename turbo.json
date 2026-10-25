@@ -11,7 +11,8 @@
       "outputs": ["dist/**", "bin/**"]
     },
     "lint": {
-      "dependsOn": ["^generate"]
+      "dependsOn": ["^generate"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/vite.config.ts"]
     },
     "format": {
       "cache": false
@@ -45,27 +46,12 @@
     },
     "api#generate": {
       "dependsOn": ["@tigerbeetle-platform/openapi#generate"],
-      "inputs": [
-        "sqlc.yaml",
-        "oapi-codegen.yaml",
-        "go.mod",
-        "go.sum",
-        "migrations/**",
-        "queries/**"
-      ],
+      "inputs": ["sqlc.yaml", "oapi-codegen.yaml", "go.mod", "go.sum", "migrations/**", "queries/**"],
       "outputs": ["internal/adapters/httpapi/gen/**", "internal/adapters/postgres/gen/**"]
     },
     "api#build": {
       "dependsOn": ["api#generate"],
-      "inputs": [
-        "**/*.go",
-        "go.mod",
-        "go.sum",
-        "migrations/**",
-        "queries/**",
-        "sqlc.yaml",
-        "oapi-codegen.yaml"
-      ],
+      "inputs": ["**/*.go", "go.mod", "go.sum", "migrations/**", "queries/**", "sqlc.yaml", "oapi-codegen.yaml"],
       "outputs": ["bin/**"]
     },
     "api#lint": {

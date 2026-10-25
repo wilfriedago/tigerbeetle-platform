@@ -11,6 +11,7 @@ no remote yet, nothing pushed, so CI has never run on GitHub. Everything below w
 macOS 27 (arm64, OrbStack as the Docker engine) from a fresh clone of the repository.
 
 Working and verified:
+
 - `pnpm install && pnpm stack:up` then `curl localhost:8080/readyz` answers 200 with Postgres
   and TigerBeetle reported `up`. A second `pnpm stack:up` skips the TigerBeetle format step.
 - The console at http://localhost:5173 renders the status of both dependencies from
@@ -25,6 +26,7 @@ Working and verified:
 - Unknown routes and wrong methods answer `application/problem+json` with the request ID.
 
 Not done, by design or by circumstance:
+
 - No GitHub remote, so the acceptance criterion "CI is green on the first pull request" is
   unverified. Push, open a PR, and watch the seven jobs in `.github/workflows/ci.yml`.
 - Renovate is configured (`renovate.json`) but the Mend Renovate GitHub App must be installed on
@@ -45,14 +47,15 @@ Not done, by design or by circumstance:
 | golangci-lint, govulncheck     | v2.15.0, v1.9.0 (installed by `scripts/install-tools.sh`)                                                                                                                                     |
 | env, go-cmp, testcontainers-go | v11.4.1, v0.7.0, v0.44.0                                                                                                                                                                      |
 | Node, pnpm, Turborepo          | 24.22.1, 12.15.0, 2.11.10                                                                                                                                                                     |
-| Console                        | React 19.3.1, Vite 8.3.5, TypeScript 7.0.2, ky 2.2.0                                                                                                                                          |
-| Generators and lint            | openapi-typescript 7.13.0 with TypeScript 5.9.3 (packages/openapi only), Redocly CLI 2.71.0, Biome 2.6.2, lefthook 2.2.2, commitlint 21.2.4                                                   |
+| Console                        | React 19.3.1, Vite+ 1.4.0 (Vite 8.3.5), TypeScript 7.0.2, ky 2.2.0                                                                                                                            |
+| Generators and lint            | openapi-typescript 7.13.0 with TypeScript 5.9.3 (packages/openapi only), Redocly CLI 2.71.0, Vite+ 1.4.0 (Oxfmt 0.74.0, Oxlint 1.89.0, git hooks), commitlint 21.2.4                          |
 | GitHub Actions                 | checkout v7.0.1, setup-go v7.0.0, setup-node v7.1.0, pnpm/action-setup v6.1.0, golangci-lint-action v9.3.0, setup-buildx v4.4.1, build-push v7.4.0, all pinned by SHA, runners `ubuntu-24.04` |
 
 ## Facts learned the hard way
 
 Each of these cost time. They are documented in code comments or ADRs, but here they are in one
 place.
+
 1. **TigerBeetle client 0.17.9 does not link on macOS 27.** The error is "64-bit mach-o not
    8-byte aligned" from the bundled static library. Tag v0.17.10 is a client-only rebuild with
    the fix (no server release, no image, empty changelog). It was verified to work against a
@@ -96,14 +99,15 @@ place.
 13. **sqlc publishes no checksum file.** `scripts/install-tools.sh` pins the sha256 of each
     platform archive; update them with the version.
 14. **Go tools live in `$(go env GOPATH)/bin`.** `scripts/install-tools.sh` installs there;
-    actions/setup-go puts it on PATH in CI; locally it must be on PATH. The lefthook Go jobs
-    prefix PATH themselves.
+    actions/setup-go puts it on PATH in CI; locally it must be on PATH. `.githooks/pre-commit`
+    prefixes PATH itself.
 15. **Turborepo strict env mode strips variables.** The `dev` task declares the API and console
     variables, and `test:integration` passes `DOCKER_HOST` and `TESTCONTAINERS_*` through.
 
 ## Decisions amended during setup
 
 The owner approved these on 2026-10-24; the ADRs reflect them.
+
 - **Transfer IDs are minted, not hashed** (ADR-0007). The pending idempotency record stores the
   transaction ID and one `ID()` per leg; retries and the reconciler reuse them. Hashing the
   Idempotency-Key was dropped because random IDs hurt TigerBeetle throughput and a burned ID
@@ -111,8 +115,8 @@ The owner approved these on 2026-10-24; the ADRs reflect them.
 - **Reconciler semantics** (ADR-0007): look up stored IDs first; resubmit only when none exist;
   the pattern `[exists, linked_event_failed, ...]` means already committed.
 - **Client and server versions may differ by the documented exception only** (ADR-0009).
-- **Decision 11 (string amounts, uuid columns) is folded into ADR-0002 and ADR-0004**; there is
-  no ADR-0011.
+- **Decision 11 (string amounts, uuid columns) is folded into ADR-0002 and ADR-0004**. ADR-0011
+  is unrelated: it replaced Biome with Vite+ (`vp check`) for TypeScript.
 - **ADR-0007 caps postings per transaction at 64.** The number was chosen by the ADR author, not
   the owner; confirm it before implementing transactions.
 
@@ -157,11 +161,10 @@ The owner approved these on 2026-10-24; the ADRs reflect them.
 
 ## Loose ends to be aware of
 
-- `.design/` at the repository root is ignored by git. It holds a screenshot of the Formance
-  Ledger console the owner dropped in as a design reference for the future console.
+- `.design/` at the repository root holds local design references for the future console.
 - The console is a single status page on purpose. Its styling is plain CSS; no component library
   has been chosen.
 - The access log does not record 1xx statuses; the readiness latency is rounded to whole
   milliseconds and shows 0 ms locally.
-- Lefthook prints emojis in its own terminal output. The rule "no emojis" applies to repository
+- The hook output (lint-staged, Redocly) prints emojis and symbols in the terminal. The rule "no emojis" applies to repository
   content, which is checked with `grep -rnP '[^\x00-\x7F]'` over tracked files.

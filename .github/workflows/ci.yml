@@ -39,7 +39,7 @@ jobs:
         run: go test -race ./...
       - name: govulncheck
         working-directory: apps/api
-        run: "$(go env GOPATH)/bin/govulncheck ./..."
+        run: '$(go env GOPATH)/bin/govulncheck ./...'
 
   go-integration:
     name: go-integration
@@ -112,8 +112,8 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Biome
-        run: pnpm exec biome ci .
+      - name: Format, lint and type-aware checks
+        run: pnpm exec vp check
       - name: Type check
         run: pnpm turbo run typecheck --filter=console --filter=@tigerbeetle-platform/api-client
       - name: Build

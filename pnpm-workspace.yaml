@@ -2,10 +2,15 @@ packages:
   - apps/*
   - packages/*
 
-# pnpm 11+ refuses to run dependency install scripts unless they are approved here.
-# lefthook installs the git hooks from its postinstall script.
-allowBuilds:
-  lefthook: true
-
 minimumReleaseAgeExclude:
-  - "@redocly/cli@2.71.0"
+  - '@redocly/cli@2.71.0'
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@1.4.0
+  vite-plus: 1.4.0
+overrides:
+  vite@*: 'catalog:'
+peerDependencyRules:
+  allowAny:
+    - vite
+  allowedVersions:
+    vite: '*'

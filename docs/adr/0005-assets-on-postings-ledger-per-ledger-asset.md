@@ -5,10 +5,10 @@ Date: 2026-10-24
 
 ## Context and Problem Statement
 
-The API is Formance-style (ADR-0004): a ledger is a namespace, an account is a hierarchical
-address such as `users:1234:wallet`, and each posting of a transaction names an asset. The same
-address can hold several currencies, and two ledgers can both contain `users:1234:wallet` without
-sharing anything.
+In the API (ADR-0004) a ledger is a namespace, an account is a hierarchical address such as
+`users:1234:wallet`, and each posting of a transaction names an asset. The same address can hold
+several currencies, and two ledgers can both contain `users:1234:wallet` without sharing
+anything.
 
 TigerBeetle has no notion of currency or namespace. It has a `ledger` field, a 32-bit unsigned
 integer that "partitions the sets of accounts that can transact with each other", and a transfer
@@ -29,8 +29,8 @@ hot path.
   impossible to change silently after the first transfer.
 - Hot path cost: resolving the ledger number must not add a Postgres round trip to every
   transfer once the mapping is known.
-- Formance familiarity: the `CODE/SCALE` asset syntax already used by Formance Ledger keeps
-  the API recognisable.
+- Readable assets: the `CODE/SCALE` asset syntax (`EUR/2`, `XOF/0`) states the scale in the
+  asset name, so a reader can interpret an amount without looking anything up.
 
 ## Considered Options
 
@@ -47,6 +47,7 @@ Chosen option: option 1.
 
 An asset is `CODE/SCALE`, for example `XOF/0` or `EUR/2`. The grammar lives in
 `apps/api/internal/domain/ledger/asset.go`:
+
 - `CODE` is uppercase ASCII, a letter followed by 1 to 15 letters or digits.
 - `SCALE` is 0 to `MaxAssetScale` (18) decimal places. `EUR/2` means the amount integer is in
   cents; `XOF/0` has no fractional unit.
@@ -99,6 +100,7 @@ CREATE TABLE ledger_assets (
 Because every (ledger, asset) pair has its own number and every TigerBeetle account is created
 with the number of its pair (ADR-0006), the cluster itself rejects any transfer that would mix
 currencies or namespaces:
+
 - `accounts_must_have_the_same_ledger` when the debit and credit accounts carry different
   numbers, which is what a `EUR/2` to `XOF/0` posting, or a posting between two API ledgers,
   would produce.
@@ -143,7 +145,7 @@ approach the TigerBeetle currency exchange recipe describes.
 ## More Information
 
 - [ADR-0002](0002-tigerbeetle-source-of-truth-postgres-context.md): who owns money and context.
-- [ADR-0004](0004-formance-style-api-surface.md): ledgers as namespaces, string amounts.
+- [ADR-0004](0004-ledger-api-surface.md): ledgers as namespaces, string amounts.
 - [ADR-0006](0006-lazy-account-creation-and-address-rules.md): one TigerBeetle account per
   (address, asset), created lazily with the number allocated here.
 - [ADR-0010](0010-holds-as-two-phase-transfers.md): holds that post or void within one ledger.

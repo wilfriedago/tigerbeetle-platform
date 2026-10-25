@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: TigerBeetle Platform API
   version: 0.0.1
-  summary: Formance-style ledger API in front of TigerBeetle.
+  summary: A ledger API that makes TigerBeetle easier to work with.
   description: |
     The contract for the TigerBeetle Platform API. The Go server interfaces and the TypeScript
     client are generated from this file. Edit the spec first, then run `pnpm generate`.
@@ -29,14 +29,14 @@ paths:
       description: Returns 200 as soon as the process serves HTTP. It does not check dependencies.
       tags: [operations]
       responses:
-        "200":
+        '200':
           description: The process is alive.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Liveness"
+                $ref: '#/components/schemas/Liveness'
         default:
-          $ref: "#/components/responses/Problem"
+          $ref: '#/components/responses/Problem'
 
   /readyz:
     get:
@@ -47,20 +47,20 @@ paths:
         any dependency is down so load balancers stop routing traffic to this instance.
       tags: [operations]
       responses:
-        "200":
+        '200':
           description: Every dependency is reachable.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Readiness"
-        "503":
+                $ref: '#/components/schemas/Readiness'
+        '503':
           description: At least one dependency is unreachable.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Readiness"
+                $ref: '#/components/schemas/Readiness'
         default:
-          $ref: "#/components/responses/Problem"
+          $ref: '#/components/responses/Problem'
 
   /v1/_info:
     get:
@@ -69,14 +69,14 @@ paths:
       description: Service name and version plus the reachability of Postgres and TigerBeetle.
       tags: [operations]
       responses:
-        "200":
+        '200':
           description: Service information.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Info"
+                $ref: '#/components/schemas/Info'
         default:
-          $ref: "#/components/responses/Problem"
+          $ref: '#/components/responses/Problem'
 
 components:
   responses:
@@ -85,7 +85,7 @@ components:
       content:
         application/problem+json:
           schema:
-            $ref: "#/components/schemas/Problem"
+            $ref: '#/components/schemas/Problem'
 
   schemas:
     Liveness:
@@ -107,7 +107,7 @@ components:
       required: [status, latencyMs]
       properties:
         status:
-          $ref: "#/components/schemas/DependencyStatus"
+          $ref: '#/components/schemas/DependencyStatus'
         latencyMs:
           type: integer
           format: int64
@@ -122,9 +122,9 @@ components:
       required: [postgres, tigerbeetle]
       properties:
         postgres:
-          $ref: "#/components/schemas/DependencyCheck"
+          $ref: '#/components/schemas/DependencyCheck'
         tigerbeetle:
-          $ref: "#/components/schemas/DependencyCheck"
+          $ref: '#/components/schemas/DependencyCheck'
 
     Readiness:
       type: object
@@ -134,7 +134,7 @@ components:
           type: string
           enum: [ready, not_ready]
         dependencies:
-          $ref: "#/components/schemas/Dependencies"
+          $ref: '#/components/schemas/Dependencies'
 
     Info:
       type: object
@@ -148,7 +148,7 @@ components:
           description: Build version injected at compile time, or `dev` for local builds.
           examples: [0.0.1]
         dependencies:
-          $ref: "#/components/schemas/Dependencies"
+          $ref: '#/components/schemas/Dependencies'
 
     Problem:
       type: object

@@ -5,8 +5,8 @@ by `pnpm generate`; do not edit it. `src/index.ts` wraps ky with a request ID he
 idempotent calls and RFC 9457 problem handling.
 
 ```ts
-import { createClient } from "@tigerbeetle-platform/api-client";
+import { createClient } from '@tigerbeetle-platform/api-client'
 
-const api = createClient({ baseUrl: "http://localhost:8080" });
-const info = await api.getInfo();
+const api = createClient({ baseUrl: 'http://localhost:8080' })
+const info = await api.getInfo()
 ```

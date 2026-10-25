@@ -5,7 +5,7 @@ Date: 2026-10-24
 
 ## Context and Problem Statement
 
-The platform exposes a Formance-style ledger API (ADR-0004) consumed by a web console we write
+The platform exposes a ledger API over TigerBeetle (ADR-0004) consumed by a web console we write
 ourselves and, eventually, by third-party integrators. Two codebases in two languages must agree
 on every path, status code, field name and error shape: the Go service in `apps/api` and the
 TypeScript client in `packages/api-client` that the console in `apps/console` uses. Hand-writing
@@ -38,7 +38,7 @@ it so that drift is caught by a machine rather than by a user of the console.
 
 Code-first ties the contract to Go idioms and makes the spec a build output that reviewers rarely
 read. Hand-written everything is the drift scenario described above. gRPC gives strong typing but
-is a poor fit for a REST-shaped, Formance-style API that integrators expect to call with curl.
+is a poor fit for a REST-shaped ledger API that integrators expect to call with curl.
 
 ## Decision Outcome
 
@@ -46,6 +46,7 @@ Option 1. `packages/openapi/openapi.yaml` (OpenAPI 3.1.0) is the contract. Every
 on the API shape is generated from it and committed.
 
 Spec and lint:
+
 - The spec is linted by Redocly CLI 2.71.0 with the `recommended-strict` ruleset, configured in
   `packages/openapi/redocly.yaml`. `operation-4xx-response` is switched off because every
   operation documents errors through one shared `default` response instead of listing each 4xx;
@@ -54,6 +55,7 @@ Spec and lint:
   the TypeScript operation keys, so they are chosen with care and never renamed casually.
 
 Go server:
+
 - oapi-codegen v2.8.1 is declared with the `tool` directive in `apps/api/go.mod`, so `go tool
   oapi-codegen` runs the pinned version without a separate install. v2.8.0 added OpenAPI 3.1
   support, which is why the floor is there.
@@ -69,6 +71,7 @@ Go server:
   with request ID, access log, panic recovery and problem+json conversion of unknown routes.
 
 TypeScript client:
+
 - openapi-typescript 7.13.0 reads the same `redocly.yaml` (the `x-openapi-ts` block) and writes
   `packages/api-client/src/schema.d.ts`. `packages/openapi` pins TypeScript 5.9.3 because
   openapi-typescript 7 needs the TypeScript 5 compiler API; the rest of the workspace uses 7.0.2.
@@ -78,11 +81,12 @@ TypeScript client:
   one method per operation. The console calls only this client.
 
 Generated code is committed and excluded from lint:
+
 - Committing the output means `go build` and `tsc` work from a fresh clone without running
   generators, and reviewers see the effect of a spec change in the same diff.
 - golangci-lint uses `exclusions.generated: strict` in `apps/api/.golangci.yml`, which skips
-  files carrying the `Code generated ... DO NOT EDIT` header. `biome.json` excludes
-  `packages/api-client/src/schema.d.ts`.
+  files carrying the `Code generated ... DO NOT EDIT` header. The root
+  `vite.config.ts` excludes `packages/api-client/src/schema.d.ts` from formatting and lint.
 - The `codegen-drift` job in `.github/workflows/ci.yml` runs `pnpm generate` and fails on any
   resulting diff (`git add -A && git diff --cached --exit-code`). The `openapi` job runs the
   Redocly lint on its own so a spec error is reported by name.
@@ -91,6 +95,7 @@ Generated code is committed and excluded from lint:
   `generate`, so `pnpm generate` at the root regenerates Go, TypeScript and sqlc output in order.
 
 Error responses are part of the contract:
+
 - `components/responses/Problem` and `components/schemas/Problem` in the spec declare RFC 9457
   problem details with the `application/problem+json` media type; every operation references it as
   its `default` response.
@@ -101,6 +106,7 @@ Error responses are part of the contract:
   are rewritten, so no client ever sees a non-problem error body or raw driver text.
 
 Adding an endpoint follows a fixed sequence:
+
 1. Edit `packages/openapi/openapi.yaml`: path, `operationId`, request and response schemas,
    `default: $ref: "#/components/responses/Problem"`.
 2. Run `pnpm generate` at the root. `gen.StrictServerInterface` gains a method and the build
@@ -135,7 +141,7 @@ Adding an endpoint follows a fixed sequence:
 
 - [ADR-0003](0003-go-api-typescript-react-console.md): the standard-library routing and the ky
   client that the generated code plugs into.
-- [ADR-0004](0004-formance-style-api-surface.md): the API surface that this spec describes,
+- [ADR-0004](0004-ledger-api-surface.md): the API surface that this spec describes,
   including string amounts and hex-encoded 128-bit IDs.
 - [ADR-0007](0007-linked-transfers-ids-idempotency.md): the `Idempotency-Key` header every write
   operation declares.
@@ -146,5 +152,5 @@ Adding an endpoint follows a fixed sequence:
 - TypeScript generation and client: `packages/api-client/src/{schema.d.ts,index.ts}`,
   `apps/console/src/api.ts`.
 - Enforcement: `.github/workflows/ci.yml` (jobs `codegen-drift`, `openapi`), `turbo.json`,
-  `apps/api/.golangci.yml`, `biome.json`.
+  `apps/api/.golangci.yml`, `vite.config.ts`.
 - RFC 9457, Problem Details for HTTP APIs: https://www.rfc-editor.org/rfc/rfc9457

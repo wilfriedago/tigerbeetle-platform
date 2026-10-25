@@ -5,8 +5,8 @@ Date: 2026-10-24
 
 ## Context and Problem Statement
 
-This repository puts a Go API and a web console in front of TigerBeetle, in a
-Formance-style shape, with Postgres holding metadata. Most of the hard choices
+This repository puts a Go API and a web console in front of TigerBeetle to make
+it easier to work with, with Postgres holding metadata. Most of the hard choices
 were made before the first line of feature code existed: TigerBeetle is the
 only store for money, assets map to TigerBeetle ledger numbers, IDs come from
 the client's time-ordered ID() helper, every write carries an Idempotency-Key,
@@ -58,6 +58,7 @@ behind the default filters. Commit messages (option 4) record what changed,
 not the alternatives that were rejected.
 
 The rules:
+
 - Location: `docs/adr/`. One Markdown file per decision.
 - Naming: a four-digit zero-padded number, a hyphen, and a short kebab-case
   slug, for example `0006-lazy-account-creation-and-address-rules.md`. Numbers are allocated in
@@ -86,7 +87,7 @@ When to write one: any change that alters a decision listed in
 request. Typical triggers are a new storage location for any kind of data, a
 change to how IDs are minted or encoded, a change to the idempotency or
 reconciliation protocol, a new public API shape that diverges from the
-Formance-style surface, a change to the dependency direction enforced by the
+surface in ADR-0004, a change to the dependency direction enforced by the
 depguard rules in `apps/api/.golangci.yml`, or a version policy change such as
 the one enforced by `scripts/check-versions.sh`. Routine work (a new endpoint
 that follows existing patterns, a dependency bump, a bug fix) does not need an

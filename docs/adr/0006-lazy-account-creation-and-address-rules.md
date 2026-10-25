@@ -5,7 +5,7 @@ Date: 2026-10-24
 
 ## Context and Problem Statement
 
-The API addresses accounts by hierarchical strings such as `users:1234:wallet` (ADR-0004), while TigerBeetle only knows 128-bit account IDs with a small set of immutable fields: `ledger`, `code`, `flags` and the `user_data` slots. Formance-style clients never create accounts explicitly: the first posting that names an address brings the account into existence. We therefore need to decide when a TigerBeetle account is created, which ID it gets, which flags and code it carries, and how to make that creation safe to repeat, because a request can crash between the Postgres write and the TigerBeetle write and the reconciler (ADR-0007) will run the sequence again.
+The API addresses accounts by hierarchical strings such as `users:1234:wallet` (ADR-0004), while TigerBeetle only knows 128-bit account IDs with a small set of immutable fields: `ledger`, `code`, `flags` and the `user_data` slots. API clients never create accounts explicitly: the first posting that names an address brings the account into existence. We therefore need to decide when a TigerBeetle account is created, which ID it gets, which flags and code it carries, and how to make that creation safe to repeat, because a request can crash between the Postgres write and the TigerBeetle write and the reconciler (ADR-0007) will run the sequence again.
 
 Three facts about TigerBeetle constrain the design. Account fields and flags are immutable after creation. `create_accounts` returns `exists` only when every field except `timestamp` and the balance fields is identical to the stored account; any difference yields `exists_with_different_flags`, `_ledger`, `_code` or `_user_data_128/64/32`. And the account `id` is the idempotency key of `create_accounts`, so repeating a creation with the same id and the same fields is harmless.
 
@@ -34,6 +34,7 @@ Chosen: option 3 for creation and rules, option 5 for IDs.
 ### The lazy-creation sequence
 
 For every `(address, asset)` pair named by a transaction, inside the write path of ADR-0007:
+
 1. Resolve the account rule for the address (see below). This yields the limit flag, the `history` flag and a non-zero `code`. The TigerBeetle ledger number comes from the `(ledger, asset)` row of ADR-0005.
 2. Mint a candidate ID with `app.IDGenerator.NewID()`, implemented by `Client.NewID` in `apps/api/internal/adapters/tigerbeetle/client.go` with `tb.ID()`.
 3. `INSERT INTO accounts (id, ledger, address, asset, tb_ledger, flags, code, created_at) VALUES (...) ON CONFLICT (ledger, address, asset) DO NOTHING`, then `SELECT` the rows for every pair in the batch. The re-select is required because `ON CONFLICT DO NOTHING` returns nothing for the loser of a race; the winner's row, with its id, flags and code, is what every caller uses from now on. A losing candidate ID is simply discarded.
@@ -47,6 +48,7 @@ Step 4 always sends the fields stored on the Postgres row, so a repeat is byte-f
 ### Why flags and code are persisted at insert time
 
 Flags and code are written to the `accounts` row in step 3 and read back from it in step 4, never re-evaluated from the live rules. Two reasons:
+
 - TigerBeetle flags are immutable. If a rule changes after an account exists and we recomputed flags from the rules, the healing path in step 4 would send different flags and hit `exists_with_different_flags`. Freezing the values on the row keeps step 4 idempotent forever.
 - The row then documents what the account really is in TigerBeetle, which is what operators and the console need to read. A rule change applies to accounts created after it; existing accounts keep their flags, and the only way to change one is to stop using it and route to a new address.
 
@@ -57,6 +59,7 @@ Flags and code are written to the `accounts` row in step 3 and read back from it
 A rule is `(ledger, pattern, limit flag, history, code)`. A pattern is either `*`, the catch-all, or an address prefix made of whole segments, matched with `Address.HasPrefix` in `apps/api/internal/domain/ledger/address.go`, so `users:1` matches `users:1:wallet` but not `users:12:wallet`. The most specific matching rule wins, where specificity is the number of segments in the prefix and `*` counts as zero. Two distinct prefixes with the same segment count cannot both match one address, so there are no ties. An exact address is just a prefix with all segments spelled out, which is how `world` is matched.
 
 Two built-in rules apply when a ledger defines nothing else:
+
 - `*`: `debits_must_not_exceed_credits`. With a posting's source as the debit account and its destination as the credit account (ADR-0007), this keeps credits minus debits from going below zero. TigerBeetle includes pending debits in that check, so a hold (ADR-0010) reduces the spendable balance.
 - `world`: no limit flag. Money enters and leaves the ledger through `world`, so it goes arbitrarily negative. `ledger.World` is the constant for this address.
 
@@ -84,7 +87,7 @@ Every account ID is minted by `tb.ID()`: a 48-bit millisecond timestamp plus ran
 ## More Information
 
 - [ADR-0002](0002-tigerbeetle-source-of-truth-postgres-context.md): TigerBeetle holds balances, Postgres holds context, 128-bit IDs as big-endian uuid columns.
-- [ADR-0004](0004-formance-style-api-surface.md): hierarchical addresses and the ledger namespace.
+- [ADR-0004](0004-ledger-api-surface.md): hierarchical addresses and the ledger namespace.
 - [ADR-0005](0005-assets-on-postings-ledger-per-ledger-asset.md): one TigerBeetle ledger number per `(ledger, asset)`.
 - [ADR-0007](0007-linked-transfers-ids-idempotency.md): the write path and reconciler this sequence runs inside, and the posting direction (source is the debit account, destination the credit account).
 - [ADR-0010](0010-holds-as-two-phase-transfers.md): holds and their effect on spendable balance.

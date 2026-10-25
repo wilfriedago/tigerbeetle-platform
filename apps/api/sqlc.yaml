@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/sqlc-dev/sqlc/v1.31.1/internal/config/v_two.json
-version: "2"
+version: '2'
 sql:
   - engine: postgresql
     # sqlc reads the goose migrations as the schema and ignores the "+goose Down" sections.

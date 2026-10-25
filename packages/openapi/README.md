@@ -1,6 +1,7 @@
 # @tigerbeetle-platform/openapi
 
 `openapi.yaml` is the contract. Everything else is generated from it:
+
 - Go server interfaces, handlers and models: `apps/api/internal/adapters/httpapi/gen` (oapi-codegen).
 - TypeScript types: `packages/api-client/src/schema.d.ts` (openapi-typescript).
 

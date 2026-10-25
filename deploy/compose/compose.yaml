@@ -11,7 +11,7 @@ services:
   # entrypoint is the tigerbeetle binary, so a shell is needed for the test.
   tigerbeetle-format:
     image: ghcr.io/tigerbeetle/tigerbeetle:0.17.9
-    entrypoint: ["/bin/sh", "-c"]
+    entrypoint: ['/bin/sh', '-c']
     command:
       - >-
         test -f /data/0_0.tigerbeetle ||
@@ -29,7 +29,7 @@ services:
     image: ghcr.io/tigerbeetle/tigerbeetle:0.17.9
     # --cache-grid keeps memory small in development without --development, which would also
     # shrink the batch size and change request limits compared with production.
-    command: ["start", "--addresses=0.0.0.0:3000", "--cache-grid=256MiB", "/data/0_0.tigerbeetle"]
+    command: ['start', '--addresses=0.0.0.0:3000', '--cache-grid=256MiB', '/data/0_0.tigerbeetle']
     security_opt:
       - seccomp=unconfined
     cap_add:
@@ -37,13 +37,13 @@ services:
     volumes:
       - tigerbeetle-data:/data
     ports:
-      - "${TIGERBEETLE_PORT:-13000}:3000"
+      - '${TIGERBEETLE_PORT:-13000}:3000'
     depends_on:
       tigerbeetle-format:
         condition: service_completed_successfully
     healthcheck:
       # The image ships busybox, so nc is available; the replica accepts TCP once it is up.
-      test: ["CMD", "nc", "-z", "127.0.0.1", "3000"]
+      test: ['CMD', 'nc', '-z', '127.0.0.1', '3000']
       interval: 2s
       timeout: 2s
       retries: 15
@@ -60,15 +60,11 @@ services:
       # Mounting the old path would leave the cluster outside the volume and lose it on recreate.
       - postgres-data:/var/lib/postgresql
     ports:
-      - "${POSTGRES_PORT:-15432}:5432"
+      - '${POSTGRES_PORT:-15432}:5432'
     healthcheck:
       # -h 127.0.0.1 forces TCP: during initialisation the server only listens on the unix socket,
       # and a socket check would report healthy too early.
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-ledger} -d ${POSTGRES_DB:-ledger}",
-        ]
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-ledger} -d ${POSTGRES_DB:-ledger}']
       interval: 2s
       timeout: 2s
       retries: 15
@@ -79,16 +75,16 @@ services:
       context: ./apps/api
       dockerfile: Dockerfile
     environment:
-      API_ADDR: ":8080"
+      API_ADDR: ':8080'
       LOG_LEVEL: ${LOG_LEVEL:-info}
       POSTGRES_URL: postgres://${POSTGRES_USER:-ledger}:${POSTGRES_PASSWORD:-ledger}@postgres:5432/${POSTGRES_DB:-ledger}?sslmode=disable
-      TIGERBEETLE_CLUSTER_ID: "0"
+      TIGERBEETLE_CLUSTER_ID: '0'
       TIGERBEETLE_ADDRESSES: tigerbeetle:3000
-      MIGRATE_ON_START: "true"
+      MIGRATE_ON_START: 'true'
       SHUTDOWN_TIMEOUT: ${SHUTDOWN_TIMEOUT:-10s}
       READINESS_TIMEOUT: ${READINESS_TIMEOUT:-2s}
     ports:
-      - "${API_PORT:-8080}:8080"
+      - '${API_PORT:-8080}:8080'
     # The TigerBeetle Go client embeds the same io_uring-based I/O as the server, so the api
     # container needs the seccomp override too; without it the client fails to initialise.
     security_opt:
@@ -100,7 +96,7 @@ services:
         condition: service_healthy
     healthcheck:
       # The runtime image has no shell or curl; the binary probes itself.
-      test: ["CMD", "/app/api", "-probe", "http://127.0.0.1:8080/readyz"]
+      test: ['CMD', '/app/api', '-probe', 'http://127.0.0.1:8080/readyz']
       interval: 3s
       timeout: 3s
       retries: 20
@@ -115,7 +111,7 @@ services:
       # only ever talks to the console origin and no CORS configuration is needed.
       API_PROXY_TARGET: http://api:8080
     ports:
-      - "${CONSOLE_PORT:-5173}:5173"
+      - '${CONSOLE_PORT:-5173}:5173'
     volumes:
       # Live reload for the console and the client without rebuilding the image.
       - ./apps/console/src:/workspace/apps/console/src

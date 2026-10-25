@@ -9,7 +9,8 @@ the work, the pitfalls already hit and the suggested next steps are in docs/hand
 - tigerbeetle-platform: a Go API in front of TigerBeetle with Postgres for metadata, a React
   console that only talks to the API, and later a posting-rule DSL. Pre-alpha.
 - TigerBeetle is the only source of truth for money. Postgres never stores a balance.
-- Describe the API as "Formance-style", never "Formance-compatible".
+- Describe the project as a platform for working with TigerBeetle. Never present it as a clone
+  of, or compatible with, another ledger product.
 
 ## Layout
 
@@ -46,6 +47,17 @@ the work, the pitfalls already hit and the suggested next steps are in docs/hand
   build tag with testcontainers; everything runs with `-race`.
 - Format with gofumpt and goimports (`pnpm format`). Lint with `pnpm lint` before committing.
 - Explain non-obvious choices in a short comment or an ADR, not in chat.
+
+## TypeScript rules
+
+- Vite+ is the toolchain (ADR-0011): `vp check` formats (Oxfmt), lints (Oxlint) and type-checks.
+  Its settings live only in the root `vite.config.ts`; do not add `fmt` or `lint` blocks to
+  package configs. Run it through pnpm: `pnpm exec vp check`, `pnpm lint`, `pnpm format`.
+- `vp dev`, `vp build` and `vp test` are built-ins; `vp run <task>` runs a package script. Use
+  the `pnpm` root commands, which go through Turborepo.
+- Import from `vite-plus` and `vite-plus/test` in config and test files, not `vite` or `vitest`.
+- Git hooks are Vite+ (ADR-0012): `.githooks/` scripts plus the `staged` block in the root
+  `vite.config.ts`. Add new pre-commit checks there, not in a separate hook tool.
 
 ## TigerBeetle rules
 

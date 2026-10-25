@@ -44,6 +44,7 @@ packages and one Go module justify.
 ## Decision Outcome
 
 Chosen option: pnpm workspace plus Turborepo.
+
 - `pnpm-workspace.yaml` lists `apps/*` and `packages/*`. Root `package.json` holds only the
   tooling used across the workspace (Turborepo 2.11.10, Biome 2.6.2, lefthook 2.2.2, commitlint
   21.2.4) and the `stack:*` scripts that wrap `deploy/compose/compose.yaml`.

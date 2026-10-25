@@ -1,11 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    "helpers:pinGitHubActionDigests",
-    ":semanticCommits",
-    ":semanticCommitTypeAll(chore)"
-  ],
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", ":semanticCommits", ":semanticCommitTypeAll(chore)"],
   "timezone": "Africa/Porto-Novo",
   "schedule": ["before 6am on monday"],
   "rangeStrategy": "pin",
@@ -15,10 +10,7 @@
     {
       "description": "TigerBeetle client and server must move together: one PR, never auto-merged. scripts/check-versions.sh fails CI if they drift.",
       "groupName": "tigerbeetle",
-      "matchPackageNames": [
-        "github.com/tigerbeetle/tigerbeetle-go",
-        "ghcr.io/tigerbeetle/tigerbeetle"
-      ],
+      "matchPackageNames": ["github.com/tigerbeetle/tigerbeetle-go", "ghcr.io/tigerbeetle/tigerbeetle"],
       "automerge": false
     },
     {
@@ -50,9 +42,7 @@
       "customType": "regex",
       "description": "Tool versions pinned in scripts/install-tools.sh.",
       "managerFilePatterns": ["/^scripts/install-tools\\.sh$/"],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\n[A-Z_]+_VERSION=\"(?<currentValue>[^\"]+)\""
-      ]
+      "matchStrings": ["# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\n[A-Z_]+_VERSION=\"(?<currentValue>[^\"]+)\""]
     },
     {
       "customType": "regex",

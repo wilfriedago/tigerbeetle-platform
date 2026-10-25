@@ -10,8 +10,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "biome check .",
-    "format": "biome check --write ."
+    "lint": "vp check",
+    "format": "vp check --fix"
   },
   "dependencies": {
     "ky": "2.2.0"

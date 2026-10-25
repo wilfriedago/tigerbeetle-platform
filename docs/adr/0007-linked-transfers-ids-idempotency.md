@@ -5,7 +5,7 @@ Date: 2026-10-24
 
 ## Context and Problem Statement
 
-A Formance-style transaction carries several postings (ADR-0004), and callers expect all of them
+An API transaction carries several postings (ADR-0004), and callers expect all of them
 to apply or none. TigerBeetle only knows single transfers, batched into one request, with an
 optional `linked` flag that ties consecutive transfers into an atomic chain. The service therefore
 has to map one API transaction onto one linked chain, choose how every transfer and account gets
@@ -95,6 +95,7 @@ the account, must send a new key. The API reference will say so explicitly.
 ### Write path and record states
 
 A record is `pending`, then either `committed` or `failed`; it never moves back.
+
 1. Validate the request in the use case (addresses, assets, amounts, posting count).
 2. Mint the transaction ID and one transfer ID per leg. `INSERT` the idempotency record with
    status `pending`, the body hash, the transaction ID and the leg IDs in one statement. A unique
@@ -113,6 +114,7 @@ ids only (ADR-0002).
 
 A background loop, and the same code path on request retry, settles `pending` records older than
 a grace period (initially 30 seconds, well above the request timeout):
+
 1. `lookup_transfers` with the stored leg IDs.
 2. If every leg is found, the chain was accepted before the crash: mark `committed`.
 3. If none is found, the chain never reached the cluster: resubmit it with the same ids. Because
@@ -137,14 +139,15 @@ ids must be persisted before the first submission.
   posting-rule DSL later on.
 - Bad: one extra Postgres round trip (the pending insert) before every TigerBeetle call.
 - Bad: a declined transaction can never be retried under its key; clients must learn to mint a new
-  key, which Formance clients do not have to do.
+  key for every retry after a decline.
 - Bad: the `failed` branch of the reconciler loses the original decline reason, and the 64
-  posting cap is lower than what Formance accepts.
+  posting cap forces larger operations to be split into several transactions that are not
+  atomic together.
 
 ## More Information
 
 - [ADR-0002](0002-tigerbeetle-source-of-truth-postgres-context.md) for which store holds what.
-- [ADR-0004](0004-formance-style-api-surface.md) for the transaction and revert resources.
+- [ADR-0004](0004-ledger-api-surface.md) for the transaction and revert resources.
 - [ADR-0005](0005-assets-on-postings-ledger-per-ledger-asset.md) for the ledger number per leg.
 - [ADR-0006](0006-lazy-account-creation-and-address-rules.md) for step 3, account IDs and flags.
 - [ADR-0010](0010-holds-as-two-phase-transfers.md) for the hold operations built on this path.

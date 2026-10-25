@@ -1,4 +1,4 @@
-# 4. Formance-style API surface
+# 4. Ledger API surface
 
 Status: Accepted
 Date: 2026-10-24
@@ -6,12 +6,13 @@ Date: 2026-10-24
 ## Context and Problem Statement
 
 TigerBeetle exposes a small, fixed-shape API: accounts and transfers addressed by 128-bit IDs,
-with no string keys, no metadata and no prefix queries. Application teams do not want to think in
-those terms. They want named ledgers, readable account addresses, multi-leg transactions with
-metadata, and list endpoints with pagination. Formance Ledger v2 already defined such a surface
-and many teams know it. We need to decide what the public API of this platform looks like, how
-amounts are represented in JSON, and where we knowingly diverge from Formance because
-TigerBeetle cannot or should not do what Formance does.
+with no string keys, no metadata and no prefix queries. That narrowness is what makes it fast and
+safe, but application teams do not want to think in those terms. They want named ledgers,
+readable account addresses, multi-leg transactions with metadata, and list endpoints with
+pagination, and today each team builds that layer around TigerBeetle on its own. We need to
+decide what the public API of this platform looks like, how amounts are represented in JSON, and
+which common ledger features we knowingly leave out because TigerBeetle cannot or should not
+provide them.
 
 The OpenAPI document at `packages/openapi/openapi.yaml` is the contract (ADR-0008). Today it only
 describes `GET /healthz`, `GET /readyz` and `GET /v1/_info`; this ADR fixes the shape the ledger
@@ -19,7 +20,11 @@ endpoints will take as they are added.
 
 ## Decision Drivers
 
-- Familiarity: engineers who used Formance should recognise the resources and request shapes.
+- Readability: the resources should use plain double-entry vocabulary (ledgers, accounts,
+  transactions, postings), so an engineer can use the API before learning TigerBeetle's data
+  model.
+- Faithful to TigerBeetle: every resource should map onto something TigerBeetle does natively,
+  so the TigerBeetle documentation still explains what the API does.
 - Honesty about the backend: TigerBeetle is the only source of truth for money (ADR-0002) and
   has no string keys or prefix queries, so the surface must not promise reads it cannot serve
   consistently.
@@ -32,17 +37,19 @@ endpoints will take as they are added.
 1. Expose TigerBeetle more or less directly: accounts and transfers by 128-bit ID, numeric
    ledgers and codes, no metadata. Simple to build, but every consumer would rebuild the naming
    and metadata layer themselves, which is the problem this project exists to solve.
-2. A Formance-style surface, with explicit deltas where TigerBeetle semantics differ. Familiar
-   resources, and the deltas are documented rather than papered over.
-3. A surface that reproduces Formance Ledger v2 exactly, including client-supplied timestamps,
-   forced reverts and balance filters. This would require emulating features in Postgres that
-   contradict ADR-0002, or quietly returning wrong answers.
+2. A ledger surface built on TigerBeetle's own primitives (linked transfers, two-phase
+   transfers, balance limits, debit and credit volumes), with explicit limits where TigerBeetle
+   semantics rule a feature out. Readable resources, and the limits are documented rather than
+   papered over.
+3. A general-purpose ledger surface offering every feature such APIs commonly have, including
+   client-supplied timestamps, forced reverts and balance filters. This would require emulating
+   features in Postgres that contradict ADR-0002, or quietly returning wrong answers.
 
 ## Decision Outcome
 
-Chosen option: 2, a Formance-style surface. The wording matters: the API is Formance-style.
-Request and response shapes follow Formance Ledger v2 conventions, but we do not promise drop-in
-compatibility with Formance and we document every delta below.
+Chosen option: 2, a ledger surface built on TigerBeetle's primitives. The platform adds names,
+metadata and pagination around TigerBeetle; it does not hide or work around TigerBeetle's
+semantics. Every feature we leave out is listed below with the TigerBeetle reason.
 
 ### Resources
 
@@ -71,8 +78,8 @@ compatibility with Formance and we document every delta below.
 - Cursor pagination on every list endpoint, with an opaque `cursor` query parameter and a
   `next` cursor in the response. Offsets are not offered because the underlying tables grow
   append-only and offset scans would get slower over time.
-- Holds (two-phase pending transfers with capture, partial capture and void) are our extension
-  beyond Formance's ledger API and are described in ADR-0010.
+- Holds expose TigerBeetle's two-phase pending transfers, with capture, partial capture and void,
+  as their own resource. They are described in ADR-0010.
 
 ### Amounts and identifiers in JSON
 
@@ -91,7 +98,10 @@ transactions), rendered as 32 lowercase hexadecimal characters by `ledger.ID.Str
 `apps/api/internal/domain/ledger/id.go`, most significant byte first, so the string sorts like
 the number (ADR-0002).
 
-### Explicit deltas from Formance
+### Deliberate limits
+
+Each item is a common ledger feature that TigerBeetle rules out or restricts, or that would
+contradict ADR-0002.
 
 - No client-supplied transaction timestamps. TigerBeetle assigns the timestamp when the transfer
   is committed and that is the only time the ledger knows. A client may send an optional
@@ -106,19 +116,20 @@ the number (ADR-0002).
   service calls `lookup_accounts` in chunks of at most 8189 IDs and sums the results. The sum
   is not a single consistent snapshot across chunks, and a prefix covering more accounts than a
   documented cap is rejected rather than answered slowly.
-- Every write requires an `Idempotency-Key` header (ADR-0007 covers the semantics).
+- No unkeyed writes. Every write requires an `Idempotency-Key` header (ADR-0007 covers the
+  semantics).
 
 ### Consequences
 
-- Good: engineers coming from Formance recognise the resources and can port integrations with
-  limited changes.
-- Good: string amounts and documented deltas mean the API never returns a number that is
+- Good: engineers can use the API in plain double-entry terms, and each resource still maps onto
+  one TigerBeetle concept they can look up when they need the detail.
+- Good: string amounts and documented limits mean the API never returns a number that is
   rounded, nor an answer that TigerBeetle did not actually compute.
 - Good: the surface stays generatable; adding an endpoint means editing the spec, running
   `pnpm generate` and implementing the generated interface in
   `apps/api/internal/adapters/httpapi`.
-- Bad: "Formance-style" invites comparison, and every delta is a question we will be asked.
-  This ADR is the answer we point to.
+- Bad: engineers used to other ledger APIs will look for the features listed above, and every
+  missing one is a question we will be asked. This ADR is the answer we point to.
 - Bad: aggregated balances over large prefixes are more expensive and less consistent than in a
   SQL-backed ledger; consumers that need exact totals should keep a dedicated aggregate account.
 - Bad: string amounts are slightly less convenient in loosely typed clients, which must use a
@@ -136,7 +147,7 @@ the number (ADR-0002).
   transfers, posting direction, transaction IDs and the Idempotency-Key semantics.
 - [ADR-0008](0008-openapi-first-generated-server-and-client.md): the OpenAPI spec is the
   contract.
-- [ADR-0010](0010-holds-as-two-phase-transfers.md): holds as a two-phase transfer extension.
+- [ADR-0010](0010-holds-as-two-phase-transfers.md): holds as two-phase transfers.
 - Spec and generated code: `packages/openapi/openapi.yaml`, `packages/api-client`,
   `apps/api/internal/adapters/httpapi/gen`.
 - Domain rules: `apps/api/internal/domain/ledger/{address,asset,ledger,errors}.go`.
@@ -144,4 +155,3 @@ the number (ADR-0002).
   https://docs.tigerbeetle.com/reference/requests/query_transfers/,
   https://docs.tigerbeetle.com/reference/transfer/ (immutability, linked chains, timestamps),
   https://docs.tigerbeetle.com/reference/account/ (debits and credits volumes).
-- Formance Ledger v2 documentation: https://docs.formance.com/

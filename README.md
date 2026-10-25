@@ -1,10 +1,13 @@
 # tigerbeetle-platform
 
-An open-source platform that makes [TigerBeetle](https://tigerbeetle.com) approachable, in the
-spirit of what Formance built around its own ledger. A Go API exposes a Formance-style ledger
-(ledgers as namespaces, hierarchical account addresses, multi-posting transactions, metadata,
-holds) on top of TigerBeetle, Postgres keeps the metadata, and a web console sits on the API.
-A versioned posting-rule DSL that compiles to batches of linked transfers comes later.
+An open-source platform that makes [TigerBeetle](https://tigerbeetle.com) easier to work with.
+TigerBeetle is fast and strict because it is narrow: 128-bit IDs, fixed-shape accounts and
+transfers, no string keys and no metadata. Every team that adopts it ends up building the same
+layer around it. This project is that layer, with TigerBeetle still in charge of every balance.
+A Go API puts named ledgers, hierarchical account addresses, multi-posting transactions,
+metadata and holds on top of TigerBeetle's accounts, linked transfers and two-phase transfers,
+Postgres keeps that context, and a web console sits on the API. A versioned posting-rule DSL
+that compiles to batches of linked transfers comes later.
 
 **Status: pre-alpha.** The repository holds the project setup and a thin vertical slice:
 liveness, readiness and service-information endpoints, the generated server and client, and a

@@ -5,8 +5,9 @@ Date: 2026-10-24
 
 ## Context and Problem Statement
 
-Formance Ledger v2 has no notion of a hold: an authorisation that reserves funds now and settles
-later for the same or a smaller amount, or is cancelled. Payment flows need exactly that (card
+The transactions of ADR-0004 move money immediately and have no notion of a hold: an
+authorisation that reserves funds now and settles later for the same or a smaller amount, or is
+cancelled. Payment flows need exactly that (card
 authorisations, escrow, pre-paid bookings), and emulating it with two ordinary transactions
 through an intermediate account is fragile: the reservation and its settlement are separate
 writes, the "spendable" balance has to be recomputed by the caller, and nothing stops a double
@@ -15,8 +16,8 @@ settlement.
 TigerBeetle has this concept natively. A transfer created with the `pending` flag reserves the
 amount on both accounts without moving it, and is later resolved by exactly one follow-up
 transfer: `post_pending_transfer` to settle or `void_pending_transfer` to release. This ADR
-records that holds are our one deliberate extension beyond the Formance-style surface (ADR-0004)
-and defines how each hold operation maps onto TigerBeetle.
+records that the API exposes two-phase transfers as a holds resource next to the transactions of
+ADR-0004, and defines how each hold operation maps onto TigerBeetle.
 
 ## Decision Drivers
 
@@ -35,8 +36,8 @@ and defines how each hold operation maps onto TigerBeetle.
 2. Emulation with a per-account holding address (`users:1234:holds`) and two regular
    transactions. Rejected: no single-resolution guarantee, the spendable balance is a client-side
    subtraction, and the holding address pollutes account listings and aggregates.
-3. No holds at all, stay strictly Formance-style. Rejected: the first consumer of this platform is
-   a payments flow that cannot work without authorisations.
+3. No holds at all, keep the surface to immediate transactions. Rejected: the first consumer of
+   this platform is a payments flow that cannot work without authorisations.
 
 ## Decision Outcome
 
@@ -52,6 +53,7 @@ TigerBeetle transfer:
 | Void              | flag `void_pending_transfer`, same `pending_id`                                 | 0, which releases everything                                |
 
 Rules the service enforces on top:
+
 - One hold resolves exactly once. A partial capture posts the given amount and closes the hold;
   the uncaptured remainder goes back to the source. Capturing a hold in several instalments is
   not supported in this version. The known extension is a linked chain of
@@ -96,8 +98,9 @@ is answered by TigerBeetle with `pending_transfer_already_posted` or
 - Good: holds reuse the write path, reconciler and ID scheme of ADR-0007 with no new tables for
   money, only metadata rows.
 - Bad: one capture per hold. Instalment captures need the linked post plus new pending extension.
-- Bad: the API drifts from Formance here; the console and client must treat the holds resource as
-  ours, and the OpenAPI spec (ADR-0008) marks it as an extension.
+- Bad: holds are a second write resource next to transactions, with their own lifecycle
+  (pending, captured, voided, expired) that the console, the client and the OpenAPI spec
+  (ADR-0008) must model separately.
 - Bad: a hold's `timeout` cannot be extended after creation (transfers are immutable); extending
   means voiding and creating a new hold under a new Idempotency-Key.
 - Bad: `expired` is a derived status; a reader sees it only after the cluster has released the
@@ -107,8 +110,8 @@ is answered by TigerBeetle with `pending_transfer_already_posted` or
 
 - [ADR-0002](0002-tigerbeetle-source-of-truth-postgres-context.md): Postgres never stores
   a balance, so reserved amounts live in TigerBeetle too.
-- [ADR-0004](0004-formance-style-api-surface.md): the Formance-style surface this ADR extends,
-  and the Formance deltas (no client timestamps).
+- [ADR-0004](0004-ledger-api-surface.md): the transaction surface this ADR sits next to,
+  and the features it leaves out (no client timestamps).
 - [ADR-0005](0005-assets-on-postings-ledger-per-ledger-asset.md): one ledger number per
   (ledger, asset), so a hold and its resolution always share a ledger.
 - [ADR-0006](0006-lazy-account-creation-and-address-rules.md): one TigerBeetle account per (address,
