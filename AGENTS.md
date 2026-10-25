@@ -23,16 +23,20 @@ that makes the new one true.
   - `cmd/api/main.go`: entrypoint. `internal/bootstrap` wires everything by hand and runs the
     servers and workers. No DI framework, no globals, no `init()`.
   - `internal/kernel/ledger`: the shared kernel, pure types and rules, no I/O imports.
-  - `internal/app`: use cases; `ports.go` declares the interfaces they need.
-  - `internal/adapters/tigerbeetle`, `postgres`, `httpapi`: implement the ports. `httpapi/v1`
-    registers the REST operations on Huma with typed input and output structs (ADR-0018).
-    Generated code (sqlc) is in `gen` subpackages, committed, excluded from lint, never edited.
+  - `internal/modules/<module>`: one bounded context each, in layers `domain` (rules, the ports
+    infrastructure implements), `application` (commands and queries, exported as interfaces in
+    `usecases.go`; `ports.go` declares what it needs from other modules), `infrastructure`
+    (Postgres with its own sqlc queries in `postgres/queries`, TigerBeetle) and `interfaces`
+    (`dto`, `rest/v1`). `ledgers`: ledgers, account rules, event types. `bookkeeping`: accounts,
+    transactions, holds, write requests, the overview, the reconciler. `health`: liveness,
+    readiness and service information, an interfaces layer only. Generated code (sqlc) is in
+    `gen` subpackages, committed, excluded from lint, never edited.
+  - `internal/transport/rest` is the one list of REST operations, served by bootstrap.
   - `internal/platform`: config, logging, HTTP server lifecycle, the Postgres pool and the
     TigerBeetle client of the process, readiness probes, the Huma REST builder (`restapi`), the
     transport-neutral problem mapping, wire scalars and request IDs.
-  - `internal/modules/health`: liveness, readiness and service information, an interfaces layer
-    only. `internal/transport/rest` is the one list of REST operations, served by bootstrap.
-  - `migrations/` (goose, embedded), `queries/` (sqlc), `sqlc.yaml`. `cmd/openapi` writes the spec.
+  - `migrations/` (goose, embedded, one sequence), `sqlc.yaml` (one block per module).
+    `cmd/openapi` writes the spec.
 - `packages/openapi/openapi.yaml` is the contract, generated from the Go registrations by
   `cmd/openapi`; never edit it. `packages/api-client` is the orval client generated from it
   (`src/gen`, one module per tag, never edited) over a hand-written fetch layer in `src/client`
@@ -91,7 +95,8 @@ that makes the new one true.
 ## TigerBeetle rules
 
 - IDs come from the client's `ID()` helper (time-ordered), never from hashing. Convert with
-  `adapters/tigerbeetle/id.go` when storing in a uuid column (big-endian).
+  `modules/bookkeeping/infrastructure/tigerbeetle/id.go` when storing in a uuid column
+  (big-endian).
 - Source is the debit account, destination the credit account, balance is credits minus debits.
 - One API transaction is one linked chain; `user_data_128` carries the transaction ID; `code`
   carries the business event type.
@@ -102,9 +107,9 @@ that makes the new one true.
 
 - Every task is a `just` recipe at the root (ADR-0016); `just --list` shows them.
   `scripts/install-tools.sh` installs just and the Go tools at their pinned versions.
-- Adding an endpoint: implement the use case, register the operation with its input and output
-  structs in `httpapi/v1`, run `just generate` (spec, then client), add tests. Commit all of it
-  together; CONTRIBUTING.md lists the steps.
+- Adding an endpoint: implement the use case in the owning module, register the operation with
+  its input and output structs in the module's `interfaces/rest/v1`, run `just generate` (spec,
+  then client), add tests. Commit all of it together; CONTRIBUTING.md lists the steps.
 - Conventional Commits, small commits, each leaving `just lint`, `just test`, `just build` green.
 - `just generate` must produce no diff on a clean tree (`just generate-check`, which CI runs).
 - Pin everything: Go modules, npm packages, Docker tags, GitHub Actions by SHA, tool binaries in

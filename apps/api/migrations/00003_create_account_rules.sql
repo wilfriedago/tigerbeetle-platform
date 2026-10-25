@@ -1,3 +1,4 @@
+-- Owned by the ledgers module (internal/modules/ledgers, plan section 4.7).
 -- +goose Up
 -- Address-pattern rules decide the flags and code of new TigerBeetle accounts (ADR-0006). The
 -- built-in "*" and "world" rules exist in code; a stored row with the same pattern replaces them.

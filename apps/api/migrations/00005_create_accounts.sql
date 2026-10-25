@@ -1,3 +1,4 @@
+-- Owned by the bookkeeping module (internal/modules/bookkeeping, plan section 4.7).
 -- +goose Up
 -- An address is what clients name ("users:1234:wallet"); it carries metadata. The "C" collation
 -- makes comparisons bytewise, so a whole-segment prefix becomes the exact range

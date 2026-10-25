@@ -1,3 +1,4 @@
+-- Owned by the bookkeeping module (internal/modules/bookkeeping, plan section 4.7).
 -- +goose Up
 -- One TigerBeetle ledger number per (ledger, asset) pair (ADR-0005). TigerBeetle rejects a transfer
 -- between accounts with different numbers, so assets and namespaces cannot mix inside the cluster.

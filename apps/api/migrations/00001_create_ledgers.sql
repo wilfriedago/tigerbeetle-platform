@@ -1,3 +1,4 @@
+-- Owned by the ledgers module (internal/modules/ledgers, plan section 4.7).
 -- +goose Up
 -- A ledger is a namespace for accounts and transactions (ADR-0004). Postgres holds its name and
 -- metadata only; balances live in TigerBeetle (ADR-0002).

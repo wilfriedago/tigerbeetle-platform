@@ -6,16 +6,17 @@ package rest
 import (
 	"github.com/danielgtaylor/huma/v2"
 
-	v1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi/v1"
+	bookkeepingv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/rest/v1"
 	healthv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/rest/v1"
+	ledgersv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/rest/v1"
 )
 
 // Handlers holds what each module's operations call. cmd/openapi passes the zero value, because
 // registering an operation never calls a handler.
 type Handlers struct {
-	Health healthv1.Deps
-	// V1 serves the operations that have not moved into a module yet.
-	V1 v1.Deps
+	Health      healthv1.Deps
+	Ledgers     ledgersv1.Deps
+	Bookkeeping bookkeepingv1.Deps
 }
 
 // RegisterAll adds every REST operation.
@@ -32,5 +33,6 @@ func RegisterHealth(api huma.API, deps healthv1.Deps) {
 
 // RegisterModules adds the operations of the ledgers and bookkeeping modules.
 func RegisterModules(api huma.API, h Handlers) {
-	v1.Register(api, h.V1)
+	ledgersv1.Register(api, h.Ledgers)
+	bookkeepingv1.Register(api, h.Bookkeeping)
 }

@@ -1,3 +1,4 @@
+-- Owned by the bookkeeping module (internal/modules/bookkeeping, plan section 4.7).
 -- +goose Up
 -- Idempotency records (ADR-0007). A record is inserted pending, with every ID the write will use,
 -- before TigerBeetle is called, so a crash leaves evidence of which IDs were in flight and the

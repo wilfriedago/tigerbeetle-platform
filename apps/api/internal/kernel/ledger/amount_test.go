@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
-	"time"
 )
 
 func TestParseAmount(t *testing.T) {
@@ -77,30 +76,5 @@ func TestAmountJSONIsAString(t *testing.T) {
 	var in struct{ A Amount }
 	if err := json.Unmarshal([]byte(`{"A":"42"}`), &in); err != nil || in.A.String() != "42" {
 		t.Fatalf("unmarshal = %v, %v", in.A, err)
-	}
-}
-
-func TestHoldStatusAt(t *testing.T) {
-	t.Parallel()
-	created := time.Date(2026, 10, 24, 14, 0, 0, 0, time.UTC)
-	tests := []struct {
-		name    string
-		stored  HoldStatus
-		timeout uint32
-		now     time.Time
-		want    HoldStatus
-	}{
-		{name: "open before timeout", stored: HoldOpen, timeout: 60, now: created.Add(30 * time.Second), want: HoldOpen},
-		{name: "open after timeout", stored: HoldOpen, timeout: 60, now: created.Add(61 * time.Second), want: HoldExpired},
-		{name: "no timeout never expires", stored: HoldOpen, timeout: 0, now: created.Add(1000 * time.Hour), want: HoldOpen},
-		{name: "captured stays captured", stored: HoldCaptured, timeout: 60, now: created.Add(time.Hour), want: HoldCaptured},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			if got := HoldStatusAt(tt.stored, created, tt.timeout, tt.now); got != tt.want {
-				t.Fatalf("HoldStatusAt = %s, want %s", got, tt.want)
-			}
-		})
 	}
 }

@@ -72,30 +72,35 @@ Go-only recipes end in `-go` (`just lint-go`, `just test-go`), and plain `go tes
 The Go code is the source of the REST contract (ADR-0018): the spec and the TypeScript client are
 generated from it.
 
-1. Implement the use case in `apps/api/internal/app` against the ports in `ports.go`, adding to
-   a port or adapter only when the use case needs something new. Keep domain rules, validation
-   included, in `internal/kernel/ledger`.
-2. Register the operation in `apps/api/internal/adapters/httpapi/v1`, in the file of its tag:
+1. Find the module that owns the data (`ledgers` or `bookkeeping` in `apps/api/internal/modules`).
+   Implement the use case in its `application` package, on a command or query type, and export
+   its method on the interface in `usecases.go`. Use the module's domain ports, adding to a port
+   or its infrastructure only when the use case needs something new; ask another module through
+   an interface in `application/ports.go` that `internal/bootstrap` wires, never by importing it.
+   Keep rules, validation included, in the module's `domain` or in `internal/kernel/ledger` when
+   two modules share them.
+2. Register the operation in the module's `interfaces/rest/v1`, in the file of its tag:
    `restapi.Register` with the operationId, method, path, tag, summary, description and success
    response, and a handler from a typed input struct (path, query and header fields, `Body`) to
-   an output struct. Struct tags document constraints for the spec; Huma does not enforce them,
-   the domain does. Return errors as Go errors; `internal/platform/problem` maps them to
-   problem+json.
-3. Add the operationId to the `registered` table in `v1_test.go` and raise the operation count
-   in `cmd/openapi/main_test.go`.
+   an output struct; shared answer types go in `interfaces/dto`. Struct tags document constraints
+   for the spec; Huma does not enforce them, the domain does. Return errors as Go errors;
+   `internal/platform/problem` maps them to problem+json.
+3. Add the operationId to the `registered` table in `internal/transport/rest/register_test.go`
+   and raise the operation count in `cmd/openapi/main_test.go`.
 4. Run `just generate`: `cmd/openapi` rewrites `packages/openapi/openapi.yaml` and orval
    regenerates `packages/api-client/src/gen`. `just lint-spec` lints the spec and
    `just spec-diff` lists what changed against `main`; CI fails on a breaking change.
-5. Add tests: table-driven unit tests next to the code with in-memory fakes for the ports, an
-   `httptest` test for the handler, and an integration test (build tag `integration`) when an
-   adapter changed.
+5. Add tests: table-driven unit tests of the use case with hand-written fakes of the ports, an
+   `httptest` test of the handler with fakes of the use cases, and an integration test (build tag
+   `integration`) when infrastructure changed.
 6. In the console, call the generated function from the feature's `api.ts`.
 7. Commit the Go change, the regenerated spec and client, and the tests together.
 
 ## Database changes
 
 Add a goose migration in `apps/api/migrations` named `NNNNN_short_description.sql` with
-`-- +goose Up` and `-- +goose Down` sections, and the matching queries in `apps/api/queries`.
+`-- +goose Up` and `-- +goose Down` sections and a header comment naming the module that owns
+the table, and the matching queries in that module's `infrastructure/postgres/queries`.
 Run `just generate` to refresh the sqlc output. Migrations run at API startup when
 `MIGRATE_ON_START=true` (the compose stack sets it).
 

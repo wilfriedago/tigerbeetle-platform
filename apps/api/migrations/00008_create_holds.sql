@@ -1,3 +1,4 @@
+-- Owned by the bookkeeping module (internal/modules/bookkeeping, plan section 4.7).
 -- +goose Up
 -- Holds are TigerBeetle pending transfers (ADR-0010). The amounts live in TigerBeetle; this row holds
 -- the context and the resolution. Expired is derived at read time from created_at and the timeout,

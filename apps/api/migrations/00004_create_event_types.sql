@@ -1,3 +1,4 @@
+-- Owned by the ledgers module (internal/modules/ledgers, plan section 4.7).
 -- +goose Up
 -- Business event types and the TigerBeetle transfer code each one is written as (ADR-0007). The
 -- table is append-only: a code never changes meaning. Code 1 is the built-in "default" type.

@@ -102,37 +102,6 @@ func TestStoredRuleOverridesDefault(t *testing.T) {
 	}
 }
 
-func TestValidatePostings(t *testing.T) {
-	t.Parallel()
-	ok := Posting{Source: World, Destination: "users:1:wallet", Asset: Asset{Code: "EUR", Scale: 2}, Amount: AmountFromUint64(1)}
-	tests := []struct {
-		name     string
-		postings []Posting
-		wantErr  string
-	}{
-		{name: "one posting", postings: []Posting{ok}},
-		{name: "none", postings: nil, wantErr: "at least one"},
-		{name: "same account", postings: []Posting{{Source: "a", Destination: "a", Amount: AmountFromUint64(1)}}, wantErr: "two different accounts"},
-		{name: "zero amount", postings: []Posting{{Source: "a", Destination: "b"}}, wantErr: "greater than zero"},
-		{name: "too many", postings: make([]Posting, MaxPostings+1), wantErr: "at most 64"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			err := ValidatePostings(tt.postings)
-			if tt.wantErr == "" {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				return
-			}
-			if !errors.Is(err, ErrInvalid) || !strings.Contains(err.Error(), tt.wantErr) {
-				t.Fatalf("error = %v, want ErrInvalid containing %q", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestValidateMetadata(t *testing.T) {
 	t.Parallel()
 	if err := ValidateMetadata(map[string]string{"order_id": "ord_8812", "region": "eu-west"}); err != nil {
@@ -143,19 +112,5 @@ func TestValidateMetadata(t *testing.T) {
 	}
 	if err := ValidateMetadata(map[string]string{"k": strings.Repeat("v", MaxMetadataValueLength+1)}); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("long value: %v", err)
-	}
-}
-
-func TestValidateIdempotencyKey(t *testing.T) {
-	t.Parallel()
-	var p *Problem
-	if err := ValidateIdempotencyKey(""); !errors.As(err, &p) || p.Reason != "missing-idempotency-key" {
-		t.Fatalf("empty key: %v", err)
-	}
-	if err := ValidateIdempotencyKey("idem_7f3c9a12-4b0e"); err != nil {
-		t.Fatal(err)
-	}
-	if err := ValidateIdempotencyKey("has space"); !errors.Is(err, ErrInvalid) {
-		t.Fatalf("space: %v", err)
 	}
 }

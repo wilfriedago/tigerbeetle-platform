@@ -4,46 +4,61 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
+	bookkeepingpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure/postgres"
+	bookkeepingtb "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure/tigerbeetle"
+	ledgersapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/application"
+	ledgerspg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/infrastructure/postgres"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 )
 
-// modules holds the use cases, built in dependency order.
+// modules holds the use cases of every module.
 type modules struct {
-	ledgers      *app.Ledgers
-	settings     *app.Settings
-	accounts     *app.Accounts
-	transactions *app.Transactions
-	holds        *app.Holds
-	overview     *app.Overview
-	reconciler   *app.Reconciler
+	ledgers     ledgersapp.Application
+	bookkeeping bookkeepingapp.Application
 }
 
+// buildModules builds the use cases in dependency order (plan section 4.5). The modules depend on
+// each other in both directions, but no use case does: the ledgers queries bookkeeping needs read
+// only ledgers tables, and the bookkeeping queries ledgers needs read only bookkeeping tables. So
+// the directory and policies of ledgers come first, then bookkeeping, then the rest of ledgers,
+// which uses bookkeeping's footprint queries. Each value passed to a port that another module
+// declares is checked by the compiler on the line that passes it.
 func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options) modules {
-	metadata := postgres.New(r.db)
-	ledgerStore := tigerbeetle.NewStore(r.tigerbeetle)
-	clock := app.ClockFunc(time.Now)
-	tb := o.wrapLedgerStore(ledgerStore)
-	writes := app.TransactionsDeps{
-		Store:       metadata,
-		TigerBeetle: tb,
-		IDs:         ledgerStore,
-		Clock:       clock,
-		GracePeriod: cfg.ReconcilerGracePeriod,
-		Logger:      logger,
-	}
-	accounts := app.NewAccounts(metadata, metadata, metadata, tb, clock)
-	transactions := app.NewTransactions(writes)
-	holds := app.NewHolds(writes)
-	return modules{
-		ledgers:      app.NewLedgers(metadata, clock),
-		settings:     app.NewSettings(metadata, metadata, metadata, metadata, metadata, clock),
-		accounts:     accounts,
-		transactions: transactions,
-		holds:        holds,
-		overview:     app.NewOverview(metadata, accounts, tb, clock),
-		reconciler:   app.NewReconciler(metadata, transactions, holds, clock, cfg.ReconcilerGracePeriod, cfg.ReconcilerInterval, logger),
-	}
+	clock := ledger.ClockFunc(time.Now)
+
+	ledgerStore := ledgerspg.NewStore(r.db)
+	directory := ledgersapp.NewDirectory(ledgerStore)
+	policies := ledgersapp.NewPolicyQueries(ledgerStore, ledgerStore)
+
+	bookStore := bookkeepingpg.NewStore(r.db)
+	tbStore := bookkeepingtb.NewStore(r.tigerbeetle)
+	bk := bookkeepingapp.New(bookkeepingapp.Deps{
+		Accounts:           bookStore,
+		Writes:             bookStore,
+		Transactions:       bookStore,
+		Holds:              bookStore,
+		Ledger:             o.wrapLedgerStore(tbStore),
+		IDs:                tbStore,
+		Clock:              clock,
+		Ledgers:            directory,
+		Policies:           policies,
+		EventTypes:         policies,
+		GracePeriod:        cfg.ReconcilerGracePeriod,
+		ReconcilerInterval: cfg.ReconcilerInterval,
+		Logger:             logger,
+	})
+
+	lg := ledgersapp.New(ledgersapp.Deps{
+		Ledgers:    ledgerStore,
+		Rules:      ledgerStore,
+		EventTypes: ledgerStore,
+		Directory:  directory,
+		Footprints: bk.Footprints,
+		Usage:      bk.Footprints,
+		Addresses:  bk.Footprints,
+		Clock:      clock,
+	})
+	return modules{ledgers: lg, bookkeeping: bk}
 }

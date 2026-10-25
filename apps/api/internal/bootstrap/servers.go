@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	v1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi/v1"
+	bookkeepingv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/rest/v1"
 	healthv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/rest/v1"
+	ledgersv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/rest/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/httpserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
@@ -33,15 +34,25 @@ func httpHandler(r resources, m modules, cfg config.Config, svc Service, logger 
 		},
 	})
 	if cfg.RESTEnabled {
-		rest.RegisterModules(api, rest.Handlers{V1: v1.Deps{
-			Ledgers:      m.ledgers,
-			Settings:     m.settings,
-			Accounts:     m.accounts,
-			Transactions: m.transactions,
-			Holds:        m.holds,
-			Overview:     m.overview,
-			Reconciler:   m.reconciler,
-		}})
+		rest.RegisterModules(api, rest.Handlers{
+			Ledgers: ledgersv1.Deps{
+				LedgerCommands:   m.ledgers.LedgerCommands,
+				LedgerQueries:    m.ledgers.LedgerQueries,
+				SettingsCommands: m.ledgers.SettingsCommands,
+				SettingsQueries:  m.ledgers.SettingsQueries,
+			},
+			Bookkeeping: bookkeepingv1.Deps{
+				TransactionCommands: m.bookkeeping.TransactionCommands,
+				TransactionQueries:  m.bookkeeping.TransactionQueries,
+				HoldCommands:        m.bookkeeping.HoldCommands,
+				HoldQueries:         m.bookkeeping.HoldQueries,
+				AccountCommands:     m.bookkeeping.AccountCommands,
+				AccountQueries:      m.bookkeeping.AccountQueries,
+				RequestQueries:      m.bookkeeping.RequestQueries,
+				OverviewQueries:     m.bookkeeping.OverviewQueries,
+				Reconciler:          m.bookkeeping.Reconciler,
+			},
+		})
 	}
 	return restapi.Handler(mux, logger)
 }

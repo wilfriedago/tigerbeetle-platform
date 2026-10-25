@@ -1,3 +1,4 @@
+-- Owned by the bookkeeping module (internal/modules/bookkeeping, plan section 4.7).
 -- +goose Up
 -- Committed transactions and their context (ADR-0004, ADR-0007). Amounts are not stored: the API
 -- reads them from TigerBeetle with lookup_transfers on the leg IDs. committed_at is the TigerBeetle

@@ -16,22 +16,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/devstack"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 )
 
 // faultyLedger wraps the TigerBeetle port to simulate the two crash windows of ADR-0007: a
 // request lost before it reaches the cluster, and an answer lost after the chain landed.
 type faultyLedger struct {
-	app.LedgerStore
+	domain.LedgerStore
 	dropBefore atomic.Bool
 	dropAfter  atomic.Bool
 }
 
-func (f *faultyLedger) CreateTransfers(ctx context.Context, transfers []app.TransferSpec) ([]app.TransferOutcome, error) {
+func (f *faultyLedger) CreateTransfers(ctx context.Context, transfers []domain.TransferSpec) ([]domain.TransferOutcome, error) {
 	if f.dropBefore.CompareAndSwap(true, false) {
 		return nil, fmt.Errorf("simulated: %w", ledger.ErrUnavailable)
 	}
@@ -64,7 +64,7 @@ func newHarness(t *testing.T) *harness {
 	h := &harness{t: t}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	built, err := bootstrap.Build(context.Background(), cfg, bootstrap.Service{Name: serviceName, Version: version}, logger,
-		bootstrap.WithLedgerStore(func(s app.LedgerStore) app.LedgerStore {
+		bootstrap.WithLedgerStore(func(s domain.LedgerStore) domain.LedgerStore {
 			h.faults = &faultyLedger{LedgerStore: s}
 			return h.faults
 		}))

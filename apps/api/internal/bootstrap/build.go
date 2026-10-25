@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
+	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
 	healthv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/rest/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	platformpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres"
@@ -29,7 +29,7 @@ type Service struct {
 // App is the built application: its servers and workers, and the resources they share.
 type App struct {
 	handler    http.Handler
-	reconciler *app.Reconciler
+	reconciler *bookkeepingapp.Reconciler
 	runners    []Runner
 	// closers release the resources in construction order; close runs them in reverse.
 	closers []func()
@@ -59,7 +59,7 @@ func Build(ctx context.Context, cfg config.Config, svc Service, logger *slog.Log
 	}
 	m := buildModules(r, cfg, logger, o)
 	a.handler = httpHandler(r, m, cfg, svc, logger)
-	a.reconciler = m.reconciler
+	a.reconciler = m.bookkeeping.Reconciler
 	a.runners = runners(cfg, a, logger)
 	return a, nil
 }

@@ -1,23 +1,10 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/sqlc-dev/sqlc/v1.31.1/internal/config/v_two.json
 version: '2'
 sql:
-  - engine: postgresql
-    # sqlc reads the goose migrations as the schema and ignores the "+goose Down" sections.
-    schema: migrations
-    queries: queries
-    gen:
-      go:
-        package: gen
-        out: internal/adapters/postgres/gen
-        sql_package: pgx/v5
-        emit_json_tags: false
-        emit_pointers_for_null_types: true
-        emit_empty_slices: true
-        emit_methods_with_db_argument: false
-        # Type mapping: uuid columns (128-bit TigerBeetle IDs, ADR-0002) become pgtype.UUID and
-        # jsonb columns become []byte, both sqlc defaults for pgx/v5, so no overrides are needed.
   # One block per module (plan section 4.7): each reads the whole schema and only its own queries,
-  # which touch only the tables the module owns.
+  # which touch only the tables the module owns. sqlc reads the goose migrations as the schema and
+  # ignores the "+goose Down" sections. uuid columns (128-bit TigerBeetle IDs, ADR-0002) become
+  # pgtype.UUID and jsonb columns []byte, both sqlc defaults for pgx/v5, so no overrides are needed.
   - engine: postgresql
     schema: migrations
     queries: internal/modules/ledgers/infrastructure/postgres/queries
