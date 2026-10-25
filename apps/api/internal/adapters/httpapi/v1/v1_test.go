@@ -179,6 +179,13 @@ var registered = []struct {
 	{"getAccountHistory", http.MethodGet, "/v1/ledgers/{ledger}/accounts/{address}/history", "accounts"},
 	{"aggregateBalances", http.MethodGet, "/v1/ledgers/{ledger}/aggregate/balances", "accounts"},
 	{"listSegments", http.MethodGet, "/v1/ledgers/{ledger}/aggregate/segments", "accounts"},
+	{"listTransactions", http.MethodGet, "/v1/ledgers/{ledger}/transactions", "transactions"},
+	{"createTransaction", http.MethodPost, "/v1/ledgers/{ledger}/transactions", "transactions"},
+	{"getTransaction", http.MethodGet, "/v1/ledgers/{ledger}/transactions/{id}", "transactions"},
+	{"replaceTransactionMetadata", http.MethodPut, "/v1/ledgers/{ledger}/transactions/{id}/metadata", "transactions"},
+	{"revertTransaction", http.MethodPost, "/v1/ledgers/{ledger}/transactions/{id}/revert", "transactions"},
+	{"listWriteRequests", http.MethodGet, "/v1/ledgers/{ledger}/requests", "transactions"},
+	{"getWriteRequest", http.MethodGet, "/v1/ledgers/{ledger}/requests/{key}", "transactions"},
 }
 
 func TestOperationsAreRegistered(t *testing.T) {
@@ -203,5 +210,89 @@ func TestOperationsAreRegistered(t *testing.T) {
 	}
 	for extra := range found {
 		t.Errorf("unexpected operation %s", extra)
+	}
+}
+
+// problemBody is the problem+json members the tests compare.
+type problemBody struct {
+	Type    string `json:"type"`
+	Status  int    `json:"status"`
+	Detail  string `json:"detail"`
+	Posting *int   `json:"posting"`
+}
+
+func post(t *testing.T, h http.Handler, path, body string, headers map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+// TestWritesCheckTheRequestFirst covers the answers a write gives before it reaches a use case;
+// the use cases are nil, so reaching one would fail the test with a 500.
+func TestWritesCheckTheRequestFirst(t *testing.T) {
+	t.Parallel()
+	h, _ := newTestServer(t, Deps{})
+	posting := 1
+	tests := []struct {
+		name    string
+		path    string
+		body    string
+		key     string
+		want    problemBody
+		wantSub string
+	}{
+		{
+			name: "transaction without Idempotency-Key",
+			path: "/v1/ledgers/eu/transactions", body: `{"postings":[]}`,
+			want: problemBody{
+				Type: "/problems/missing-idempotency-key", Status: 400,
+				Detail: "every write that moves money requires an Idempotency-Key header; reuse it to retry safely",
+			},
+		},
+		{
+			name: "revert without Idempotency-Key and without body",
+			path: "/v1/ledgers/eu/transactions/0192f3a1b7c94e2a8d5f6c0b1e2d7c2e/revert",
+			want: problemBody{
+				Type: "/problems/missing-idempotency-key", Status: 400,
+				Detail: "every write that moves money requires an Idempotency-Key header; reuse it to retry safely",
+			},
+		},
+		{
+			name: "posting that does not parse names its index",
+			path: "/v1/ledgers/eu/transactions", key: "k1",
+			body: `{"postings":[{"source":"world","destination":"a","asset":"EUR/2","amount":"1"},` +
+				`{"source":"world","destination":"a b","asset":"EUR/2","amount":"1"}]}`,
+			want:    problemBody{Type: "/problems/invalid-request", Status: 400, Posting: &posting},
+			wantSub: "posting 2: ",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			headers := map[string]string{}
+			if tt.key != "" {
+				headers["Idempotency-Key"] = tt.key
+			}
+			rec := post(t, h, tt.path, tt.body, headers)
+			got := decode[problemBody](t, rec)
+			if rec.Code != tt.want.Status || got.Type != tt.want.Type {
+				t.Fatalf("status %d type %q, want %d %q: %s", rec.Code, got.Type, tt.want.Status, tt.want.Type, rec.Body.String())
+			}
+			if tt.wantSub != "" {
+				if !strings.HasPrefix(got.Detail, tt.wantSub) {
+					t.Errorf("detail = %q, want prefix %q", got.Detail, tt.wantSub)
+				}
+				got.Detail, tt.want.Detail = "", ""
+			}
+			if got.Detail != tt.want.Detail || (got.Posting == nil) != (tt.want.Posting == nil) ||
+				(got.Posting != nil && *got.Posting != *tt.want.Posting) {
+				t.Errorf("problem = %+v, want %+v", got, tt.want)
+			}
+		})
 	}
 }
