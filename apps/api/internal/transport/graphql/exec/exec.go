@@ -5,6 +5,7 @@ package exec
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -15,7 +16,12 @@ import (
 	"github.com/99designs/gqlgen/graphql/introspection"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
+	dto1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/dto"
+	graphql1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/graphql"
+	dto2 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/dto"
+	graphql2 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/graphql"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/graphqlschema"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
 
@@ -29,6 +35,8 @@ func NewExecutableSchema(cfg Config) graphql.ExecutableSchema {
 type Config = graphql.Config[ResolverRoot, DirectiveRoot, ComplexityRoot]
 
 type ResolverRoot interface {
+	Ledger() LedgerResolver
+	Mutation() MutationResolver
 	Query() QueryResolver
 }
 
@@ -36,6 +44,98 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Account struct {
+		Address   func(childComplexity int) int
+		Balances  func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
+		Metadata  func(childComplexity int) int
+		OpenHolds func(childComplexity int) int
+	}
+
+	AccountConnection struct {
+		Nodes    func(childComplexity int) int
+		PageInfo func(childComplexity int) int
+	}
+
+	AccountSummary struct {
+		Address   func(childComplexity int) int
+		Balances  func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
+		Metadata  func(childComplexity int) int
+	}
+
+	AggregateBalance struct {
+		Accounts  func(childComplexity int) int
+		Asset     func(childComplexity int) int
+		Available func(childComplexity int) int
+		Balance   func(childComplexity int) int
+		Incoming  func(childComplexity int) int
+		Reserved  func(childComplexity int) int
+	}
+
+	AggregateBalances struct {
+		Accounts func(childComplexity int) int
+		AsOf     func(childComplexity int) int
+		Assets   func(childComplexity int) int
+		Chunks   func(childComplexity int) int
+		Prefix   func(childComplexity int) int
+	}
+
+	AssetAmount struct {
+		Amount func(childComplexity int) int
+		Asset  func(childComplexity int) int
+	}
+
+	AssetBalance struct {
+		AccountID func(childComplexity int) int
+		Asset     func(childComplexity int) int
+		Available func(childComplexity int) int
+		Balance   func(childComplexity int) int
+		Code      func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
+		Credits   func(childComplexity int) int
+		Debits    func(childComplexity int) int
+		History   func(childComplexity int) int
+		Incoming  func(childComplexity int) int
+		Limit     func(childComplexity int) int
+		Reserved  func(childComplexity int) int
+		Rule      func(childComplexity int) int
+		TbLedger  func(childComplexity int) int
+	}
+
+	AssetSummary struct {
+		Accounts  func(childComplexity int) int
+		Asset     func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
+		Issued    func(childComplexity int) int
+		TbLedger  func(childComplexity int) int
+	}
+
+	BalanceHistory struct {
+		Address func(childComplexity int) int
+		Asset   func(childComplexity int) int
+		Data    func(childComplexity int) int
+	}
+
+	BalancePoint struct {
+		At        func(childComplexity int) int
+		Balance   func(childComplexity int) int
+		Credits   func(childComplexity int) int
+		Debits    func(childComplexity int) int
+		Reserved  func(childComplexity int) int
+		Timestamp func(childComplexity int) int
+	}
+
+	DeclinedReason struct {
+		Count  func(childComplexity int) int
+		Reason func(childComplexity int) int
+	}
+
+	DeclinedStats struct {
+		Reasons func(childComplexity int) int
+		Total   func(childComplexity int) int
+	}
+
 	Dependencies struct {
 		Postgres    func(childComplexity int) int
 		Tigerbeetle func(childComplexity int) int
@@ -47,6 +147,55 @@ type ComplexityRoot struct {
 		Status    func(childComplexity int) int
 	}
 
+	EventType struct {
+		BuiltIn      func(childComplexity int) int
+		Code         func(childComplexity int) int
+		CreatedAt    func(childComplexity int) int
+		Name         func(childComplexity int) int
+		Transactions func(childComplexity int) int
+	}
+
+	EventTypeRef struct {
+		Code func(childComplexity int) int
+		Name func(childComplexity int) int
+	}
+
+	Hold struct {
+		Amount               func(childComplexity int) int
+		Asset                func(childComplexity int) int
+		CapturedAmount       func(childComplexity int) int
+		CreatedAt            func(childComplexity int) int
+		Destination          func(childComplexity int) int
+		EventType            func(childComplexity int) int
+		ExpiresAt            func(childComplexity int) int
+		ID                   func(childComplexity int) int
+		IdempotencyKey       func(childComplexity int) int
+		Ledger               func(childComplexity int) int
+		Metadata             func(childComplexity int) int
+		PendingTransferID    func(childComplexity int) int
+		Reference            func(childComplexity int) int
+		ResolutionTransferID func(childComplexity int) int
+		ResolvedAt           func(childComplexity int) int
+		Source               func(childComplexity int) int
+		Status               func(childComplexity int) int
+		TbLedger             func(childComplexity int) int
+		TimeoutSeconds       func(childComplexity int) int
+		Timestamp            func(childComplexity int) int
+	}
+
+	HoldConnection struct {
+		Nodes    func(childComplexity int) int
+		PageInfo func(childComplexity int) int
+	}
+
+	HoldStats struct {
+		Captured func(childComplexity int) int
+		Expired  func(childComplexity int) int
+		Open     func(childComplexity int) int
+		Reserved func(childComplexity int) int
+		Voided   func(childComplexity int) int
+	}
+
 	Info struct {
 		Dependencies func(childComplexity int) int
 		Runtime      func(childComplexity int) int
@@ -54,8 +203,101 @@ type ComplexityRoot struct {
 		Version      func(childComplexity int) int
 	}
 
+	Ledger struct {
+		Account           func(childComplexity int, address string) int
+		AccountCount      func(childComplexity int) int
+		AccountHistory    func(childComplexity int, address string, asset string, limit *int) int
+		Accounts          func(childComplexity int, first *int, after *string, prefix *string, search *string, asset *string) int
+		AggregateBalances func(childComplexity int, address string) int
+		AssetCodes        func(childComplexity int) int
+		Assets            func(childComplexity int) int
+		CreatedAt         func(childComplexity int) int
+		EventTypes        func(childComplexity int) int
+		Hold              func(childComplexity int, id scalar.ID) int
+		HoldCounts        func(childComplexity int) int
+		Holds             func(childComplexity int, first *int, after *string, status *scalar.HoldStatus, address *string) int
+		Metadata          func(childComplexity int) int
+		Name              func(childComplexity int) int
+		Request           func(childComplexity int, key string) int
+		Requests          func(childComplexity int, first *int, after *string, status *scalar.RequestStatus, operation *scalar.Operation, search *string) int
+		RuleMatch         func(childComplexity int, address string) int
+		Rules             func(childComplexity int) int
+		Search            func(childComplexity int, q string) int
+		Segments          func(childComplexity int, prefix *string) int
+		Stats             func(childComplexity int) int
+		Transaction       func(childComplexity int, id scalar.ID) int
+		Transactions      func(childComplexity int, first *int, after *string, address *string, asset *string, reference *string, eventType *string, committedAfter *time.Time, committedBefore *time.Time) int
+	}
+
+	LedgerConnection struct {
+		Nodes    func(childComplexity int) int
+		PageInfo func(childComplexity int) int
+	}
+
+	LedgerStats struct {
+		Accounts      func(childComplexity int) int
+		AccountsToday func(childComplexity int) int
+		Assets        func(childComplexity int) int
+		Declined      func(childComplexity int) int
+		Holds         func(childComplexity int) int
+	}
+
+	Mutation struct {
+		CaptureHold                func(childComplexity int, input graphql1.CaptureHoldInput) int
+		CreateEventType            func(childComplexity int, input graphql2.CreateEventTypeInput) int
+		CreateHold                 func(childComplexity int, input graphql1.CreateHoldInput) int
+		CreateLedger               func(childComplexity int, input graphql2.CreateLedgerInput) int
+		CreateTransaction          func(childComplexity int, input graphql1.CreateTransactionInput) int
+		DeleteRule                 func(childComplexity int, input graphql2.DeleteRuleInput) int
+		PutRule                    func(childComplexity int, input graphql2.PutRuleInput) int
+		ReplaceAccountMetadata     func(childComplexity int, input graphql1.ReplaceAccountMetadataInput) int
+		ReplaceLedgerMetadata      func(childComplexity int, input graphql2.ReplaceLedgerMetadataInput) int
+		ReplaceTransactionMetadata func(childComplexity int, input graphql1.ReplaceTransactionMetadataInput) int
+		RevertTransaction          func(childComplexity int, input graphql1.RevertTransactionInput) int
+		VoidHold                   func(childComplexity int, input graphql1.VoidHoldInput) int
+	}
+
+	PageInfo struct {
+		EndCursor   func(childComplexity int) int
+		HasNextPage func(childComplexity int) int
+	}
+
+	PostingRecord struct {
+		Amount      func(childComplexity int) int
+		Asset       func(childComplexity int) int
+		Destination func(childComplexity int) int
+		Source      func(childComplexity int) int
+		TbLedger    func(childComplexity int) int
+		TransferID  func(childComplexity int) int
+	}
+
 	Query struct {
+		Ledger      func(childComplexity int, name string) int
+		Ledgers     func(childComplexity int, first *int, after *string) int
 		ServiceInfo func(childComplexity int) int
+	}
+
+	Rule struct {
+		BuiltIn   func(childComplexity int) int
+		Code      func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
+		History   func(childComplexity int) int
+		Limit     func(childComplexity int) int
+		Pattern   func(childComplexity int) int
+		Segments  func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
+	}
+
+	RuleCandidate struct {
+		Matches func(childComplexity int) int
+		Rule    func(childComplexity int) int
+	}
+
+	RuleMatch struct {
+		Address    func(childComplexity int) int
+		Candidates func(childComplexity int) int
+		Existing   func(childComplexity int) int
+		Rule       func(childComplexity int) int
 	}
 
 	Runtime struct {
@@ -66,14 +308,146 @@ type ComplexityRoot struct {
 		TigerbeetleClientVersion func(childComplexity int) int
 		TigerbeetleClusterID     func(childComplexity int) int
 	}
+
+	SearchAccount struct {
+		Address func(childComplexity int) int
+		Assets  func(childComplexity int) int
+	}
+
+	SearchHold struct {
+		ID     func(childComplexity int) int
+		Status func(childComplexity int) int
+	}
+
+	SearchRequest struct {
+		Key       func(childComplexity int) int
+		Operation func(childComplexity int) int
+		Status    func(childComplexity int) int
+	}
+
+	SearchResults struct {
+		Accounts     func(childComplexity int) int
+		Holds        func(childComplexity int) int
+		Query        func(childComplexity int) int
+		Requests     func(childComplexity int) int
+		Transactions func(childComplexity int) int
+	}
+
+	SearchTransaction struct {
+		CommittedAt func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Reference   func(childComplexity int) int
+	}
+
+	Segment struct {
+		Accounts    func(childComplexity int) int
+		Assets      func(childComplexity int) int
+		HasChildren func(childComplexity int) int
+		IsAccount   func(childComplexity int) int
+		Prefix      func(childComplexity int) int
+		Segment     func(childComplexity int) int
+	}
+
+	Transaction struct {
+		BusinessTime   func(childComplexity int) int
+		CommittedAt    func(childComplexity int) int
+		EventType      func(childComplexity int) int
+		ID             func(childComplexity int) int
+		IdempotencyKey func(childComplexity int) int
+		Ledger         func(childComplexity int) int
+		Metadata       func(childComplexity int) int
+		Postings       func(childComplexity int) int
+		Reference      func(childComplexity int) int
+		RequestID      func(childComplexity int) int
+		RevertedBy     func(childComplexity int) int
+		Reverts        func(childComplexity int) int
+		Timestamp      func(childComplexity int) int
+	}
+
+	TransactionConnection struct {
+		Nodes    func(childComplexity int) int
+		PageInfo func(childComplexity int) int
+	}
+
+	WriteRequest struct {
+		Attempts       func(childComplexity int) int
+		BodyHash       func(childComplexity int) int
+		CreatedAt      func(childComplexity int) int
+		Key            func(childComplexity int) int
+		Operation      func(childComplexity int) int
+		ProblemType    func(childComplexity int) int
+		RequestID      func(childComplexity int) int
+		ResolvedAt     func(childComplexity int) int
+		ResponseStatus func(childComplexity int) int
+		Status         func(childComplexity int) int
+		TargetID       func(childComplexity int) int
+	}
+
+	WriteRequestConnection struct {
+		Nodes    func(childComplexity int) int
+		PageInfo func(childComplexity int) int
+	}
+
+	WriteRequestDetail struct {
+		Attempts       func(childComplexity int) int
+		BodyHash       func(childComplexity int) int
+		CreatedAt      func(childComplexity int) int
+		Key            func(childComplexity int) int
+		Operation      func(childComplexity int) int
+		ProblemType    func(childComplexity int) int
+		Request        func(childComplexity int) int
+		RequestID      func(childComplexity int) int
+		ResolvedAt     func(childComplexity int) int
+		Response       func(childComplexity int) int
+		ResponseStatus func(childComplexity int) int
+		Status         func(childComplexity int) int
+		TargetID       func(childComplexity int) int
+		TransferIDs    func(childComplexity int) int
+	}
 }
 
 // endregion ***************************** api!.gotpl *****************************
 
 // region    ************************** generated!.gotpl **************************
 
+type LedgerResolver interface {
+	Rules(ctx context.Context, obj *graphql2.Ledger) ([]dto.Rule, error)
+	RuleMatch(ctx context.Context, obj *graphql2.Ledger, address string) (*dto.RuleMatch, error)
+	EventTypes(ctx context.Context, obj *graphql2.Ledger) ([]dto.EventType, error)
+	Assets(ctx context.Context, obj *graphql2.Ledger) ([]dto1.AssetSummary, error)
+	Stats(ctx context.Context, obj *graphql2.Ledger) (*dto1.LedgerStats, error)
+	Accounts(ctx context.Context, obj *graphql2.Ledger, first *int, after *string, prefix *string, search *string, asset *string) (*graphql1.AccountConnection, error)
+	Account(ctx context.Context, obj *graphql2.Ledger, address string) (*dto1.Account, error)
+	AccountHistory(ctx context.Context, obj *graphql2.Ledger, address string, asset string, limit *int) (*dto1.BalanceHistory, error)
+	Segments(ctx context.Context, obj *graphql2.Ledger, prefix *string) ([]dto1.Segment, error)
+	AggregateBalances(ctx context.Context, obj *graphql2.Ledger, address string) (*dto1.AggregateBalances, error)
+	Transactions(ctx context.Context, obj *graphql2.Ledger, first *int, after *string, address *string, asset *string, reference *string, eventType *string, committedAfter *time.Time, committedBefore *time.Time) (*graphql1.TransactionConnection, error)
+	Transaction(ctx context.Context, obj *graphql2.Ledger, id scalar.ID) (*dto1.Transaction, error)
+	Holds(ctx context.Context, obj *graphql2.Ledger, first *int, after *string, status *scalar.HoldStatus, address *string) (*graphql1.HoldConnection, error)
+	HoldCounts(ctx context.Context, obj *graphql2.Ledger) (*dto1.HoldStats, error)
+	Hold(ctx context.Context, obj *graphql2.Ledger, id scalar.ID) (*dto1.Hold, error)
+	Requests(ctx context.Context, obj *graphql2.Ledger, first *int, after *string, status *scalar.RequestStatus, operation *scalar.Operation, search *string) (*graphql1.WriteRequestConnection, error)
+	Request(ctx context.Context, obj *graphql2.Ledger, key string) (*dto1.WriteRequestDetail, error)
+	Search(ctx context.Context, obj *graphql2.Ledger, q string) (*dto1.SearchResults, error)
+}
+type MutationResolver interface {
+	CreateLedger(ctx context.Context, input graphql2.CreateLedgerInput) (*graphql2.Ledger, error)
+	ReplaceLedgerMetadata(ctx context.Context, input graphql2.ReplaceLedgerMetadataInput) (*graphql2.Ledger, error)
+	PutRule(ctx context.Context, input graphql2.PutRuleInput) (*dto.Rule, error)
+	DeleteRule(ctx context.Context, input graphql2.DeleteRuleInput) (bool, error)
+	CreateEventType(ctx context.Context, input graphql2.CreateEventTypeInput) (*dto.EventType, error)
+	CreateTransaction(ctx context.Context, input graphql1.CreateTransactionInput) (*dto1.Transaction, error)
+	RevertTransaction(ctx context.Context, input graphql1.RevertTransactionInput) (*dto1.Transaction, error)
+	ReplaceTransactionMetadata(ctx context.Context, input graphql1.ReplaceTransactionMetadataInput) (*dto1.Transaction, error)
+	CreateHold(ctx context.Context, input graphql1.CreateHoldInput) (*dto1.Hold, error)
+	CaptureHold(ctx context.Context, input graphql1.CaptureHoldInput) (*dto1.Hold, error)
+	VoidHold(ctx context.Context, input graphql1.VoidHoldInput) (*dto1.Hold, error)
+	ReplaceAccountMetadata(ctx context.Context, input graphql1.ReplaceAccountMetadataInput) (*dto1.Account, error)
+}
 type QueryResolver interface {
-	ServiceInfo(ctx context.Context) (*dto.Info, error)
+	ServiceInfo(ctx context.Context) (*dto2.Info, error)
+	Ledger(ctx context.Context, name string) (*graphql2.Ledger, error)
+	Ledgers(ctx context.Context, first *int, after *string) (*graphql2.LedgerConnection, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -93,6 +467,354 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	ec := newExecutionContext(nil, e, nil)
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Account.address":
+		if e.ComplexityRoot.Account.Address == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Account.Address(childComplexity), true
+	case "Account.balances":
+		if e.ComplexityRoot.Account.Balances == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Account.Balances(childComplexity), true
+	case "Account.createdAt":
+		if e.ComplexityRoot.Account.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Account.CreatedAt(childComplexity), true
+	case "Account.metadata":
+		if e.ComplexityRoot.Account.Metadata == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Account.Metadata(childComplexity), true
+	case "Account.openHolds":
+		if e.ComplexityRoot.Account.OpenHolds == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Account.OpenHolds(childComplexity), true
+
+	case "AccountConnection.nodes":
+		if e.ComplexityRoot.AccountConnection.Nodes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AccountConnection.Nodes(childComplexity), true
+	case "AccountConnection.pageInfo":
+		if e.ComplexityRoot.AccountConnection.PageInfo == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AccountConnection.PageInfo(childComplexity), true
+
+	case "AccountSummary.address":
+		if e.ComplexityRoot.AccountSummary.Address == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AccountSummary.Address(childComplexity), true
+	case "AccountSummary.balances":
+		if e.ComplexityRoot.AccountSummary.Balances == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AccountSummary.Balances(childComplexity), true
+	case "AccountSummary.createdAt":
+		if e.ComplexityRoot.AccountSummary.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AccountSummary.CreatedAt(childComplexity), true
+	case "AccountSummary.metadata":
+		if e.ComplexityRoot.AccountSummary.Metadata == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AccountSummary.Metadata(childComplexity), true
+
+	case "AggregateBalance.accounts":
+		if e.ComplexityRoot.AggregateBalance.Accounts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AggregateBalance.Accounts(childComplexity), true
+	case "AggregateBalance.asset":
+		if e.ComplexityRoot.AggregateBalance.Asset == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AggregateBalance.Asset(childComplexity), true
+	case "AggregateBalance.available":
+		if e.ComplexityRoot.AggregateBalance.Available == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AggregateBalance.Available(childComplexity), true
+	case "AggregateBalance.balance":
+		if e.ComplexityRoot.AggregateBalance.Balance == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AggregateBalance.Balance(childComplexity), true
+	case "AggregateBalance.incoming":
+		if e.ComplexityRoot.AggregateBalance.Incoming == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AggregateBalance.Incoming(childComplexity), true
+	case "AggregateBalance.reserved":
+		if e.ComplexityRoot.AggregateBalance.Reserved == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AggregateBalance.Reserved(childComplexity), true
+
+	case "AggregateBalances.accounts":
+		if e.ComplexityRoot.AggregateBalances.Accounts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AggregateBalances.Accounts(childComplexity), true
+	case "AggregateBalances.asOf":
+		if e.ComplexityRoot.AggregateBalances.AsOf == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AggregateBalances.AsOf(childComplexity), true
+	case "AggregateBalances.assets":
+		if e.ComplexityRoot.AggregateBalances.Assets == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AggregateBalances.Assets(childComplexity), true
+	case "AggregateBalances.chunks":
+		if e.ComplexityRoot.AggregateBalances.Chunks == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AggregateBalances.Chunks(childComplexity), true
+	case "AggregateBalances.prefix":
+		if e.ComplexityRoot.AggregateBalances.Prefix == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AggregateBalances.Prefix(childComplexity), true
+
+	case "AssetAmount.amount":
+		if e.ComplexityRoot.AssetAmount.Amount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetAmount.Amount(childComplexity), true
+	case "AssetAmount.asset":
+		if e.ComplexityRoot.AssetAmount.Asset == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetAmount.Asset(childComplexity), true
+
+	case "AssetBalance.accountId":
+		if e.ComplexityRoot.AssetBalance.AccountID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.AccountID(childComplexity), true
+	case "AssetBalance.asset":
+		if e.ComplexityRoot.AssetBalance.Asset == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.Asset(childComplexity), true
+	case "AssetBalance.available":
+		if e.ComplexityRoot.AssetBalance.Available == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.Available(childComplexity), true
+	case "AssetBalance.balance":
+		if e.ComplexityRoot.AssetBalance.Balance == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.Balance(childComplexity), true
+	case "AssetBalance.code":
+		if e.ComplexityRoot.AssetBalance.Code == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.Code(childComplexity), true
+	case "AssetBalance.createdAt":
+		if e.ComplexityRoot.AssetBalance.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.CreatedAt(childComplexity), true
+	case "AssetBalance.credits":
+		if e.ComplexityRoot.AssetBalance.Credits == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.Credits(childComplexity), true
+	case "AssetBalance.debits":
+		if e.ComplexityRoot.AssetBalance.Debits == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.Debits(childComplexity), true
+	case "AssetBalance.history":
+		if e.ComplexityRoot.AssetBalance.History == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.History(childComplexity), true
+	case "AssetBalance.incoming":
+		if e.ComplexityRoot.AssetBalance.Incoming == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.Incoming(childComplexity), true
+	case "AssetBalance.limit":
+		if e.ComplexityRoot.AssetBalance.Limit == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.Limit(childComplexity), true
+	case "AssetBalance.reserved":
+		if e.ComplexityRoot.AssetBalance.Reserved == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.Reserved(childComplexity), true
+	case "AssetBalance.rule":
+		if e.ComplexityRoot.AssetBalance.Rule == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.Rule(childComplexity), true
+	case "AssetBalance.tbLedger":
+		if e.ComplexityRoot.AssetBalance.TbLedger == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetBalance.TbLedger(childComplexity), true
+
+	case "AssetSummary.accounts":
+		if e.ComplexityRoot.AssetSummary.Accounts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetSummary.Accounts(childComplexity), true
+	case "AssetSummary.asset":
+		if e.ComplexityRoot.AssetSummary.Asset == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetSummary.Asset(childComplexity), true
+	case "AssetSummary.createdAt":
+		if e.ComplexityRoot.AssetSummary.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetSummary.CreatedAt(childComplexity), true
+	case "AssetSummary.issued":
+		if e.ComplexityRoot.AssetSummary.Issued == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetSummary.Issued(childComplexity), true
+	case "AssetSummary.tbLedger":
+		if e.ComplexityRoot.AssetSummary.TbLedger == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AssetSummary.TbLedger(childComplexity), true
+
+	case "BalanceHistory.address":
+		if e.ComplexityRoot.BalanceHistory.Address == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BalanceHistory.Address(childComplexity), true
+	case "BalanceHistory.asset":
+		if e.ComplexityRoot.BalanceHistory.Asset == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BalanceHistory.Asset(childComplexity), true
+	case "BalanceHistory.data":
+		if e.ComplexityRoot.BalanceHistory.Data == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BalanceHistory.Data(childComplexity), true
+
+	case "BalancePoint.at":
+		if e.ComplexityRoot.BalancePoint.At == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BalancePoint.At(childComplexity), true
+	case "BalancePoint.balance":
+		if e.ComplexityRoot.BalancePoint.Balance == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BalancePoint.Balance(childComplexity), true
+	case "BalancePoint.credits":
+		if e.ComplexityRoot.BalancePoint.Credits == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BalancePoint.Credits(childComplexity), true
+	case "BalancePoint.debits":
+		if e.ComplexityRoot.BalancePoint.Debits == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BalancePoint.Debits(childComplexity), true
+	case "BalancePoint.reserved":
+		if e.ComplexityRoot.BalancePoint.Reserved == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BalancePoint.Reserved(childComplexity), true
+	case "BalancePoint.timestamp":
+		if e.ComplexityRoot.BalancePoint.Timestamp == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BalancePoint.Timestamp(childComplexity), true
+
+	case "DeclinedReason.count":
+		if e.ComplexityRoot.DeclinedReason.Count == nil {
+			break
+		}
+
+		return e.ComplexityRoot.DeclinedReason.Count(childComplexity), true
+	case "DeclinedReason.reason":
+		if e.ComplexityRoot.DeclinedReason.Reason == nil {
+			break
+		}
+
+		return e.ComplexityRoot.DeclinedReason.Reason(childComplexity), true
+
+	case "DeclinedStats.reasons":
+		if e.ComplexityRoot.DeclinedStats.Reasons == nil {
+			break
+		}
+
+		return e.ComplexityRoot.DeclinedStats.Reasons(childComplexity), true
+	case "DeclinedStats.total":
+		if e.ComplexityRoot.DeclinedStats.Total == nil {
+			break
+		}
+
+		return e.ComplexityRoot.DeclinedStats.Total(childComplexity), true
 
 	case "Dependencies.postgres":
 		if e.ComplexityRoot.Dependencies.Postgres == nil {
@@ -126,6 +848,215 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.DependencyCheck.Status(childComplexity), true
 
+	case "EventType.builtIn":
+		if e.ComplexityRoot.EventType.BuiltIn == nil {
+			break
+		}
+
+		return e.ComplexityRoot.EventType.BuiltIn(childComplexity), true
+	case "EventType.code":
+		if e.ComplexityRoot.EventType.Code == nil {
+			break
+		}
+
+		return e.ComplexityRoot.EventType.Code(childComplexity), true
+	case "EventType.createdAt":
+		if e.ComplexityRoot.EventType.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.EventType.CreatedAt(childComplexity), true
+	case "EventType.name":
+		if e.ComplexityRoot.EventType.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.EventType.Name(childComplexity), true
+	case "EventType.transactions":
+		if e.ComplexityRoot.EventType.Transactions == nil {
+			break
+		}
+
+		return e.ComplexityRoot.EventType.Transactions(childComplexity), true
+
+	case "EventTypeRef.code":
+		if e.ComplexityRoot.EventTypeRef.Code == nil {
+			break
+		}
+
+		return e.ComplexityRoot.EventTypeRef.Code(childComplexity), true
+	case "EventTypeRef.name":
+		if e.ComplexityRoot.EventTypeRef.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.EventTypeRef.Name(childComplexity), true
+
+	case "Hold.amount":
+		if e.ComplexityRoot.Hold.Amount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.Amount(childComplexity), true
+	case "Hold.asset":
+		if e.ComplexityRoot.Hold.Asset == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.Asset(childComplexity), true
+	case "Hold.capturedAmount":
+		if e.ComplexityRoot.Hold.CapturedAmount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.CapturedAmount(childComplexity), true
+	case "Hold.createdAt":
+		if e.ComplexityRoot.Hold.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.CreatedAt(childComplexity), true
+	case "Hold.destination":
+		if e.ComplexityRoot.Hold.Destination == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.Destination(childComplexity), true
+	case "Hold.eventType":
+		if e.ComplexityRoot.Hold.EventType == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.EventType(childComplexity), true
+	case "Hold.expiresAt":
+		if e.ComplexityRoot.Hold.ExpiresAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.ExpiresAt(childComplexity), true
+	case "Hold.id":
+		if e.ComplexityRoot.Hold.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.ID(childComplexity), true
+	case "Hold.idempotencyKey":
+		if e.ComplexityRoot.Hold.IdempotencyKey == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.IdempotencyKey(childComplexity), true
+	case "Hold.ledger":
+		if e.ComplexityRoot.Hold.Ledger == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.Ledger(childComplexity), true
+	case "Hold.metadata":
+		if e.ComplexityRoot.Hold.Metadata == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.Metadata(childComplexity), true
+	case "Hold.pendingTransferId":
+		if e.ComplexityRoot.Hold.PendingTransferID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.PendingTransferID(childComplexity), true
+	case "Hold.reference":
+		if e.ComplexityRoot.Hold.Reference == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.Reference(childComplexity), true
+	case "Hold.resolutionTransferId":
+		if e.ComplexityRoot.Hold.ResolutionTransferID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.ResolutionTransferID(childComplexity), true
+	case "Hold.resolvedAt":
+		if e.ComplexityRoot.Hold.ResolvedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.ResolvedAt(childComplexity), true
+	case "Hold.source":
+		if e.ComplexityRoot.Hold.Source == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.Source(childComplexity), true
+	case "Hold.status":
+		if e.ComplexityRoot.Hold.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.Status(childComplexity), true
+	case "Hold.tbLedger":
+		if e.ComplexityRoot.Hold.TbLedger == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.TbLedger(childComplexity), true
+	case "Hold.timeoutSeconds":
+		if e.ComplexityRoot.Hold.TimeoutSeconds == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.TimeoutSeconds(childComplexity), true
+	case "Hold.timestamp":
+		if e.ComplexityRoot.Hold.Timestamp == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Hold.Timestamp(childComplexity), true
+
+	case "HoldConnection.nodes":
+		if e.ComplexityRoot.HoldConnection.Nodes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.HoldConnection.Nodes(childComplexity), true
+	case "HoldConnection.pageInfo":
+		if e.ComplexityRoot.HoldConnection.PageInfo == nil {
+			break
+		}
+
+		return e.ComplexityRoot.HoldConnection.PageInfo(childComplexity), true
+
+	case "HoldStats.captured":
+		if e.ComplexityRoot.HoldStats.Captured == nil {
+			break
+		}
+
+		return e.ComplexityRoot.HoldStats.Captured(childComplexity), true
+	case "HoldStats.expired":
+		if e.ComplexityRoot.HoldStats.Expired == nil {
+			break
+		}
+
+		return e.ComplexityRoot.HoldStats.Expired(childComplexity), true
+	case "HoldStats.open":
+		if e.ComplexityRoot.HoldStats.Open == nil {
+			break
+		}
+
+		return e.ComplexityRoot.HoldStats.Open(childComplexity), true
+	case "HoldStats.reserved":
+		if e.ComplexityRoot.HoldStats.Reserved == nil {
+			break
+		}
+
+		return e.ComplexityRoot.HoldStats.Reserved(childComplexity), true
+	case "HoldStats.voided":
+		if e.ComplexityRoot.HoldStats.Voided == nil {
+			break
+		}
+
+		return e.ComplexityRoot.HoldStats.Voided(childComplexity), true
+
 	case "Info.dependencies":
 		if e.ComplexityRoot.Info.Dependencies == nil {
 			break
@@ -151,12 +1082,552 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Info.Version(childComplexity), true
 
+	case "Ledger.account":
+		if e.ComplexityRoot.Ledger.Account == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_account_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.Account(childComplexity, args["address"].(string)), true
+	case "Ledger.accountCount":
+		if e.ComplexityRoot.Ledger.AccountCount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ledger.AccountCount(childComplexity), true
+	case "Ledger.accountHistory":
+		if e.ComplexityRoot.Ledger.AccountHistory == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_accountHistory_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.AccountHistory(childComplexity, args["address"].(string), args["asset"].(string), args["limit"].(*int)), true
+	case "Ledger.accounts":
+		if e.ComplexityRoot.Ledger.Accounts == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_accounts_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.Accounts(childComplexity, args["first"].(*int), args["after"].(*string), args["prefix"].(*string), args["search"].(*string), args["asset"].(*string)), true
+	case "Ledger.aggregateBalances":
+		if e.ComplexityRoot.Ledger.AggregateBalances == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_aggregateBalances_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.AggregateBalances(childComplexity, args["address"].(string)), true
+	case "Ledger.assetCodes":
+		if e.ComplexityRoot.Ledger.AssetCodes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ledger.AssetCodes(childComplexity), true
+	case "Ledger.assets":
+		if e.ComplexityRoot.Ledger.Assets == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ledger.Assets(childComplexity), true
+	case "Ledger.createdAt":
+		if e.ComplexityRoot.Ledger.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ledger.CreatedAt(childComplexity), true
+	case "Ledger.eventTypes":
+		if e.ComplexityRoot.Ledger.EventTypes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ledger.EventTypes(childComplexity), true
+	case "Ledger.hold":
+		if e.ComplexityRoot.Ledger.Hold == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_hold_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.Hold(childComplexity, args["id"].(scalar.ID)), true
+	case "Ledger.holdCounts":
+		if e.ComplexityRoot.Ledger.HoldCounts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ledger.HoldCounts(childComplexity), true
+	case "Ledger.holds":
+		if e.ComplexityRoot.Ledger.Holds == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_holds_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.Holds(childComplexity, args["first"].(*int), args["after"].(*string), args["status"].(*scalar.HoldStatus), args["address"].(*string)), true
+	case "Ledger.metadata":
+		if e.ComplexityRoot.Ledger.Metadata == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ledger.Metadata(childComplexity), true
+	case "Ledger.name":
+		if e.ComplexityRoot.Ledger.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ledger.Name(childComplexity), true
+	case "Ledger.request":
+		if e.ComplexityRoot.Ledger.Request == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_request_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.Request(childComplexity, args["key"].(string)), true
+	case "Ledger.requests":
+		if e.ComplexityRoot.Ledger.Requests == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_requests_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.Requests(childComplexity, args["first"].(*int), args["after"].(*string), args["status"].(*scalar.RequestStatus), args["operation"].(*scalar.Operation), args["search"].(*string)), true
+	case "Ledger.ruleMatch":
+		if e.ComplexityRoot.Ledger.RuleMatch == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_ruleMatch_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.RuleMatch(childComplexity, args["address"].(string)), true
+	case "Ledger.rules":
+		if e.ComplexityRoot.Ledger.Rules == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ledger.Rules(childComplexity), true
+	case "Ledger.search":
+		if e.ComplexityRoot.Ledger.Search == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_search_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.Search(childComplexity, args["q"].(string)), true
+	case "Ledger.segments":
+		if e.ComplexityRoot.Ledger.Segments == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_segments_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.Segments(childComplexity, args["prefix"].(*string)), true
+	case "Ledger.stats":
+		if e.ComplexityRoot.Ledger.Stats == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ledger.Stats(childComplexity), true
+	case "Ledger.transaction":
+		if e.ComplexityRoot.Ledger.Transaction == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_transaction_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.Transaction(childComplexity, args["id"].(scalar.ID)), true
+	case "Ledger.transactions":
+		if e.ComplexityRoot.Ledger.Transactions == nil {
+			break
+		}
+
+		args, err := ec.field_Ledger_transactions_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Ledger.Transactions(childComplexity, args["first"].(*int), args["after"].(*string), args["address"].(*string), args["asset"].(*string), args["reference"].(*string), args["eventType"].(*string), args["committedAfter"].(*time.Time), args["committedBefore"].(*time.Time)), true
+
+	case "LedgerConnection.nodes":
+		if e.ComplexityRoot.LedgerConnection.Nodes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerConnection.Nodes(childComplexity), true
+	case "LedgerConnection.pageInfo":
+		if e.ComplexityRoot.LedgerConnection.PageInfo == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerConnection.PageInfo(childComplexity), true
+
+	case "LedgerStats.accounts":
+		if e.ComplexityRoot.LedgerStats.Accounts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerStats.Accounts(childComplexity), true
+	case "LedgerStats.accountsToday":
+		if e.ComplexityRoot.LedgerStats.AccountsToday == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerStats.AccountsToday(childComplexity), true
+	case "LedgerStats.assets":
+		if e.ComplexityRoot.LedgerStats.Assets == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerStats.Assets(childComplexity), true
+	case "LedgerStats.declined":
+		if e.ComplexityRoot.LedgerStats.Declined == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerStats.Declined(childComplexity), true
+	case "LedgerStats.holds":
+		if e.ComplexityRoot.LedgerStats.Holds == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerStats.Holds(childComplexity), true
+
+	case "Mutation.captureHold":
+		if e.ComplexityRoot.Mutation.CaptureHold == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_captureHold_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CaptureHold(childComplexity, args["input"].(graphql1.CaptureHoldInput)), true
+	case "Mutation.createEventType":
+		if e.ComplexityRoot.Mutation.CreateEventType == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createEventType_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateEventType(childComplexity, args["input"].(graphql2.CreateEventTypeInput)), true
+	case "Mutation.createHold":
+		if e.ComplexityRoot.Mutation.CreateHold == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createHold_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateHold(childComplexity, args["input"].(graphql1.CreateHoldInput)), true
+	case "Mutation.createLedger":
+		if e.ComplexityRoot.Mutation.CreateLedger == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createLedger_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateLedger(childComplexity, args["input"].(graphql2.CreateLedgerInput)), true
+	case "Mutation.createTransaction":
+		if e.ComplexityRoot.Mutation.CreateTransaction == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createTransaction_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateTransaction(childComplexity, args["input"].(graphql1.CreateTransactionInput)), true
+	case "Mutation.deleteRule":
+		if e.ComplexityRoot.Mutation.DeleteRule == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteRule_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.DeleteRule(childComplexity, args["input"].(graphql2.DeleteRuleInput)), true
+	case "Mutation.putRule":
+		if e.ComplexityRoot.Mutation.PutRule == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_putRule_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.PutRule(childComplexity, args["input"].(graphql2.PutRuleInput)), true
+	case "Mutation.replaceAccountMetadata":
+		if e.ComplexityRoot.Mutation.ReplaceAccountMetadata == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_replaceAccountMetadata_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ReplaceAccountMetadata(childComplexity, args["input"].(graphql1.ReplaceAccountMetadataInput)), true
+	case "Mutation.replaceLedgerMetadata":
+		if e.ComplexityRoot.Mutation.ReplaceLedgerMetadata == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_replaceLedgerMetadata_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ReplaceLedgerMetadata(childComplexity, args["input"].(graphql2.ReplaceLedgerMetadataInput)), true
+	case "Mutation.replaceTransactionMetadata":
+		if e.ComplexityRoot.Mutation.ReplaceTransactionMetadata == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_replaceTransactionMetadata_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ReplaceTransactionMetadata(childComplexity, args["input"].(graphql1.ReplaceTransactionMetadataInput)), true
+	case "Mutation.revertTransaction":
+		if e.ComplexityRoot.Mutation.RevertTransaction == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_revertTransaction_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.RevertTransaction(childComplexity, args["input"].(graphql1.RevertTransactionInput)), true
+	case "Mutation.voidHold":
+		if e.ComplexityRoot.Mutation.VoidHold == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_voidHold_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.VoidHold(childComplexity, args["input"].(graphql1.VoidHoldInput)), true
+
+	case "PageInfo.endCursor":
+		if e.ComplexityRoot.PageInfo.EndCursor == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PageInfo.EndCursor(childComplexity), true
+	case "PageInfo.hasNextPage":
+		if e.ComplexityRoot.PageInfo.HasNextPage == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PageInfo.HasNextPage(childComplexity), true
+
+	case "PostingRecord.amount":
+		if e.ComplexityRoot.PostingRecord.Amount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostingRecord.Amount(childComplexity), true
+	case "PostingRecord.asset":
+		if e.ComplexityRoot.PostingRecord.Asset == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostingRecord.Asset(childComplexity), true
+	case "PostingRecord.destination":
+		if e.ComplexityRoot.PostingRecord.Destination == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostingRecord.Destination(childComplexity), true
+	case "PostingRecord.source":
+		if e.ComplexityRoot.PostingRecord.Source == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostingRecord.Source(childComplexity), true
+	case "PostingRecord.tbLedger":
+		if e.ComplexityRoot.PostingRecord.TbLedger == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostingRecord.TbLedger(childComplexity), true
+	case "PostingRecord.transferId":
+		if e.ComplexityRoot.PostingRecord.TransferID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostingRecord.TransferID(childComplexity), true
+
+	case "Query.ledger":
+		if e.ComplexityRoot.Query.Ledger == nil {
+			break
+		}
+
+		args, err := ec.field_Query_ledger_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.Ledger(childComplexity, args["name"].(string)), true
+	case "Query.ledgers":
+		if e.ComplexityRoot.Query.Ledgers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_ledgers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.Ledgers(childComplexity, args["first"].(*int), args["after"].(*string)), true
 	case "Query.serviceInfo":
 		if e.ComplexityRoot.Query.ServiceInfo == nil {
 			break
 		}
 
 		return e.ComplexityRoot.Query.ServiceInfo(childComplexity), true
+
+	case "Rule.builtIn":
+		if e.ComplexityRoot.Rule.BuiltIn == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Rule.BuiltIn(childComplexity), true
+	case "Rule.code":
+		if e.ComplexityRoot.Rule.Code == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Rule.Code(childComplexity), true
+	case "Rule.createdAt":
+		if e.ComplexityRoot.Rule.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Rule.CreatedAt(childComplexity), true
+	case "Rule.history":
+		if e.ComplexityRoot.Rule.History == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Rule.History(childComplexity), true
+	case "Rule.limit":
+		if e.ComplexityRoot.Rule.Limit == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Rule.Limit(childComplexity), true
+	case "Rule.pattern":
+		if e.ComplexityRoot.Rule.Pattern == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Rule.Pattern(childComplexity), true
+	case "Rule.segments":
+		if e.ComplexityRoot.Rule.Segments == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Rule.Segments(childComplexity), true
+	case "Rule.updatedAt":
+		if e.ComplexityRoot.Rule.UpdatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Rule.UpdatedAt(childComplexity), true
+
+	case "RuleCandidate.matches":
+		if e.ComplexityRoot.RuleCandidate.Matches == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RuleCandidate.Matches(childComplexity), true
+	case "RuleCandidate.rule":
+		if e.ComplexityRoot.RuleCandidate.Rule == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RuleCandidate.Rule(childComplexity), true
+
+	case "RuleMatch.address":
+		if e.ComplexityRoot.RuleMatch.Address == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RuleMatch.Address(childComplexity), true
+	case "RuleMatch.candidates":
+		if e.ComplexityRoot.RuleMatch.Candidates == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RuleMatch.Candidates(childComplexity), true
+	case "RuleMatch.existing":
+		if e.ComplexityRoot.RuleMatch.Existing == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RuleMatch.Existing(childComplexity), true
+	case "RuleMatch.rule":
+		if e.ComplexityRoot.RuleMatch.Rule == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RuleMatch.Rule(childComplexity), true
 
 	case "Runtime.goVersion":
 		if e.ComplexityRoot.Runtime.GoVersion == nil {
@@ -195,6 +1666,395 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Runtime.TigerbeetleClusterID(childComplexity), true
 
+	case "SearchAccount.address":
+		if e.ComplexityRoot.SearchAccount.Address == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchAccount.Address(childComplexity), true
+	case "SearchAccount.assets":
+		if e.ComplexityRoot.SearchAccount.Assets == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchAccount.Assets(childComplexity), true
+
+	case "SearchHold.id":
+		if e.ComplexityRoot.SearchHold.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchHold.ID(childComplexity), true
+	case "SearchHold.status":
+		if e.ComplexityRoot.SearchHold.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchHold.Status(childComplexity), true
+
+	case "SearchRequest.key":
+		if e.ComplexityRoot.SearchRequest.Key == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchRequest.Key(childComplexity), true
+	case "SearchRequest.operation":
+		if e.ComplexityRoot.SearchRequest.Operation == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchRequest.Operation(childComplexity), true
+	case "SearchRequest.status":
+		if e.ComplexityRoot.SearchRequest.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchRequest.Status(childComplexity), true
+
+	case "SearchResults.accounts":
+		if e.ComplexityRoot.SearchResults.Accounts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchResults.Accounts(childComplexity), true
+	case "SearchResults.holds":
+		if e.ComplexityRoot.SearchResults.Holds == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchResults.Holds(childComplexity), true
+	case "SearchResults.query":
+		if e.ComplexityRoot.SearchResults.Query == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchResults.Query(childComplexity), true
+	case "SearchResults.requests":
+		if e.ComplexityRoot.SearchResults.Requests == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchResults.Requests(childComplexity), true
+	case "SearchResults.transactions":
+		if e.ComplexityRoot.SearchResults.Transactions == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchResults.Transactions(childComplexity), true
+
+	case "SearchTransaction.committedAt":
+		if e.ComplexityRoot.SearchTransaction.CommittedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchTransaction.CommittedAt(childComplexity), true
+	case "SearchTransaction.id":
+		if e.ComplexityRoot.SearchTransaction.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchTransaction.ID(childComplexity), true
+	case "SearchTransaction.reference":
+		if e.ComplexityRoot.SearchTransaction.Reference == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SearchTransaction.Reference(childComplexity), true
+
+	case "Segment.accounts":
+		if e.ComplexityRoot.Segment.Accounts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Segment.Accounts(childComplexity), true
+	case "Segment.assets":
+		if e.ComplexityRoot.Segment.Assets == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Segment.Assets(childComplexity), true
+	case "Segment.hasChildren":
+		if e.ComplexityRoot.Segment.HasChildren == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Segment.HasChildren(childComplexity), true
+	case "Segment.isAccount":
+		if e.ComplexityRoot.Segment.IsAccount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Segment.IsAccount(childComplexity), true
+	case "Segment.prefix":
+		if e.ComplexityRoot.Segment.Prefix == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Segment.Prefix(childComplexity), true
+	case "Segment.segment":
+		if e.ComplexityRoot.Segment.Segment == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Segment.Segment(childComplexity), true
+
+	case "Transaction.businessTime":
+		if e.ComplexityRoot.Transaction.BusinessTime == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.BusinessTime(childComplexity), true
+	case "Transaction.committedAt":
+		if e.ComplexityRoot.Transaction.CommittedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.CommittedAt(childComplexity), true
+	case "Transaction.eventType":
+		if e.ComplexityRoot.Transaction.EventType == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.EventType(childComplexity), true
+	case "Transaction.id":
+		if e.ComplexityRoot.Transaction.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.ID(childComplexity), true
+	case "Transaction.idempotencyKey":
+		if e.ComplexityRoot.Transaction.IdempotencyKey == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.IdempotencyKey(childComplexity), true
+	case "Transaction.ledger":
+		if e.ComplexityRoot.Transaction.Ledger == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.Ledger(childComplexity), true
+	case "Transaction.metadata":
+		if e.ComplexityRoot.Transaction.Metadata == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.Metadata(childComplexity), true
+	case "Transaction.postings":
+		if e.ComplexityRoot.Transaction.Postings == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.Postings(childComplexity), true
+	case "Transaction.reference":
+		if e.ComplexityRoot.Transaction.Reference == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.Reference(childComplexity), true
+	case "Transaction.requestId":
+		if e.ComplexityRoot.Transaction.RequestID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.RequestID(childComplexity), true
+	case "Transaction.revertedBy":
+		if e.ComplexityRoot.Transaction.RevertedBy == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.RevertedBy(childComplexity), true
+	case "Transaction.reverts":
+		if e.ComplexityRoot.Transaction.Reverts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.Reverts(childComplexity), true
+	case "Transaction.timestamp":
+		if e.ComplexityRoot.Transaction.Timestamp == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Transaction.Timestamp(childComplexity), true
+
+	case "TransactionConnection.nodes":
+		if e.ComplexityRoot.TransactionConnection.Nodes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TransactionConnection.Nodes(childComplexity), true
+	case "TransactionConnection.pageInfo":
+		if e.ComplexityRoot.TransactionConnection.PageInfo == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TransactionConnection.PageInfo(childComplexity), true
+
+	case "WriteRequest.attempts":
+		if e.ComplexityRoot.WriteRequest.Attempts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequest.Attempts(childComplexity), true
+	case "WriteRequest.bodyHash":
+		if e.ComplexityRoot.WriteRequest.BodyHash == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequest.BodyHash(childComplexity), true
+	case "WriteRequest.createdAt":
+		if e.ComplexityRoot.WriteRequest.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequest.CreatedAt(childComplexity), true
+	case "WriteRequest.key":
+		if e.ComplexityRoot.WriteRequest.Key == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequest.Key(childComplexity), true
+	case "WriteRequest.operation":
+		if e.ComplexityRoot.WriteRequest.Operation == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequest.Operation(childComplexity), true
+	case "WriteRequest.problemType":
+		if e.ComplexityRoot.WriteRequest.ProblemType == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequest.ProblemType(childComplexity), true
+	case "WriteRequest.requestId":
+		if e.ComplexityRoot.WriteRequest.RequestID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequest.RequestID(childComplexity), true
+	case "WriteRequest.resolvedAt":
+		if e.ComplexityRoot.WriteRequest.ResolvedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequest.ResolvedAt(childComplexity), true
+	case "WriteRequest.responseStatus":
+		if e.ComplexityRoot.WriteRequest.ResponseStatus == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequest.ResponseStatus(childComplexity), true
+	case "WriteRequest.status":
+		if e.ComplexityRoot.WriteRequest.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequest.Status(childComplexity), true
+	case "WriteRequest.targetId":
+		if e.ComplexityRoot.WriteRequest.TargetID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequest.TargetID(childComplexity), true
+
+	case "WriteRequestConnection.nodes":
+		if e.ComplexityRoot.WriteRequestConnection.Nodes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestConnection.Nodes(childComplexity), true
+	case "WriteRequestConnection.pageInfo":
+		if e.ComplexityRoot.WriteRequestConnection.PageInfo == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestConnection.PageInfo(childComplexity), true
+
+	case "WriteRequestDetail.attempts":
+		if e.ComplexityRoot.WriteRequestDetail.Attempts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.Attempts(childComplexity), true
+	case "WriteRequestDetail.bodyHash":
+		if e.ComplexityRoot.WriteRequestDetail.BodyHash == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.BodyHash(childComplexity), true
+	case "WriteRequestDetail.createdAt":
+		if e.ComplexityRoot.WriteRequestDetail.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.CreatedAt(childComplexity), true
+	case "WriteRequestDetail.key":
+		if e.ComplexityRoot.WriteRequestDetail.Key == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.Key(childComplexity), true
+	case "WriteRequestDetail.operation":
+		if e.ComplexityRoot.WriteRequestDetail.Operation == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.Operation(childComplexity), true
+	case "WriteRequestDetail.problemType":
+		if e.ComplexityRoot.WriteRequestDetail.ProblemType == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.ProblemType(childComplexity), true
+	case "WriteRequestDetail.request":
+		if e.ComplexityRoot.WriteRequestDetail.Request == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.Request(childComplexity), true
+	case "WriteRequestDetail.requestId":
+		if e.ComplexityRoot.WriteRequestDetail.RequestID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.RequestID(childComplexity), true
+	case "WriteRequestDetail.resolvedAt":
+		if e.ComplexityRoot.WriteRequestDetail.ResolvedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.ResolvedAt(childComplexity), true
+	case "WriteRequestDetail.response":
+		if e.ComplexityRoot.WriteRequestDetail.Response == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.Response(childComplexity), true
+	case "WriteRequestDetail.responseStatus":
+		if e.ComplexityRoot.WriteRequestDetail.ResponseStatus == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.ResponseStatus(childComplexity), true
+	case "WriteRequestDetail.status":
+		if e.ComplexityRoot.WriteRequestDetail.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.Status(childComplexity), true
+	case "WriteRequestDetail.targetId":
+		if e.ComplexityRoot.WriteRequestDetail.TargetID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.TargetID(childComplexity), true
+	case "WriteRequestDetail.transferIds":
+		if e.ComplexityRoot.WriteRequestDetail.TransferIDs == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WriteRequestDetail.TransferIDs(childComplexity), true
+
 	}
 	return 0, false
 }
@@ -203,7 +2063,21 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := newExecutionContext(opCtx, e, make(chan graphql.DeferredResult))
 	inputUnmarshalers := func() *graphql.InputUnmarshalerIndex {
-		return graphql.NewInputUnmarshalerIndex()
+		return graphql.NewInputUnmarshalerIndex(
+			graphql.NewInputUnmarshaler("CaptureHoldInput", ec.unmarshalInputCaptureHoldInput),
+			graphql.NewInputUnmarshaler("CreateEventTypeInput", ec.unmarshalInputCreateEventTypeInput),
+			graphql.NewInputUnmarshaler("CreateHoldInput", ec.unmarshalInputCreateHoldInput),
+			graphql.NewInputUnmarshaler("CreateLedgerInput", ec.unmarshalInputCreateLedgerInput),
+			graphql.NewInputUnmarshaler("CreateTransactionInput", ec.unmarshalInputCreateTransactionInput),
+			graphql.NewInputUnmarshaler("DeleteRuleInput", ec.unmarshalInputDeleteRuleInput),
+			graphql.NewInputUnmarshaler("PostingInput", ec.unmarshalInputPostingInput),
+			graphql.NewInputUnmarshaler("PutRuleInput", ec.unmarshalInputPutRuleInput),
+			graphql.NewInputUnmarshaler("ReplaceAccountMetadataInput", ec.unmarshalInputReplaceAccountMetadataInput),
+			graphql.NewInputUnmarshaler("ReplaceLedgerMetadataInput", ec.unmarshalInputReplaceLedgerMetadataInput),
+			graphql.NewInputUnmarshaler("ReplaceTransactionMetadataInput", ec.unmarshalInputReplaceTransactionMetadataInput),
+			graphql.NewInputUnmarshaler("RevertTransactionInput", ec.unmarshalInputRevertTransactionInput),
+			graphql.NewInputUnmarshaler("VoidHoldInput", ec.unmarshalInputVoidHoldInput),
+		)
 	}
 	first := true
 
@@ -238,6 +2112,21 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 
 			return &response
 		}
+	case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first {
+				return nil
+			}
+			first = false
+			ctx = graphql.WithLazyInputUnmarshalerIndex(ctx, inputUnmarshalers)
+			data := ec._Mutation(ctx, opCtx.Operation.SelectionSet)
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
 
 	default:
 		return graphql.OneShot(graphql.ErrorResponse(ctx, "unsupported GraphQL operation"))
@@ -266,11 +2155,36 @@ func newExecutionContext(
 var sources = []*ast.Source{
 	{Name: "../../../../../../packages/graphql/schema.graphql", Input: `# Generated by cmd/graphqlschema from the Go registrations (ADR-0020). Do not edit.
 
+"Unsigned 128-bit integer in the asset's smallest unit, as a decimal string."
+scalar Amount
+
 "RFC 3339 date-time."
 scalar DateTime
 
 "64-bit integer as a JSON number. Counts only, never money."
 scalar Int64
+
+"A free-form JSON object: the stored request and response of a write."
+scalar JSON
+
+"Key/value pairs for your own systems: a JSON object of strings, at most 64 entries."
+scalar Metadata
+
+"Signed balance in the asset's smallest unit, as a decimal string."
+scalar SignedAmount
+
+"TigerBeetle 128-bit ID: 32 lowercase hexadecimal characters, big-endian, time ordered."
+scalar U128
+
+"TigerBeetle timestamp: nanoseconds since the Unix epoch, as a decimal string."
+scalar U64
+
+"The balance limit flag of the TigerBeetle accounts a rule creates."
+enum BalanceLimit {
+  none
+  debits_must_not_exceed_credits
+  credits_must_not_exceed_debits
+}
 
 "Whether a dependency answered its probe."
 enum DependencyStatus {
@@ -278,9 +2192,180 @@ enum DependencyStatus {
   down
 }
 
+"The life cycle of a hold. expired is derived from the cluster clock."
+enum HoldStatus {
+  open
+  captured
+  voided
+  expired
+}
+
+"The kind of write an idempotency record holds."
+enum Operation {
+  transaction
+  revert
+  hold
+  capture
+  void
+}
+
+"The state of an idempotency record."
+enum RequestStatus {
+  pending
+  committed
+  declined
+  failed
+}
+
 type Query {
   "Service name and version, runtime versions, and the reachability of Postgres and TigerBeetle."
   serviceInfo: Info!
+  "A ledger by name, or null when no ledger has that name."
+  ledger(name: String!): Ledger
+  "Every ledger in name order."
+  ledgers(
+    "Page size, 1 to 100."
+    first: Int = 25
+    "The endCursor of the previous page."
+    after: String
+  ): LedgerConnection!
+}
+
+type Mutation {
+  "Creates a ledger. The name is permanent; a ledger cannot be deleted, because TigerBeetle accounts and transfers are permanent."
+  createLedger(input: CreateLedgerInput!): Ledger!
+  "Replaces the metadata of a ledger."
+  replaceLedgerMetadata(input: ReplaceLedgerMetadataInput!): Ledger!
+  "Creates or replaces the rule for a pattern. It applies to accounts created afterwards."
+  putRule(input: PutRuleInput!): Rule!
+  "Deletes a stored rule. Deleting a stored * or world restores the built-in default."
+  deleteRule(input: DeleteRuleInput!): Boolean!
+  "Registers an event type. Event types are append-only: a code never changes meaning. Without a code, the next free one is assigned."
+  createEventType(input: CreateEventTypeInput!): EventType!
+  "Applies the postings as one linked chain of TigerBeetle transfers: all apply or none."
+  createTransaction(input: CreateTransactionInput!): Transaction!
+  "Creates a new transaction with every posting reversed. It can be declined; a transaction is reverted at most once."
+  revertTransaction(input: RevertTransactionInput!): Transaction!
+  "Replaces the metadata stored with a transaction. The postings never change."
+  replaceTransactionMetadata(input: ReplaceTransactionMetadataInput!): Transaction!
+  "Reserves an amount with a TigerBeetle pending transfer (ADR-0010). Nothing moves until the hold is captured."
+  createHold(input: CreateHoldInput!): Hold!
+  "Posts the pending transfer: the full hold without an amount, or that much with the rest released."
+  captureHold(input: CaptureHoldInput!): Hold!
+  "Voids the pending transfer and releases the whole amount to the source."
+  voidHold(input: VoidHoldInput!): Hold!
+  "Replaces the metadata of an existing account."
+  replaceAccountMetadata(input: ReplaceAccountMetadataInput!): Account!
+}
+
+"An address with one TigerBeetle account per asset, and its open holds."
+type Account {
+  address: String!
+  createdAt: DateTime!
+  metadata: Metadata!
+  balances: [AssetBalance!]!
+  "Open holds from this address."
+  openHolds: Int64!
+}
+
+type AccountConnection {
+  nodes: [AccountSummary!]!
+  pageInfo: PageInfo!
+}
+
+"An address with its balance per asset."
+type AccountSummary {
+  address: String!
+  createdAt: DateTime!
+  metadata: Metadata!
+  balances: [AssetBalance!]!
+}
+
+type AggregateBalance {
+  asset: String!
+  accounts: Int64!
+  balance: SignedAmount!
+  available: SignedAmount!
+  reserved: Amount!
+  incoming: Amount!
+}
+
+type AggregateBalances {
+  prefix: String!
+  "When the last chunk was read."
+  asOf: DateTime!
+  "Addresses summed."
+  accounts: Int64!
+  "TigerBeetle lookups made. More than one means the sum is not one snapshot."
+  chunks: Int!
+  assets: [AggregateBalance!]!
+}
+
+type AssetAmount {
+  asset: String!
+  amount: Amount!
+}
+
+type AssetBalance {
+  asset: String!
+  accountId: U128!
+  tbLedger: Int64!
+  "Credits posted minus debits posted."
+  balance: SignedAmount!
+  "Balance minus reserved."
+  available: SignedAmount!
+  "Pending debits, the amount held by open holds."
+  reserved: Amount!
+  "Pending credits. Not part of available."
+  incoming: Amount!
+  "Total credits posted."
+  credits: Amount!
+  "Total debits posted."
+  debits: Amount!
+  limit: BalanceLimit!
+  history: Boolean!
+  "The TigerBeetle account code."
+  code: Int!
+  "The pattern of the rule that created the account."
+  rule: String!
+  createdAt: DateTime!
+}
+
+"An asset of a ledger with its TigerBeetle ledger number and the money issued."
+type AssetSummary {
+  asset: String!
+  "The TigerBeetle ledger number of this (ledger, asset) pair."
+  tbLedger: Int64!
+  "First use of the asset in the ledger."
+  createdAt: DateTime!
+  accounts: Int64!
+  "Money issued, minus the balance of world, read from TigerBeetle."
+  issued: SignedAmount!
+}
+
+type BalanceHistory {
+  address: String!
+  asset: String!
+  data: [BalancePoint!]!
+}
+
+type BalancePoint {
+  timestamp: U64!
+  at: DateTime!
+  balance: SignedAmount!
+  reserved: Amount!
+  credits: Amount!
+  debits: Amount!
+}
+
+type DeclinedReason {
+  reason: String!
+  count: Int64!
+}
+
+type DeclinedStats {
+  total: Int64!
+  reasons: [DeclinedReason!]!
 }
 
 "Each dependency the service needs."
@@ -298,12 +2383,230 @@ type DependencyCheck {
   error: String
 }
 
+"An event type of a ledger, carried in the code of every transfer of its writes."
+type EventType {
+  name: String!
+  code: Int!
+  builtIn: Boolean!
+  createdAt: DateTime
+  "Transactions and holds recorded with this event type."
+  transactions: Int64!
+}
+
+type EventTypeRef {
+  name: String!
+  code: Int!
+}
+
+"A TigerBeetle pending transfer and, once resolved, the transfer that resolved it (ADR-0010)."
+type Hold {
+  id: U128!
+  ledger: String!
+  source: String!
+  destination: String!
+  asset: String!
+  amount: Amount!
+  capturedAmount: Amount
+  status: HoldStatus!
+  "Seconds on the cluster clock; 0 means no timeout."
+  timeoutSeconds: Int64!
+  createdAt: DateTime!
+  timestamp: U64!
+  expiresAt: DateTime
+  resolvedAt: DateTime
+  reference: String
+  eventType: EventTypeRef!
+  metadata: Metadata!
+  idempotencyKey: String!
+  pendingTransferId: U128!
+  resolutionTransferId: U128
+  tbLedger: Int64!
+}
+
+type HoldConnection {
+  nodes: [Hold!]!
+  pageInfo: PageInfo!
+}
+
+type HoldStats {
+  open: Int64!
+  captured: Int64!
+  voided: Int64!
+  expired: Int64!
+  "The amount held by open holds, per asset."
+  reserved: [AssetAmount!]!
+}
+
 "The running service: its version, its runtime and the reachability of its dependencies."
 type Info {
   service: String!
   version: String!
   dependencies: Dependencies!
   runtime: Runtime
+}
+
+"A ledger is a namespace for accounts and transactions. Money never crosses ledgers."
+type Ledger {
+  name: String!
+  metadata: Metadata!
+  createdAt: DateTime!
+  "The assets used so far, in canonical form."
+  assetCodes: [String!]!
+  "The number of addresses in the ledger."
+  accountCount: Int64!
+  "The rules that decide the flags of new accounts, most specific first, built-in defaults included."
+  rules: [Rule!]!
+  "Which rule wins for an address."
+  ruleMatch(address: String!): RuleMatch!
+  "The event types of the ledger, the built-in default first, with their TigerBeetle code and usage."
+  eventTypes: [EventType!]!
+  "The assets used so far, with their TigerBeetle ledger numbers and the money issued."
+  assets: [AssetSummary!]!
+  "Counts and amounts of the ledger overview, read from Postgres and TigerBeetle."
+  stats: LedgerStats!
+  "Accounts in address order, with their balance per asset read from TigerBeetle."
+  accounts(
+    "Page size, 1 to 100."
+    first: Int = 25
+    "The endCursor of the previous page."
+    after: String
+    "Only addresses equal to or below this prefix, on whole segments."
+    prefix: String
+    "Only addresses starting with this text."
+    search: String
+    "Only accounts holding this asset."
+    asset: String
+  ): AccountConnection!
+  "An account by address, or null when the address has no account."
+  account(address: String!): Account
+  "Point-in-time balances of one account, newest first. Only accounts created with the history flag keep them."
+  accountHistory(
+    address: String!
+    asset: String!
+    "1 to 200."
+    limit: Int = 50
+  ): BalanceHistory!
+  "The next address segment under a prefix, with the accounts below each one; the top level without a prefix."
+  segments(prefix: String): [Segment!]!
+  "The balances of every account under an address prefix, summed per asset."
+  aggregateBalances(
+    "The prefix, on whole segments."
+    address: String!
+  ): AggregateBalances!
+  "Committed transactions, newest first."
+  transactions(
+    "Page size, 1 to 100."
+    first: Int = 25
+    "The endCursor of the previous page."
+    after: String
+    "Only transactions with a posting from or to an account at or below this prefix."
+    address: String
+    asset: String
+    reference: String
+    eventType: String
+    "Committed at or after this time."
+    committedAfter: DateTime
+    "Committed before this time."
+    committedBefore: DateTime
+  ): TransactionConnection!
+  "A transaction by ID, or null."
+  transaction(id: U128!): Transaction
+  "Holds, newest first."
+  holds(
+    "Page size, 1 to 100."
+    first: Int = 25
+    "The endCursor of the previous page."
+    after: String
+    status: HoldStatus
+    "Only holds from or to an account at or below this prefix."
+    address: String
+  ): HoldConnection!
+  "The holds of the ledger counted by status."
+  holdCounts: HoldStats!
+  "A hold by ID, or null."
+  hold(id: U128!): Hold
+  "The idempotency records of the ledger, newest first: the only place declined and in-flight writes are visible."
+  requests(
+    "Page size, 1 to 100."
+    first: Int = 25
+    "The endCursor of the previous page."
+    after: String
+    status: RequestStatus
+    operation: Operation
+    "An Idempotency-Key, or the start of one, or a request ID."
+    search: String
+  ): WriteRequestConnection!
+  "A write request by Idempotency-Key, or null."
+  request(
+    "The Idempotency-Key."
+    key: String!
+  ): WriteRequestDetail
+  "What a query names: an ID, an address or prefix, a reference or an Idempotency-Key."
+  search(
+    "1 to 255 characters."
+    q: String!
+  ): SearchResults!
+}
+
+type LedgerConnection {
+  nodes: [Ledger!]!
+  pageInfo: PageInfo!
+}
+
+"The figures of the ledger overview."
+type LedgerStats {
+  accounts: Int64!
+  "Accounts created since midnight UTC."
+  accountsToday: Int64!
+  assets: [AssetSummary!]!
+  holds: HoldStats!
+  declined: DeclinedStats!
+}
+
+type PageInfo {
+  "Pass as after to read the next page. Null on the last page."
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
+"A committed posting with the TigerBeetle transfer behind it."
+type PostingRecord {
+  "The debited account."
+  source: String!
+  "The credited account."
+  destination: String!
+  asset: String!
+  amount: Amount!
+  transferId: U128!
+  tbLedger: Int64!
+}
+
+"An account rule: the flags of the accounts created for the addresses it matches (ADR-0006)."
+type Rule {
+  pattern: String!
+  limit: BalanceLimit!
+  history: Boolean!
+  code: Int!
+  "A default that applies without being stored."
+  builtIn: Boolean!
+  "Specificity; the most specific matching rule wins."
+  segments: Int!
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type RuleCandidate {
+  rule: Rule!
+  matches: Boolean!
+}
+
+"The rule that would create the account of an address, and every rule considered."
+type RuleMatch {
+  address: String!
+  rule: Rule!
+  candidates: [RuleCandidate!]!
+  "Assets this address already has accounts in; those keep their frozen flags."
+  existing: [String!]!
 }
 
 "Versions and settings of the running service."
@@ -318,6 +2621,227 @@ type Runtime {
   "The last applied migration, when reachable."
   schemaVersion: Int64
 }
+
+type SearchAccount {
+  address: String!
+  assets: [String!]!
+}
+
+type SearchHold {
+  id: U128!
+  status: HoldStatus!
+}
+
+type SearchRequest {
+  key: String!
+  operation: Operation!
+  status: RequestStatus!
+}
+
+type SearchResults {
+  query: String!
+  accounts: [SearchAccount!]!
+  transactions: [SearchTransaction!]!
+  holds: [SearchHold!]!
+  requests: [SearchRequest!]!
+}
+
+type SearchTransaction {
+  id: U128!
+  reference: String
+  committedAt: DateTime!
+}
+
+type Segment {
+  segment: String!
+  "The full path of the segment."
+  prefix: String!
+  "Addresses at or below the segment."
+  accounts: Int64!
+  assets: [String!]!
+  "The prefix is itself an address."
+  isAccount: Boolean!
+  hasChildren: Boolean!
+}
+
+"A committed transaction: one linked chain of TigerBeetle transfers."
+type Transaction {
+  id: U128!
+  ledger: String!
+  postings: [PostingRecord!]!
+  reference: String
+  eventType: EventTypeRef!
+  businessTime: DateTime
+  metadata: Metadata!
+  "The TigerBeetle timestamp of the chain, the only time the ledger knows."
+  committedAt: DateTime!
+  timestamp: U64!
+  "The transaction this one reverts."
+  reverts: U128
+  "The transaction that reverted this one."
+  revertedBy: U128
+  idempotencyKey: String!
+  requestId: String
+}
+
+type TransactionConnection {
+  nodes: [Transaction!]!
+  pageInfo: PageInfo!
+}
+
+"An idempotency record: a write with its key, operation and outcome (ADR-0007)."
+type WriteRequest {
+  key: String!
+  operation: Operation!
+  status: RequestStatus!
+  createdAt: DateTime!
+  resolvedAt: DateTime
+  "The transaction or hold minted for this write."
+  targetId: U128!
+  "The problem type of a declined or failed write."
+  problemType: String
+  responseStatus: Int
+  requestId: String
+  "SHA-256 of the canonical request body, hex."
+  bodyHash: String!
+  "TigerBeetle submissions, including reconciler retries."
+  attempts: Int!
+}
+
+type WriteRequestConnection {
+  nodes: [WriteRequest!]!
+  pageInfo: PageInfo!
+}
+
+"A write request with its stored request, outcome and minted IDs."
+type WriteRequestDetail {
+  key: String!
+  operation: Operation!
+  status: RequestStatus!
+  createdAt: DateTime!
+  resolvedAt: DateTime
+  "The transaction or hold minted for this write."
+  targetId: U128!
+  "The problem type of a declined or failed write."
+  problemType: String
+  responseStatus: Int
+  requestId: String
+  "SHA-256 of the canonical request body, hex."
+  bodyHash: String!
+  "TigerBeetle submissions, including reconciler retries."
+  attempts: Int!
+  "The canonical request body as stored."
+  request: JSON!
+  "The stored response or problem body."
+  response: JSON
+  "The transfer IDs minted before the first submission, in chain order."
+  transferIds: [U128!]!
+}
+
+input CaptureHoldInput {
+  ledger: String!
+  id: U128!
+  idempotencyKey: String!
+  "The amount to capture; the full hold when absent. Must not be zero."
+  amount: Amount
+}
+
+input CreateEventTypeInput {
+  ledger: String!
+  "Lowercase, starting with a letter, such as card.authorized."
+  name: String!
+  "2 to 65535; the next free code when absent."
+  code: Int
+}
+
+input CreateHoldInput {
+  ledger: String!
+  idempotencyKey: String!
+  source: String!
+  destination: String!
+  asset: String!
+  amount: Amount!
+  "Releases the hold after this many seconds on the cluster clock; 0 or absent means never."
+  timeoutSeconds: Int64
+  reference: String
+  eventType: String
+  metadata: Metadata
+}
+
+input CreateLedgerInput {
+  "Lowercase letters, digits, dash and underscore, 1 to 63 characters."
+  name: String!
+  metadata: Metadata
+}
+
+input CreateTransactionInput {
+  ledger: String!
+  "Makes the write safe to retry: the same key and input replay the first answer (ADR-0007)."
+  idempotencyKey: String!
+  "1 to 64 postings, applied atomically."
+  postings: [PostingInput!]!
+  reference: String
+  "An event type name of the ledger; the default event type when absent."
+  eventType: String
+  "The client's business time, stored in user_data_64. Not the committed time."
+  businessTime: DateTime
+  metadata: Metadata
+}
+
+input DeleteRuleInput {
+  ledger: String!
+  pattern: String!
+}
+
+input PostingInput {
+  "The debited account."
+  source: String!
+  "The credited account."
+  destination: String!
+  asset: String!
+  amount: Amount!
+}
+
+input PutRuleInput {
+  ledger: String!
+  "*, an address such as world, or a prefix ending with a colon such as users:."
+  pattern: String!
+  limit: BalanceLimit!
+  history: Boolean = false
+  "The TigerBeetle account code, 1 to 65535."
+  code: Int!
+}
+
+input ReplaceAccountMetadataInput {
+  ledger: String!
+  address: String!
+  metadata: Metadata!
+}
+
+input ReplaceLedgerMetadataInput {
+  ledger: String!
+  metadata: Metadata!
+}
+
+input ReplaceTransactionMetadataInput {
+  ledger: String!
+  id: U128!
+  metadata: Metadata!
+}
+
+input RevertTransactionInput {
+  ledger: String!
+  id: U128!
+  idempotencyKey: String!
+  reference: String
+  metadata: Metadata
+}
+
+input VoidHoldInput {
+  ledger: String!
+  id: U128!
+  idempotencyKey: String!
+}
 `, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -325,6 +2849,190 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // childFields_* functions provide shared child field context lookups.
 // Each function is generated once per unique object type, deduplicating the
 // switch statements that were previously inlined in every fieldContext_* function.
+
+func (ec *executionContext) childFields_Account(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "address":
+		return ec.fieldContext_Account_address(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_Account_createdAt(ctx, field)
+	case "metadata":
+		return ec.fieldContext_Account_metadata(ctx, field)
+	case "balances":
+		return ec.fieldContext_Account_balances(ctx, field)
+	case "openHolds":
+		return ec.fieldContext_Account_openHolds(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Account", field.Name)
+}
+
+func (ec *executionContext) childFields_AccountConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "nodes":
+		return ec.fieldContext_AccountConnection_nodes(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_AccountConnection_pageInfo(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type AccountConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_AccountSummary(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "address":
+		return ec.fieldContext_AccountSummary_address(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_AccountSummary_createdAt(ctx, field)
+	case "metadata":
+		return ec.fieldContext_AccountSummary_metadata(ctx, field)
+	case "balances":
+		return ec.fieldContext_AccountSummary_balances(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type AccountSummary", field.Name)
+}
+
+func (ec *executionContext) childFields_AggregateBalance(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "asset":
+		return ec.fieldContext_AggregateBalance_asset(ctx, field)
+	case "accounts":
+		return ec.fieldContext_AggregateBalance_accounts(ctx, field)
+	case "balance":
+		return ec.fieldContext_AggregateBalance_balance(ctx, field)
+	case "available":
+		return ec.fieldContext_AggregateBalance_available(ctx, field)
+	case "reserved":
+		return ec.fieldContext_AggregateBalance_reserved(ctx, field)
+	case "incoming":
+		return ec.fieldContext_AggregateBalance_incoming(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type AggregateBalance", field.Name)
+}
+
+func (ec *executionContext) childFields_AggregateBalances(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "prefix":
+		return ec.fieldContext_AggregateBalances_prefix(ctx, field)
+	case "asOf":
+		return ec.fieldContext_AggregateBalances_asOf(ctx, field)
+	case "accounts":
+		return ec.fieldContext_AggregateBalances_accounts(ctx, field)
+	case "chunks":
+		return ec.fieldContext_AggregateBalances_chunks(ctx, field)
+	case "assets":
+		return ec.fieldContext_AggregateBalances_assets(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type AggregateBalances", field.Name)
+}
+
+func (ec *executionContext) childFields_AssetAmount(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "asset":
+		return ec.fieldContext_AssetAmount_asset(ctx, field)
+	case "amount":
+		return ec.fieldContext_AssetAmount_amount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type AssetAmount", field.Name)
+}
+
+func (ec *executionContext) childFields_AssetBalance(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "asset":
+		return ec.fieldContext_AssetBalance_asset(ctx, field)
+	case "accountId":
+		return ec.fieldContext_AssetBalance_accountId(ctx, field)
+	case "tbLedger":
+		return ec.fieldContext_AssetBalance_tbLedger(ctx, field)
+	case "balance":
+		return ec.fieldContext_AssetBalance_balance(ctx, field)
+	case "available":
+		return ec.fieldContext_AssetBalance_available(ctx, field)
+	case "reserved":
+		return ec.fieldContext_AssetBalance_reserved(ctx, field)
+	case "incoming":
+		return ec.fieldContext_AssetBalance_incoming(ctx, field)
+	case "credits":
+		return ec.fieldContext_AssetBalance_credits(ctx, field)
+	case "debits":
+		return ec.fieldContext_AssetBalance_debits(ctx, field)
+	case "limit":
+		return ec.fieldContext_AssetBalance_limit(ctx, field)
+	case "history":
+		return ec.fieldContext_AssetBalance_history(ctx, field)
+	case "code":
+		return ec.fieldContext_AssetBalance_code(ctx, field)
+	case "rule":
+		return ec.fieldContext_AssetBalance_rule(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_AssetBalance_createdAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type AssetBalance", field.Name)
+}
+
+func (ec *executionContext) childFields_AssetSummary(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "asset":
+		return ec.fieldContext_AssetSummary_asset(ctx, field)
+	case "tbLedger":
+		return ec.fieldContext_AssetSummary_tbLedger(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_AssetSummary_createdAt(ctx, field)
+	case "accounts":
+		return ec.fieldContext_AssetSummary_accounts(ctx, field)
+	case "issued":
+		return ec.fieldContext_AssetSummary_issued(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type AssetSummary", field.Name)
+}
+
+func (ec *executionContext) childFields_BalanceHistory(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "address":
+		return ec.fieldContext_BalanceHistory_address(ctx, field)
+	case "asset":
+		return ec.fieldContext_BalanceHistory_asset(ctx, field)
+	case "data":
+		return ec.fieldContext_BalanceHistory_data(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type BalanceHistory", field.Name)
+}
+
+func (ec *executionContext) childFields_BalancePoint(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "timestamp":
+		return ec.fieldContext_BalancePoint_timestamp(ctx, field)
+	case "at":
+		return ec.fieldContext_BalancePoint_at(ctx, field)
+	case "balance":
+		return ec.fieldContext_BalancePoint_balance(ctx, field)
+	case "reserved":
+		return ec.fieldContext_BalancePoint_reserved(ctx, field)
+	case "credits":
+		return ec.fieldContext_BalancePoint_credits(ctx, field)
+	case "debits":
+		return ec.fieldContext_BalancePoint_debits(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type BalancePoint", field.Name)
+}
+
+func (ec *executionContext) childFields_DeclinedReason(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "reason":
+		return ec.fieldContext_DeclinedReason_reason(ctx, field)
+	case "count":
+		return ec.fieldContext_DeclinedReason_count(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type DeclinedReason", field.Name)
+}
+
+func (ec *executionContext) childFields_DeclinedStats(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "total":
+		return ec.fieldContext_DeclinedStats_total(ctx, field)
+	case "reasons":
+		return ec.fieldContext_DeclinedStats_reasons(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type DeclinedStats", field.Name)
+}
 
 func (ec *executionContext) childFields_Dependencies(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
@@ -348,6 +3056,104 @@ func (ec *executionContext) childFields_DependencyCheck(ctx context.Context, fie
 	return nil, fmt.Errorf("no field named %q was found under type DependencyCheck", field.Name)
 }
 
+func (ec *executionContext) childFields_EventType(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "name":
+		return ec.fieldContext_EventType_name(ctx, field)
+	case "code":
+		return ec.fieldContext_EventType_code(ctx, field)
+	case "builtIn":
+		return ec.fieldContext_EventType_builtIn(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_EventType_createdAt(ctx, field)
+	case "transactions":
+		return ec.fieldContext_EventType_transactions(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type EventType", field.Name)
+}
+
+func (ec *executionContext) childFields_EventTypeRef(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "name":
+		return ec.fieldContext_EventTypeRef_name(ctx, field)
+	case "code":
+		return ec.fieldContext_EventTypeRef_code(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type EventTypeRef", field.Name)
+}
+
+func (ec *executionContext) childFields_Hold(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Hold_id(ctx, field)
+	case "ledger":
+		return ec.fieldContext_Hold_ledger(ctx, field)
+	case "source":
+		return ec.fieldContext_Hold_source(ctx, field)
+	case "destination":
+		return ec.fieldContext_Hold_destination(ctx, field)
+	case "asset":
+		return ec.fieldContext_Hold_asset(ctx, field)
+	case "amount":
+		return ec.fieldContext_Hold_amount(ctx, field)
+	case "capturedAmount":
+		return ec.fieldContext_Hold_capturedAmount(ctx, field)
+	case "status":
+		return ec.fieldContext_Hold_status(ctx, field)
+	case "timeoutSeconds":
+		return ec.fieldContext_Hold_timeoutSeconds(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_Hold_createdAt(ctx, field)
+	case "timestamp":
+		return ec.fieldContext_Hold_timestamp(ctx, field)
+	case "expiresAt":
+		return ec.fieldContext_Hold_expiresAt(ctx, field)
+	case "resolvedAt":
+		return ec.fieldContext_Hold_resolvedAt(ctx, field)
+	case "reference":
+		return ec.fieldContext_Hold_reference(ctx, field)
+	case "eventType":
+		return ec.fieldContext_Hold_eventType(ctx, field)
+	case "metadata":
+		return ec.fieldContext_Hold_metadata(ctx, field)
+	case "idempotencyKey":
+		return ec.fieldContext_Hold_idempotencyKey(ctx, field)
+	case "pendingTransferId":
+		return ec.fieldContext_Hold_pendingTransferId(ctx, field)
+	case "resolutionTransferId":
+		return ec.fieldContext_Hold_resolutionTransferId(ctx, field)
+	case "tbLedger":
+		return ec.fieldContext_Hold_tbLedger(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Hold", field.Name)
+}
+
+func (ec *executionContext) childFields_HoldConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "nodes":
+		return ec.fieldContext_HoldConnection_nodes(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_HoldConnection_pageInfo(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type HoldConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_HoldStats(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "open":
+		return ec.fieldContext_HoldStats_open(ctx, field)
+	case "captured":
+		return ec.fieldContext_HoldStats_captured(ctx, field)
+	case "voided":
+		return ec.fieldContext_HoldStats_voided(ctx, field)
+	case "expired":
+		return ec.fieldContext_HoldStats_expired(ctx, field)
+	case "reserved":
+		return ec.fieldContext_HoldStats_reserved(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type HoldStats", field.Name)
+}
+
 func (ec *executionContext) childFields_Info(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "service":
@@ -360,6 +3166,158 @@ func (ec *executionContext) childFields_Info(ctx context.Context, field graphql.
 		return ec.fieldContext_Info_runtime(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Info", field.Name)
+}
+
+func (ec *executionContext) childFields_Ledger(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "name":
+		return ec.fieldContext_Ledger_name(ctx, field)
+	case "metadata":
+		return ec.fieldContext_Ledger_metadata(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_Ledger_createdAt(ctx, field)
+	case "assetCodes":
+		return ec.fieldContext_Ledger_assetCodes(ctx, field)
+	case "accountCount":
+		return ec.fieldContext_Ledger_accountCount(ctx, field)
+	case "rules":
+		return ec.fieldContext_Ledger_rules(ctx, field)
+	case "ruleMatch":
+		return ec.fieldContext_Ledger_ruleMatch(ctx, field)
+	case "eventTypes":
+		return ec.fieldContext_Ledger_eventTypes(ctx, field)
+	case "assets":
+		return ec.fieldContext_Ledger_assets(ctx, field)
+	case "stats":
+		return ec.fieldContext_Ledger_stats(ctx, field)
+	case "accounts":
+		return ec.fieldContext_Ledger_accounts(ctx, field)
+	case "account":
+		return ec.fieldContext_Ledger_account(ctx, field)
+	case "accountHistory":
+		return ec.fieldContext_Ledger_accountHistory(ctx, field)
+	case "segments":
+		return ec.fieldContext_Ledger_segments(ctx, field)
+	case "aggregateBalances":
+		return ec.fieldContext_Ledger_aggregateBalances(ctx, field)
+	case "transactions":
+		return ec.fieldContext_Ledger_transactions(ctx, field)
+	case "transaction":
+		return ec.fieldContext_Ledger_transaction(ctx, field)
+	case "holds":
+		return ec.fieldContext_Ledger_holds(ctx, field)
+	case "holdCounts":
+		return ec.fieldContext_Ledger_holdCounts(ctx, field)
+	case "hold":
+		return ec.fieldContext_Ledger_hold(ctx, field)
+	case "requests":
+		return ec.fieldContext_Ledger_requests(ctx, field)
+	case "request":
+		return ec.fieldContext_Ledger_request(ctx, field)
+	case "search":
+		return ec.fieldContext_Ledger_search(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Ledger", field.Name)
+}
+
+func (ec *executionContext) childFields_LedgerConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "nodes":
+		return ec.fieldContext_LedgerConnection_nodes(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_LedgerConnection_pageInfo(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LedgerConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_LedgerStats(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "accounts":
+		return ec.fieldContext_LedgerStats_accounts(ctx, field)
+	case "accountsToday":
+		return ec.fieldContext_LedgerStats_accountsToday(ctx, field)
+	case "assets":
+		return ec.fieldContext_LedgerStats_assets(ctx, field)
+	case "holds":
+		return ec.fieldContext_LedgerStats_holds(ctx, field)
+	case "declined":
+		return ec.fieldContext_LedgerStats_declined(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LedgerStats", field.Name)
+}
+
+func (ec *executionContext) childFields_PageInfo(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "endCursor":
+		return ec.fieldContext_PageInfo_endCursor(ctx, field)
+	case "hasNextPage":
+		return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+}
+
+func (ec *executionContext) childFields_PostingRecord(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "source":
+		return ec.fieldContext_PostingRecord_source(ctx, field)
+	case "destination":
+		return ec.fieldContext_PostingRecord_destination(ctx, field)
+	case "asset":
+		return ec.fieldContext_PostingRecord_asset(ctx, field)
+	case "amount":
+		return ec.fieldContext_PostingRecord_amount(ctx, field)
+	case "transferId":
+		return ec.fieldContext_PostingRecord_transferId(ctx, field)
+	case "tbLedger":
+		return ec.fieldContext_PostingRecord_tbLedger(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PostingRecord", field.Name)
+}
+
+func (ec *executionContext) childFields_Rule(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "pattern":
+		return ec.fieldContext_Rule_pattern(ctx, field)
+	case "limit":
+		return ec.fieldContext_Rule_limit(ctx, field)
+	case "history":
+		return ec.fieldContext_Rule_history(ctx, field)
+	case "code":
+		return ec.fieldContext_Rule_code(ctx, field)
+	case "builtIn":
+		return ec.fieldContext_Rule_builtIn(ctx, field)
+	case "segments":
+		return ec.fieldContext_Rule_segments(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_Rule_createdAt(ctx, field)
+	case "updatedAt":
+		return ec.fieldContext_Rule_updatedAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Rule", field.Name)
+}
+
+func (ec *executionContext) childFields_RuleCandidate(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "rule":
+		return ec.fieldContext_RuleCandidate_rule(ctx, field)
+	case "matches":
+		return ec.fieldContext_RuleCandidate_matches(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type RuleCandidate", field.Name)
+}
+
+func (ec *executionContext) childFields_RuleMatch(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "address":
+		return ec.fieldContext_RuleMatch_address(ctx, field)
+	case "rule":
+		return ec.fieldContext_RuleMatch_rule(ctx, field)
+	case "candidates":
+		return ec.fieldContext_RuleMatch_candidates(ctx, field)
+	case "existing":
+		return ec.fieldContext_RuleMatch_existing(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type RuleMatch", field.Name)
 }
 
 func (ec *executionContext) childFields_Runtime(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -378,6 +3336,198 @@ func (ec *executionContext) childFields_Runtime(ctx context.Context, field graph
 		return ec.fieldContext_Runtime_schemaVersion(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Runtime", field.Name)
+}
+
+func (ec *executionContext) childFields_SearchAccount(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "address":
+		return ec.fieldContext_SearchAccount_address(ctx, field)
+	case "assets":
+		return ec.fieldContext_SearchAccount_assets(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type SearchAccount", field.Name)
+}
+
+func (ec *executionContext) childFields_SearchHold(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_SearchHold_id(ctx, field)
+	case "status":
+		return ec.fieldContext_SearchHold_status(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type SearchHold", field.Name)
+}
+
+func (ec *executionContext) childFields_SearchRequest(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "key":
+		return ec.fieldContext_SearchRequest_key(ctx, field)
+	case "operation":
+		return ec.fieldContext_SearchRequest_operation(ctx, field)
+	case "status":
+		return ec.fieldContext_SearchRequest_status(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type SearchRequest", field.Name)
+}
+
+func (ec *executionContext) childFields_SearchResults(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "query":
+		return ec.fieldContext_SearchResults_query(ctx, field)
+	case "accounts":
+		return ec.fieldContext_SearchResults_accounts(ctx, field)
+	case "transactions":
+		return ec.fieldContext_SearchResults_transactions(ctx, field)
+	case "holds":
+		return ec.fieldContext_SearchResults_holds(ctx, field)
+	case "requests":
+		return ec.fieldContext_SearchResults_requests(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type SearchResults", field.Name)
+}
+
+func (ec *executionContext) childFields_SearchTransaction(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_SearchTransaction_id(ctx, field)
+	case "reference":
+		return ec.fieldContext_SearchTransaction_reference(ctx, field)
+	case "committedAt":
+		return ec.fieldContext_SearchTransaction_committedAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type SearchTransaction", field.Name)
+}
+
+func (ec *executionContext) childFields_Segment(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "segment":
+		return ec.fieldContext_Segment_segment(ctx, field)
+	case "prefix":
+		return ec.fieldContext_Segment_prefix(ctx, field)
+	case "accounts":
+		return ec.fieldContext_Segment_accounts(ctx, field)
+	case "assets":
+		return ec.fieldContext_Segment_assets(ctx, field)
+	case "isAccount":
+		return ec.fieldContext_Segment_isAccount(ctx, field)
+	case "hasChildren":
+		return ec.fieldContext_Segment_hasChildren(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Segment", field.Name)
+}
+
+func (ec *executionContext) childFields_Transaction(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Transaction_id(ctx, field)
+	case "ledger":
+		return ec.fieldContext_Transaction_ledger(ctx, field)
+	case "postings":
+		return ec.fieldContext_Transaction_postings(ctx, field)
+	case "reference":
+		return ec.fieldContext_Transaction_reference(ctx, field)
+	case "eventType":
+		return ec.fieldContext_Transaction_eventType(ctx, field)
+	case "businessTime":
+		return ec.fieldContext_Transaction_businessTime(ctx, field)
+	case "metadata":
+		return ec.fieldContext_Transaction_metadata(ctx, field)
+	case "committedAt":
+		return ec.fieldContext_Transaction_committedAt(ctx, field)
+	case "timestamp":
+		return ec.fieldContext_Transaction_timestamp(ctx, field)
+	case "reverts":
+		return ec.fieldContext_Transaction_reverts(ctx, field)
+	case "revertedBy":
+		return ec.fieldContext_Transaction_revertedBy(ctx, field)
+	case "idempotencyKey":
+		return ec.fieldContext_Transaction_idempotencyKey(ctx, field)
+	case "requestId":
+		return ec.fieldContext_Transaction_requestId(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Transaction", field.Name)
+}
+
+func (ec *executionContext) childFields_TransactionConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "nodes":
+		return ec.fieldContext_TransactionConnection_nodes(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_TransactionConnection_pageInfo(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type TransactionConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_WriteRequest(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "key":
+		return ec.fieldContext_WriteRequest_key(ctx, field)
+	case "operation":
+		return ec.fieldContext_WriteRequest_operation(ctx, field)
+	case "status":
+		return ec.fieldContext_WriteRequest_status(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_WriteRequest_createdAt(ctx, field)
+	case "resolvedAt":
+		return ec.fieldContext_WriteRequest_resolvedAt(ctx, field)
+	case "targetId":
+		return ec.fieldContext_WriteRequest_targetId(ctx, field)
+	case "problemType":
+		return ec.fieldContext_WriteRequest_problemType(ctx, field)
+	case "responseStatus":
+		return ec.fieldContext_WriteRequest_responseStatus(ctx, field)
+	case "requestId":
+		return ec.fieldContext_WriteRequest_requestId(ctx, field)
+	case "bodyHash":
+		return ec.fieldContext_WriteRequest_bodyHash(ctx, field)
+	case "attempts":
+		return ec.fieldContext_WriteRequest_attempts(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type WriteRequest", field.Name)
+}
+
+func (ec *executionContext) childFields_WriteRequestConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "nodes":
+		return ec.fieldContext_WriteRequestConnection_nodes(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_WriteRequestConnection_pageInfo(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type WriteRequestConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_WriteRequestDetail(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "key":
+		return ec.fieldContext_WriteRequestDetail_key(ctx, field)
+	case "operation":
+		return ec.fieldContext_WriteRequestDetail_operation(ctx, field)
+	case "status":
+		return ec.fieldContext_WriteRequestDetail_status(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_WriteRequestDetail_createdAt(ctx, field)
+	case "resolvedAt":
+		return ec.fieldContext_WriteRequestDetail_resolvedAt(ctx, field)
+	case "targetId":
+		return ec.fieldContext_WriteRequestDetail_targetId(ctx, field)
+	case "problemType":
+		return ec.fieldContext_WriteRequestDetail_problemType(ctx, field)
+	case "responseStatus":
+		return ec.fieldContext_WriteRequestDetail_responseStatus(ctx, field)
+	case "requestId":
+		return ec.fieldContext_WriteRequestDetail_requestId(ctx, field)
+	case "bodyHash":
+		return ec.fieldContext_WriteRequestDetail_bodyHash(ctx, field)
+	case "attempts":
+		return ec.fieldContext_WriteRequestDetail_attempts(ctx, field)
+	case "request":
+		return ec.fieldContext_WriteRequestDetail_request(ctx, field)
+	case "response":
+		return ec.fieldContext_WriteRequestDetail_response(ctx, field)
+	case "transferIds":
+		return ec.fieldContext_WriteRequestDetail_transferIds(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type WriteRequestDetail", field.Name)
 }
 
 func (ec *executionContext) childFields___Directive(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -496,6 +3646,516 @@ func (ec *executionContext) childFields___Type(ctx context.Context, field graphq
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Ledger_accountHistory_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "address",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["address"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "asset",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["asset"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_account_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "address",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["address"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_accounts_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "prefix",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["prefix"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "search",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["search"] = arg3
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "asset",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["asset"] = arg4
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_aggregateBalances_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "address",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["address"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_hold_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (scalar.ID, error) {
+			return ec.unmarshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_holds_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "status",
+		func(ctx context.Context, v any) (*scalar.HoldStatus, error) {
+			return ec.unmarshalOHoldStatus2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐHoldStatus(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["status"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "address",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["address"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_request_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "key",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["key"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_requests_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "status",
+		func(ctx context.Context, v any) (*scalar.RequestStatus, error) {
+			return ec.unmarshalORequestStatus2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐRequestStatus(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["status"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "operation",
+		func(ctx context.Context, v any) (*scalar.Operation, error) {
+			return ec.unmarshalOOperation2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐOperation(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["operation"] = arg3
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "search",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["search"] = arg4
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_ruleMatch_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "address",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["address"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_search_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "q",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["q"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_segments_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "prefix",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["prefix"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_transaction_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (scalar.ID, error) {
+			return ec.unmarshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Ledger_transactions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "address",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["address"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "asset",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["asset"] = arg3
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "reference",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["reference"] = arg4
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "eventType",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["eventType"] = arg5
+	arg6, err := graphql.ProcessArgField(ctx, rawArgs, "committedAfter",
+		func(ctx context.Context, v any) (*time.Time, error) {
+			return ec.unmarshalODateTime2ᚖtimeᚐTime(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["committedAfter"] = arg6
+	arg7, err := graphql.ProcessArgField(ctx, rawArgs, "committedBefore",
+		func(ctx context.Context, v any) (*time.Time, error) {
+			return ec.unmarshalODateTime2ᚖtimeᚐTime(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["committedBefore"] = arg7
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_captureHold_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql1.CaptureHoldInput, error) {
+			return ec.unmarshalNCaptureHoldInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐCaptureHoldInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createEventType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.CreateEventTypeInput, error) {
+			return ec.unmarshalNCreateEventTypeInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐCreateEventTypeInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createHold_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql1.CreateHoldInput, error) {
+			return ec.unmarshalNCreateHoldInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐCreateHoldInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createLedger_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.CreateLedgerInput, error) {
+			return ec.unmarshalNCreateLedgerInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐCreateLedgerInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createTransaction_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql1.CreateTransactionInput, error) {
+			return ec.unmarshalNCreateTransactionInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐCreateTransactionInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteRule_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.DeleteRuleInput, error) {
+			return ec.unmarshalNDeleteRuleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐDeleteRuleInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_putRule_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.PutRuleInput, error) {
+			return ec.unmarshalNPutRuleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐPutRuleInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_replaceAccountMetadata_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql1.ReplaceAccountMetadataInput, error) {
+			return ec.unmarshalNReplaceAccountMetadataInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐReplaceAccountMetadataInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_replaceLedgerMetadata_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.ReplaceLedgerMetadataInput, error) {
+			return ec.unmarshalNReplaceLedgerMetadataInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐReplaceLedgerMetadataInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_replaceTransactionMetadata_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql1.ReplaceTransactionMetadataInput, error) {
+			return ec.unmarshalNReplaceTransactionMetadataInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐReplaceTransactionMetadataInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_revertTransaction_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql1.RevertTransactionInput, error) {
+			return ec.unmarshalNRevertTransactionInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐRevertTransactionInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_voidHold_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql1.VoidHoldInput, error) {
+			return ec.unmarshalNVoidHoldInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐVoidHoldInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -507,6 +4167,42 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		return nil, err
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_ledger_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "name",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_ledgers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg1
 	return args, nil
 }
 
@@ -584,7 +4280,1358 @@ func (ec *executionContext) field___Type_inputFields_args(ctx context.Context, r
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _Dependencies_postgres(ctx context.Context, field graphql.CollectedField, obj *dto.Dependencies) (ret graphql.Marshaler) {
+func (ec *executionContext) _Account_address(ctx context.Context, field graphql.CollectedField, obj *dto1.Account) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Account_address(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Address, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Address) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Account_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Account", field, false, false, "String")
+}
+
+func (ec *executionContext) _Account_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto1.Account) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Account_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Account_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Account", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _Account_metadata(ctx context.Context, field graphql.CollectedField, obj *dto1.Account) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Account_metadata(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Metadata, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Metadata) graphql.Marshaler {
+			return ec.marshalNMetadata2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Account_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Account", field, false, false, "Metadata")
+}
+
+func (ec *executionContext) _Account_balances(ctx context.Context, field graphql.CollectedField, obj *dto1.Account) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Account_balances(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Balances, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.AssetBalance) graphql.Marshaler {
+			return ec.marshalNAssetBalance2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetBalanceᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Account_balances(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Account",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AssetBalance(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Account_openHolds(ctx context.Context, field graphql.CollectedField, obj *dto1.Account) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Account_openHolds(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.OpenHolds, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Account_openHolds(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Account", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _AccountConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *graphql1.AccountConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AccountConnection_nodes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Nodes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.AccountSummary) graphql.Marshaler {
+			return ec.marshalNAccountSummary2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAccountSummaryᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AccountConnection_nodes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AccountSummary(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *graphql1.AccountConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AccountConnection_pageInfo(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PageInfo, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v graphqlschema.PageInfo) graphql.Marshaler {
+			return ec.marshalNPageInfo2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋgraphqlschemaᚐPageInfo(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AccountConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PageInfo(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountSummary_address(ctx context.Context, field graphql.CollectedField, obj *dto1.AccountSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AccountSummary_address(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Address, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Address) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AccountSummary_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AccountSummary", field, false, false, "String")
+}
+
+func (ec *executionContext) _AccountSummary_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto1.AccountSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AccountSummary_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AccountSummary_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AccountSummary", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _AccountSummary_metadata(ctx context.Context, field graphql.CollectedField, obj *dto1.AccountSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AccountSummary_metadata(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Metadata, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Metadata) graphql.Marshaler {
+			return ec.marshalNMetadata2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AccountSummary_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AccountSummary", field, false, false, "Metadata")
+}
+
+func (ec *executionContext) _AccountSummary_balances(ctx context.Context, field graphql.CollectedField, obj *dto1.AccountSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AccountSummary_balances(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Balances, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.AssetBalance) graphql.Marshaler {
+			return ec.marshalNAssetBalance2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetBalanceᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AccountSummary_balances(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountSummary",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AssetBalance(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AggregateBalance_asset(ctx context.Context, field graphql.CollectedField, obj *dto1.AggregateBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AggregateBalance_asset(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Asset, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Asset) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AggregateBalance_asset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AggregateBalance", field, false, false, "String")
+}
+
+func (ec *executionContext) _AggregateBalance_accounts(ctx context.Context, field graphql.CollectedField, obj *dto1.AggregateBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AggregateBalance_accounts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Accounts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AggregateBalance_accounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AggregateBalance", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _AggregateBalance_balance(ctx context.Context, field graphql.CollectedField, obj *dto1.AggregateBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AggregateBalance_balance(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Balance, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.SignedAmount) graphql.Marshaler {
+			return ec.marshalNSignedAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐSignedAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AggregateBalance_balance(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AggregateBalance", field, false, false, "SignedAmount")
+}
+
+func (ec *executionContext) _AggregateBalance_available(ctx context.Context, field graphql.CollectedField, obj *dto1.AggregateBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AggregateBalance_available(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Available, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.SignedAmount) graphql.Marshaler {
+			return ec.marshalNSignedAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐSignedAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AggregateBalance_available(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AggregateBalance", field, false, false, "SignedAmount")
+}
+
+func (ec *executionContext) _AggregateBalance_reserved(ctx context.Context, field graphql.CollectedField, obj *dto1.AggregateBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AggregateBalance_reserved(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reserved, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AggregateBalance_reserved(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AggregateBalance", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _AggregateBalance_incoming(ctx context.Context, field graphql.CollectedField, obj *dto1.AggregateBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AggregateBalance_incoming(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Incoming, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AggregateBalance_incoming(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AggregateBalance", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _AggregateBalances_prefix(ctx context.Context, field graphql.CollectedField, obj *dto1.AggregateBalances) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AggregateBalances_prefix(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Prefix, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AggregateBalances_prefix(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AggregateBalances", field, false, false, "String")
+}
+
+func (ec *executionContext) _AggregateBalances_asOf(ctx context.Context, field graphql.CollectedField, obj *dto1.AggregateBalances) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AggregateBalances_asOf(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AsOf, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AggregateBalances_asOf(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AggregateBalances", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _AggregateBalances_accounts(ctx context.Context, field graphql.CollectedField, obj *dto1.AggregateBalances) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AggregateBalances_accounts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Accounts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AggregateBalances_accounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AggregateBalances", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _AggregateBalances_chunks(ctx context.Context, field graphql.CollectedField, obj *dto1.AggregateBalances) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AggregateBalances_chunks(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Chunks, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AggregateBalances_chunks(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AggregateBalances", field, false, false, "Int")
+}
+
+func (ec *executionContext) _AggregateBalances_assets(ctx context.Context, field graphql.CollectedField, obj *dto1.AggregateBalances) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AggregateBalances_assets(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Assets, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.AggregateBalance) graphql.Marshaler {
+			return ec.marshalNAggregateBalance2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAggregateBalanceᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AggregateBalances_assets(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AggregateBalances",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AggregateBalance(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AssetAmount_asset(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetAmount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetAmount_asset(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Asset, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Asset) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetAmount_asset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetAmount", field, false, false, "String")
+}
+
+func (ec *executionContext) _AssetAmount_amount(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetAmount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetAmount_amount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Amount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetAmount_amount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetAmount", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _AssetBalance_asset(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_asset(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Asset, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Asset) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_asset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "String")
+}
+
+func (ec *executionContext) _AssetBalance_accountId(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_accountId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AccountID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.ID) graphql.Marshaler {
+			return ec.marshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_accountId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "U128")
+}
+
+func (ec *executionContext) _AssetBalance_tbLedger(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_tbLedger(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TbLedger, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_tbLedger(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _AssetBalance_balance(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_balance(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Balance, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.SignedAmount) graphql.Marshaler {
+			return ec.marshalNSignedAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐSignedAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_balance(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "SignedAmount")
+}
+
+func (ec *executionContext) _AssetBalance_available(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_available(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Available, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.SignedAmount) graphql.Marshaler {
+			return ec.marshalNSignedAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐSignedAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_available(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "SignedAmount")
+}
+
+func (ec *executionContext) _AssetBalance_reserved(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_reserved(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reserved, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_reserved(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _AssetBalance_incoming(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_incoming(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Incoming, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_incoming(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _AssetBalance_credits(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_credits(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Credits, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_credits(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _AssetBalance_debits(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_debits(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Debits, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_debits(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _AssetBalance_limit(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_limit(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Limit, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.BalanceLimit) graphql.Marshaler {
+			return ec.marshalNBalanceLimit2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐBalanceLimit(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_limit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "BalanceLimit")
+}
+
+func (ec *executionContext) _AssetBalance_history(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_history(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.History, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_history(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "Boolean")
+}
+
+func (ec *executionContext) _AssetBalance_code(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_code(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Code, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "Int")
+}
+
+func (ec *executionContext) _AssetBalance_rule(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_rule(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Rule, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_rule(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "String")
+}
+
+func (ec *executionContext) _AssetBalance_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetBalance) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetBalance_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetBalance_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetBalance", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _AssetSummary_asset(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetSummary_asset(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Asset, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Asset) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetSummary_asset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetSummary", field, false, false, "String")
+}
+
+func (ec *executionContext) _AssetSummary_tbLedger(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetSummary_tbLedger(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TbLedger, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetSummary_tbLedger(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetSummary", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _AssetSummary_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetSummary_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetSummary_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetSummary", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _AssetSummary_accounts(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetSummary_accounts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Accounts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetSummary_accounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetSummary", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _AssetSummary_issued(ctx context.Context, field graphql.CollectedField, obj *dto1.AssetSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AssetSummary_issued(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Issued, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.SignedAmount) graphql.Marshaler {
+			return ec.marshalNSignedAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐSignedAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AssetSummary_issued(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AssetSummary", field, false, false, "SignedAmount")
+}
+
+func (ec *executionContext) _BalanceHistory_address(ctx context.Context, field graphql.CollectedField, obj *dto1.BalanceHistory) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BalanceHistory_address(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Address, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Address) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BalanceHistory_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BalanceHistory", field, false, false, "String")
+}
+
+func (ec *executionContext) _BalanceHistory_asset(ctx context.Context, field graphql.CollectedField, obj *dto1.BalanceHistory) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BalanceHistory_asset(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Asset, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Asset) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BalanceHistory_asset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BalanceHistory", field, false, false, "String")
+}
+
+func (ec *executionContext) _BalanceHistory_data(ctx context.Context, field graphql.CollectedField, obj *dto1.BalanceHistory) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BalanceHistory_data(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.BalancePoint) graphql.Marshaler {
+			return ec.marshalNBalancePoint2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐBalancePointᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BalanceHistory_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BalanceHistory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_BalancePoint(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BalancePoint_timestamp(ctx context.Context, field graphql.CollectedField, obj *dto1.BalancePoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BalancePoint_timestamp(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Timestamp, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Timestamp) graphql.Marshaler {
+			return ec.marshalNU642githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐTimestamp(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BalancePoint_timestamp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BalancePoint", field, false, false, "U64")
+}
+
+func (ec *executionContext) _BalancePoint_at(ctx context.Context, field graphql.CollectedField, obj *dto1.BalancePoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BalancePoint_at(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.At, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BalancePoint_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BalancePoint", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _BalancePoint_balance(ctx context.Context, field graphql.CollectedField, obj *dto1.BalancePoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BalancePoint_balance(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Balance, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.SignedAmount) graphql.Marshaler {
+			return ec.marshalNSignedAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐSignedAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BalancePoint_balance(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BalancePoint", field, false, false, "SignedAmount")
+}
+
+func (ec *executionContext) _BalancePoint_reserved(ctx context.Context, field graphql.CollectedField, obj *dto1.BalancePoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BalancePoint_reserved(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reserved, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BalancePoint_reserved(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BalancePoint", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _BalancePoint_credits(ctx context.Context, field graphql.CollectedField, obj *dto1.BalancePoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BalancePoint_credits(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Credits, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BalancePoint_credits(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BalancePoint", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _BalancePoint_debits(ctx context.Context, field graphql.CollectedField, obj *dto1.BalancePoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BalancePoint_debits(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Debits, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BalancePoint_debits(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BalancePoint", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _DeclinedReason_reason(ctx context.Context, field graphql.CollectedField, obj *dto1.DeclinedReason) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_DeclinedReason_reason(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reason, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_DeclinedReason_reason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("DeclinedReason", field, false, false, "String")
+}
+
+func (ec *executionContext) _DeclinedReason_count(ctx context.Context, field graphql.CollectedField, obj *dto1.DeclinedReason) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_DeclinedReason_count(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Count, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_DeclinedReason_count(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("DeclinedReason", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _DeclinedStats_total(ctx context.Context, field graphql.CollectedField, obj *dto1.DeclinedStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_DeclinedStats_total(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Total, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_DeclinedStats_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("DeclinedStats", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _DeclinedStats_reasons(ctx context.Context, field graphql.CollectedField, obj *dto1.DeclinedStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_DeclinedStats_reasons(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reasons, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.DeclinedReason) graphql.Marshaler {
+			return ec.marshalNDeclinedReason2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐDeclinedReasonᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_DeclinedStats_reasons(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DeclinedStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_DeclinedReason(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Dependencies_postgres(ctx context.Context, field graphql.CollectedField, obj *dto2.Dependencies) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -596,7 +5643,7 @@ func (ec *executionContext) _Dependencies_postgres(ctx context.Context, field gr
 			return obj.Postgres, nil
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v dto.DependencyCheck) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v dto2.DependencyCheck) graphql.Marshaler {
 			return ec.marshalNDependencyCheck2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencyCheck(ctx, selections, v)
 		},
 		true,
@@ -616,7 +5663,7 @@ func (ec *executionContext) fieldContext_Dependencies_postgres(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Dependencies_tigerbeetle(ctx context.Context, field graphql.CollectedField, obj *dto.Dependencies) (ret graphql.Marshaler) {
+func (ec *executionContext) _Dependencies_tigerbeetle(ctx context.Context, field graphql.CollectedField, obj *dto2.Dependencies) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -628,7 +5675,7 @@ func (ec *executionContext) _Dependencies_tigerbeetle(ctx context.Context, field
 			return obj.Tigerbeetle, nil
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v dto.DependencyCheck) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v dto2.DependencyCheck) graphql.Marshaler {
 			return ec.marshalNDependencyCheck2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencyCheck(ctx, selections, v)
 		},
 		true,
@@ -648,7 +5695,7 @@ func (ec *executionContext) fieldContext_Dependencies_tigerbeetle(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _DependencyCheck_status(ctx context.Context, field graphql.CollectedField, obj *dto.DependencyCheck) (ret graphql.Marshaler) {
+func (ec *executionContext) _DependencyCheck_status(ctx context.Context, field graphql.CollectedField, obj *dto2.DependencyCheck) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -671,7 +5718,7 @@ func (ec *executionContext) fieldContext_DependencyCheck_status(_ context.Contex
 	return graphql.NewScalarFieldContext("DependencyCheck", field, false, false, "DependencyStatus")
 }
 
-func (ec *executionContext) _DependencyCheck_latencyMs(ctx context.Context, field graphql.CollectedField, obj *dto.DependencyCheck) (ret graphql.Marshaler) {
+func (ec *executionContext) _DependencyCheck_latencyMs(ctx context.Context, field graphql.CollectedField, obj *dto2.DependencyCheck) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -694,7 +5741,7 @@ func (ec *executionContext) fieldContext_DependencyCheck_latencyMs(_ context.Con
 	return graphql.NewScalarFieldContext("DependencyCheck", field, false, false, "Int64")
 }
 
-func (ec *executionContext) _DependencyCheck_error(ctx context.Context, field graphql.CollectedField, obj *dto.DependencyCheck) (ret graphql.Marshaler) {
+func (ec *executionContext) _DependencyCheck_error(ctx context.Context, field graphql.CollectedField, obj *dto2.DependencyCheck) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -717,7 +5764,825 @@ func (ec *executionContext) fieldContext_DependencyCheck_error(_ context.Context
 	return graphql.NewScalarFieldContext("DependencyCheck", field, false, false, "String")
 }
 
-func (ec *executionContext) _Info_service(ctx context.Context, field graphql.CollectedField, obj *dto.Info) (ret graphql.Marshaler) {
+func (ec *executionContext) _EventType_name(ctx context.Context, field graphql.CollectedField, obj *dto.EventType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_EventType_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_EventType_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("EventType", field, false, false, "String")
+}
+
+func (ec *executionContext) _EventType_code(ctx context.Context, field graphql.CollectedField, obj *dto.EventType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_EventType_code(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Code, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_EventType_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("EventType", field, false, false, "Int")
+}
+
+func (ec *executionContext) _EventType_builtIn(ctx context.Context, field graphql.CollectedField, obj *dto.EventType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_EventType_builtIn(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BuiltIn, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_EventType_builtIn(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("EventType", field, false, false, "Boolean")
+}
+
+func (ec *executionContext) _EventType_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto.EventType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_EventType_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_EventType_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("EventType", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _EventType_transactions(ctx context.Context, field graphql.CollectedField, obj *dto.EventType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_EventType_transactions(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Transactions, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_EventType_transactions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("EventType", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _EventTypeRef_name(ctx context.Context, field graphql.CollectedField, obj *dto1.EventTypeRef) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_EventTypeRef_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_EventTypeRef_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("EventTypeRef", field, false, false, "String")
+}
+
+func (ec *executionContext) _EventTypeRef_code(ctx context.Context, field graphql.CollectedField, obj *dto1.EventTypeRef) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_EventTypeRef_code(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Code, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_EventTypeRef_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("EventTypeRef", field, false, false, "Int")
+}
+
+func (ec *executionContext) _Hold_id(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.ID) graphql.Marshaler {
+			return ec.marshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "U128")
+}
+
+func (ec *executionContext) _Hold_ledger(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_ledger(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Ledger, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.LedgerName) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_ledger(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "String")
+}
+
+func (ec *executionContext) _Hold_source(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_source(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Source, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Address) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_source(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "String")
+}
+
+func (ec *executionContext) _Hold_destination(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_destination(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Destination, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Address) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_destination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "String")
+}
+
+func (ec *executionContext) _Hold_asset(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_asset(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Asset, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Asset) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_asset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "String")
+}
+
+func (ec *executionContext) _Hold_amount(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_amount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Amount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_amount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _Hold_capturedAmount(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_capturedAmount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CapturedAmount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *scalar.Amount) graphql.Marshaler {
+			return ec.marshalOAmount2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_capturedAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _Hold_status(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.HoldStatus) graphql.Marshaler {
+			return ec.marshalNHoldStatus2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐHoldStatus(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "HoldStatus")
+}
+
+func (ec *executionContext) _Hold_timeoutSeconds(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_timeoutSeconds(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TimeoutSeconds, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_timeoutSeconds(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _Hold_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _Hold_timestamp(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_timestamp(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Timestamp, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Timestamp) graphql.Marshaler {
+			return ec.marshalNU642githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐTimestamp(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_timestamp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "U64")
+}
+
+func (ec *executionContext) _Hold_expiresAt(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_expiresAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ExpiresAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_expiresAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _Hold_resolvedAt(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_resolvedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ResolvedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_resolvedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _Hold_reference(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_reference(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reference, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_reference(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "String")
+}
+
+func (ec *executionContext) _Hold_eventType(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_eventType(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.EventType, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v dto1.EventTypeRef) graphql.Marshaler {
+			return ec.marshalNEventTypeRef2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐEventTypeRef(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_eventType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Hold",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_EventTypeRef(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Hold_metadata(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_metadata(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Metadata, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Metadata) graphql.Marshaler {
+			return ec.marshalNMetadata2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "Metadata")
+}
+
+func (ec *executionContext) _Hold_idempotencyKey(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_idempotencyKey(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IdempotencyKey, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_idempotencyKey(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "String")
+}
+
+func (ec *executionContext) _Hold_pendingTransferId(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_pendingTransferId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PendingTransferID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.ID) graphql.Marshaler {
+			return ec.marshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_pendingTransferId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "U128")
+}
+
+func (ec *executionContext) _Hold_resolutionTransferId(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_resolutionTransferId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ResolutionTransferID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *scalar.ID) graphql.Marshaler {
+			return ec.marshalOU1282ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_resolutionTransferId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "U128")
+}
+
+func (ec *executionContext) _Hold_tbLedger(ctx context.Context, field graphql.CollectedField, obj *dto1.Hold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Hold_tbLedger(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TbLedger, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Hold_tbLedger(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Hold", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _HoldConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *graphql1.HoldConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_HoldConnection_nodes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Nodes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.Hold) graphql.Marshaler {
+			return ec.marshalNHold2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHoldᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_HoldConnection_nodes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HoldConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Hold(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HoldConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *graphql1.HoldConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_HoldConnection_pageInfo(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PageInfo, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v graphqlschema.PageInfo) graphql.Marshaler {
+			return ec.marshalNPageInfo2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋgraphqlschemaᚐPageInfo(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_HoldConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HoldConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PageInfo(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HoldStats_open(ctx context.Context, field graphql.CollectedField, obj *dto1.HoldStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_HoldStats_open(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Open, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_HoldStats_open(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("HoldStats", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _HoldStats_captured(ctx context.Context, field graphql.CollectedField, obj *dto1.HoldStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_HoldStats_captured(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Captured, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_HoldStats_captured(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("HoldStats", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _HoldStats_voided(ctx context.Context, field graphql.CollectedField, obj *dto1.HoldStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_HoldStats_voided(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Voided, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_HoldStats_voided(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("HoldStats", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _HoldStats_expired(ctx context.Context, field graphql.CollectedField, obj *dto1.HoldStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_HoldStats_expired(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Expired, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_HoldStats_expired(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("HoldStats", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _HoldStats_reserved(ctx context.Context, field graphql.CollectedField, obj *dto1.HoldStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_HoldStats_reserved(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reserved, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.AssetAmount) graphql.Marshaler {
+			return ec.marshalNAssetAmount2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetAmountᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_HoldStats_reserved(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HoldStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AssetAmount(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Info_service(ctx context.Context, field graphql.CollectedField, obj *dto2.Info) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -740,7 +6605,7 @@ func (ec *executionContext) fieldContext_Info_service(_ context.Context, field g
 	return graphql.NewScalarFieldContext("Info", field, false, false, "String")
 }
 
-func (ec *executionContext) _Info_version(ctx context.Context, field graphql.CollectedField, obj *dto.Info) (ret graphql.Marshaler) {
+func (ec *executionContext) _Info_version(ctx context.Context, field graphql.CollectedField, obj *dto2.Info) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -763,7 +6628,7 @@ func (ec *executionContext) fieldContext_Info_version(_ context.Context, field g
 	return graphql.NewScalarFieldContext("Info", field, false, false, "String")
 }
 
-func (ec *executionContext) _Info_dependencies(ctx context.Context, field graphql.CollectedField, obj *dto.Info) (ret graphql.Marshaler) {
+func (ec *executionContext) _Info_dependencies(ctx context.Context, field graphql.CollectedField, obj *dto2.Info) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -775,7 +6640,7 @@ func (ec *executionContext) _Info_dependencies(ctx context.Context, field graphq
 			return obj.Dependencies, nil
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v dto.Dependencies) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v dto2.Dependencies) graphql.Marshaler {
 			return ec.marshalNDependencies2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencies(ctx, selections, v)
 		},
 		true,
@@ -795,7 +6660,7 @@ func (ec *executionContext) fieldContext_Info_dependencies(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Info_runtime(ctx context.Context, field graphql.CollectedField, obj *dto.Info) (ret graphql.Marshaler) {
+func (ec *executionContext) _Info_runtime(ctx context.Context, field graphql.CollectedField, obj *dto2.Info) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -807,7 +6672,7 @@ func (ec *executionContext) _Info_runtime(ctx context.Context, field graphql.Col
 			return obj.Runtime, nil
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *dto.Runtime) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *dto2.Runtime) graphql.Marshaler {
 			return ec.marshalORuntime2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐRuntime(ctx, selections, v)
 		},
 		true,
@@ -827,6 +6692,1771 @@ func (ec *executionContext) fieldContext_Info_runtime(_ context.Context, field g
 	return fc, nil
 }
 
+func (ec *executionContext) _Ledger_name(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.LedgerName) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Ledger", field, false, false, "String")
+}
+
+func (ec *executionContext) _Ledger_metadata(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_metadata(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Metadata, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Metadata) graphql.Marshaler {
+			return ec.marshalNMetadata2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Ledger", field, false, false, "Metadata")
+}
+
+func (ec *executionContext) _Ledger_createdAt(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Ledger", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _Ledger_assetCodes(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_assetCodes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AssetCodes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []scalar.Asset) graphql.Marshaler {
+			return ec.marshalNString2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAssetᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_assetCodes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Ledger", field, false, false, "String")
+}
+
+func (ec *executionContext) _Ledger_accountCount(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_accountCount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AccountCount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_accountCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Ledger", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _Ledger_rules(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_rules(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Ledger().Rules(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto.Rule) graphql.Marshaler {
+			return ec.marshalNRule2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRuleᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_rules(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Rule(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_ruleMatch(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_ruleMatch(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().RuleMatch(ctx, obj, fc.Args["address"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto.RuleMatch) graphql.Marshaler {
+			return ec.marshalNRuleMatch2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRuleMatch(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_ruleMatch(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RuleMatch(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_ruleMatch_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_eventTypes(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_eventTypes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Ledger().EventTypes(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto.EventType) graphql.Marshaler {
+			return ec.marshalNEventType2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐEventTypeᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_eventTypes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_EventType(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_assets(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_assets(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Ledger().Assets(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.AssetSummary) graphql.Marshaler {
+			return ec.marshalNAssetSummary2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetSummaryᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_assets(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AssetSummary(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_stats(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_stats(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Ledger().Stats(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.LedgerStats) graphql.Marshaler {
+			return ec.marshalNLedgerStats2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐLedgerStats(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_stats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LedgerStats(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_accounts(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_accounts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().Accounts(ctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string), fc.Args["prefix"].(*string), fc.Args["search"].(*string), fc.Args["asset"].(*string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql1.AccountConnection) graphql.Marshaler {
+			return ec.marshalNAccountConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐAccountConnection(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_accounts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AccountConnection(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_accounts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_account(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_account(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().Account(ctx, obj, fc.Args["address"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.Account) graphql.Marshaler {
+			return ec.marshalOAccount2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAccount(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_account(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Account(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_account_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_accountHistory(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_accountHistory(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().AccountHistory(ctx, obj, fc.Args["address"].(string), fc.Args["asset"].(string), fc.Args["limit"].(*int))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.BalanceHistory) graphql.Marshaler {
+			return ec.marshalNBalanceHistory2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐBalanceHistory(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_accountHistory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_BalanceHistory(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_accountHistory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_segments(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_segments(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().Segments(ctx, obj, fc.Args["prefix"].(*string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.Segment) graphql.Marshaler {
+			return ec.marshalNSegment2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSegmentᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_segments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Segment(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_segments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_aggregateBalances(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_aggregateBalances(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().AggregateBalances(ctx, obj, fc.Args["address"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.AggregateBalances) graphql.Marshaler {
+			return ec.marshalNAggregateBalances2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAggregateBalances(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_aggregateBalances(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AggregateBalances(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_aggregateBalances_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_transactions(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_transactions(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().Transactions(ctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string), fc.Args["address"].(*string), fc.Args["asset"].(*string), fc.Args["reference"].(*string), fc.Args["eventType"].(*string), fc.Args["committedAfter"].(*time.Time), fc.Args["committedBefore"].(*time.Time))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql1.TransactionConnection) graphql.Marshaler {
+			return ec.marshalNTransactionConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐTransactionConnection(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_transactions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_TransactionConnection(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_transactions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_transaction(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_transaction(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().Transaction(ctx, obj, fc.Args["id"].(scalar.ID))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.Transaction) graphql.Marshaler {
+			return ec.marshalOTransaction2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐTransaction(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_transaction(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Transaction(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_transaction_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_holds(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_holds(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().Holds(ctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string), fc.Args["status"].(*scalar.HoldStatus), fc.Args["address"].(*string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql1.HoldConnection) graphql.Marshaler {
+			return ec.marshalNHoldConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐHoldConnection(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_holds(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_HoldConnection(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_holds_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_holdCounts(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_holdCounts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Ledger().HoldCounts(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.HoldStats) graphql.Marshaler {
+			return ec.marshalNHoldStats2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHoldStats(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_holdCounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_HoldStats(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_hold(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_hold(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().Hold(ctx, obj, fc.Args["id"].(scalar.ID))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.Hold) graphql.Marshaler {
+			return ec.marshalOHold2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHold(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_hold(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Hold(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_hold_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_requests(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_requests(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().Requests(ctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string), fc.Args["status"].(*scalar.RequestStatus), fc.Args["operation"].(*scalar.Operation), fc.Args["search"].(*string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql1.WriteRequestConnection) graphql.Marshaler {
+			return ec.marshalNWriteRequestConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐWriteRequestConnection(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_requests(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_WriteRequestConnection(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_requests_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_request(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_request(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().Request(ctx, obj, fc.Args["key"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.WriteRequestDetail) graphql.Marshaler {
+			return ec.marshalOWriteRequestDetail2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐWriteRequestDetail(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_request(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_WriteRequestDetail(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_request_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Ledger_search(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ledger_search(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Ledger().Search(ctx, obj, fc.Args["q"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.SearchResults) graphql.Marshaler {
+			return ec.marshalNSearchResults2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchResults(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ledger_search(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Ledger",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_SearchResults(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Ledger_search_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *graphql2.LedgerConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerConnection_nodes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Nodes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []graphql2.Ledger) graphql.Marshaler {
+			return ec.marshalNLedger2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedgerᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerConnection_nodes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Ledger(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *graphql2.LedgerConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerConnection_pageInfo(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PageInfo, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v graphqlschema.PageInfo) graphql.Marshaler {
+			return ec.marshalNPageInfo2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋgraphqlschemaᚐPageInfo(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PageInfo(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerStats_accounts(ctx context.Context, field graphql.CollectedField, obj *dto1.LedgerStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerStats_accounts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Accounts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerStats_accounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LedgerStats", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _LedgerStats_accountsToday(ctx context.Context, field graphql.CollectedField, obj *dto1.LedgerStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerStats_accountsToday(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AccountsToday, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerStats_accountsToday(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LedgerStats", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _LedgerStats_assets(ctx context.Context, field graphql.CollectedField, obj *dto1.LedgerStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerStats_assets(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Assets, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.AssetSummary) graphql.Marshaler {
+			return ec.marshalNAssetSummary2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetSummaryᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerStats_assets(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AssetSummary(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerStats_holds(ctx context.Context, field graphql.CollectedField, obj *dto1.LedgerStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerStats_holds(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Holds, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v dto1.HoldStats) graphql.Marshaler {
+			return ec.marshalNHoldStats2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHoldStats(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerStats_holds(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_HoldStats(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerStats_declined(ctx context.Context, field graphql.CollectedField, obj *dto1.LedgerStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerStats_declined(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Declined, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v dto1.DeclinedStats) graphql.Marshaler {
+			return ec.marshalNDeclinedStats2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐDeclinedStats(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerStats_declined(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_DeclinedStats(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createLedger(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createLedger(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateLedger(ctx, fc.Args["input"].(graphql2.CreateLedgerInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql2.Ledger) graphql.Marshaler {
+			return ec.marshalNLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createLedger(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Ledger(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createLedger_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_replaceLedgerMetadata(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_replaceLedgerMetadata(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ReplaceLedgerMetadata(ctx, fc.Args["input"].(graphql2.ReplaceLedgerMetadataInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql2.Ledger) graphql.Marshaler {
+			return ec.marshalNLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_replaceLedgerMetadata(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Ledger(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_replaceLedgerMetadata_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_putRule(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_putRule(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().PutRule(ctx, fc.Args["input"].(graphql2.PutRuleInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto.Rule) graphql.Marshaler {
+			return ec.marshalNRule2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRule(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_putRule(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Rule(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_putRule_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteRule(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_deleteRule(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().DeleteRule(ctx, fc.Args["input"].(graphql2.DeleteRuleInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_deleteRule(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteRule_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createEventType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createEventType(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateEventType(ctx, fc.Args["input"].(graphql2.CreateEventTypeInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto.EventType) graphql.Marshaler {
+			return ec.marshalNEventType2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐEventType(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createEventType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_EventType(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createEventType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createTransaction(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createTransaction(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateTransaction(ctx, fc.Args["input"].(graphql1.CreateTransactionInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.Transaction) graphql.Marshaler {
+			return ec.marshalNTransaction2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐTransaction(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createTransaction(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Transaction(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createTransaction_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_revertTransaction(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_revertTransaction(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().RevertTransaction(ctx, fc.Args["input"].(graphql1.RevertTransactionInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.Transaction) graphql.Marshaler {
+			return ec.marshalNTransaction2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐTransaction(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_revertTransaction(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Transaction(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_revertTransaction_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_replaceTransactionMetadata(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_replaceTransactionMetadata(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ReplaceTransactionMetadata(ctx, fc.Args["input"].(graphql1.ReplaceTransactionMetadataInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.Transaction) graphql.Marshaler {
+			return ec.marshalNTransaction2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐTransaction(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_replaceTransactionMetadata(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Transaction(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_replaceTransactionMetadata_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createHold(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createHold(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateHold(ctx, fc.Args["input"].(graphql1.CreateHoldInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.Hold) graphql.Marshaler {
+			return ec.marshalNHold2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHold(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createHold(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Hold(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createHold_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_captureHold(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_captureHold(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CaptureHold(ctx, fc.Args["input"].(graphql1.CaptureHoldInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.Hold) graphql.Marshaler {
+			return ec.marshalNHold2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHold(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_captureHold(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Hold(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_captureHold_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_voidHold(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_voidHold(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().VoidHold(ctx, fc.Args["input"].(graphql1.VoidHoldInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.Hold) graphql.Marshaler {
+			return ec.marshalNHold2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHold(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_voidHold(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Hold(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_voidHold_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_replaceAccountMetadata(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_replaceAccountMetadata(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ReplaceAccountMetadata(ctx, fc.Args["input"].(graphql1.ReplaceAccountMetadataInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto1.Account) graphql.Marshaler {
+			return ec.marshalNAccount2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAccount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_replaceAccountMetadata(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Account(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_replaceAccountMetadata_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graphql.CollectedField, obj *graphqlschema.PageInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PageInfo_endCursor(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.EndCursor, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_PageInfo_endCursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PageInfo", field, false, false, "String")
+}
+
+func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *graphqlschema.PageInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.HasNextPage, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PageInfo_hasNextPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PageInfo", field, false, false, "Boolean")
+}
+
+func (ec *executionContext) _PostingRecord_source(ctx context.Context, field graphql.CollectedField, obj *dto1.PostingRecord) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PostingRecord_source(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Source, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Address) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PostingRecord_source(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PostingRecord", field, false, false, "String")
+}
+
+func (ec *executionContext) _PostingRecord_destination(ctx context.Context, field graphql.CollectedField, obj *dto1.PostingRecord) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PostingRecord_destination(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Destination, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Address) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PostingRecord_destination(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PostingRecord", field, false, false, "String")
+}
+
+func (ec *executionContext) _PostingRecord_asset(ctx context.Context, field graphql.CollectedField, obj *dto1.PostingRecord) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PostingRecord_asset(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Asset, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Asset) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PostingRecord_asset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PostingRecord", field, false, false, "String")
+}
+
+func (ec *executionContext) _PostingRecord_amount(ctx context.Context, field graphql.CollectedField, obj *dto1.PostingRecord) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PostingRecord_amount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Amount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+			return ec.marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PostingRecord_amount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PostingRecord", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _PostingRecord_transferId(ctx context.Context, field graphql.CollectedField, obj *dto1.PostingRecord) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PostingRecord_transferId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TransferID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.ID) graphql.Marshaler {
+			return ec.marshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PostingRecord_transferId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PostingRecord", field, false, false, "U128")
+}
+
+func (ec *executionContext) _PostingRecord_tbLedger(ctx context.Context, field graphql.CollectedField, obj *dto1.PostingRecord) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PostingRecord_tbLedger(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TbLedger, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PostingRecord_tbLedger(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PostingRecord", field, false, false, "Int64")
+}
+
 func (ec *executionContext) _Query_serviceInfo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -839,7 +8469,7 @@ func (ec *executionContext) _Query_serviceInfo(ctx context.Context, field graphq
 			return ec.Resolvers.Query().ServiceInfo(ctx)
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *dto.Info) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *dto2.Info) graphql.Marshaler {
 			return ec.marshalNInfo2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐInfo(ctx, selections, v)
 		},
 		true,
@@ -855,6 +8485,94 @@ func (ec *executionContext) fieldContext_Query_serviceInfo(_ context.Context, fi
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return ec.childFields_Info(ctx, field)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_ledger(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_ledger(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().Ledger(ctx, fc.Args["name"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql2.Ledger) graphql.Marshaler {
+			return ec.marshalOLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Query_ledger(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Ledger(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_ledger_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_ledgers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_ledgers(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().Ledgers(ctx, fc.Args["first"].(*int), fc.Args["after"].(*string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql2.LedgerConnection) graphql.Marshaler {
+			return ec.marshalNLedgerConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedgerConnection(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_ledgers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LedgerConnection(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_ledgers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -935,7 +8653,356 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Runtime_startedAt(ctx context.Context, field graphql.CollectedField, obj *dto.Runtime) (ret graphql.Marshaler) {
+func (ec *executionContext) _Rule_pattern(ctx context.Context, field graphql.CollectedField, obj *dto.Rule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Rule_pattern(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Pattern, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Rule_pattern(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Rule", field, false, false, "String")
+}
+
+func (ec *executionContext) _Rule_limit(ctx context.Context, field graphql.CollectedField, obj *dto.Rule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Rule_limit(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Limit, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.BalanceLimit) graphql.Marshaler {
+			return ec.marshalNBalanceLimit2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐBalanceLimit(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Rule_limit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Rule", field, false, false, "BalanceLimit")
+}
+
+func (ec *executionContext) _Rule_history(ctx context.Context, field graphql.CollectedField, obj *dto.Rule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Rule_history(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.History, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Rule_history(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Rule", field, false, false, "Boolean")
+}
+
+func (ec *executionContext) _Rule_code(ctx context.Context, field graphql.CollectedField, obj *dto.Rule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Rule_code(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Code, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Rule_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Rule", field, false, false, "Int")
+}
+
+func (ec *executionContext) _Rule_builtIn(ctx context.Context, field graphql.CollectedField, obj *dto.Rule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Rule_builtIn(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BuiltIn, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Rule_builtIn(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Rule", field, false, false, "Boolean")
+}
+
+func (ec *executionContext) _Rule_segments(ctx context.Context, field graphql.CollectedField, obj *dto.Rule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Rule_segments(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Segments, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Rule_segments(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Rule", field, false, false, "Int")
+}
+
+func (ec *executionContext) _Rule_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto.Rule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Rule_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Rule_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Rule", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _Rule_updatedAt(ctx context.Context, field graphql.CollectedField, obj *dto.Rule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Rule_updatedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Rule_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Rule", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _RuleCandidate_rule(ctx context.Context, field graphql.CollectedField, obj *dto.RuleCandidate) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RuleCandidate_rule(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Rule, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v dto.Rule) graphql.Marshaler {
+			return ec.marshalNRule2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRule(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RuleCandidate_rule(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RuleCandidate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Rule(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RuleCandidate_matches(ctx context.Context, field graphql.CollectedField, obj *dto.RuleCandidate) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RuleCandidate_matches(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Matches, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RuleCandidate_matches(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RuleCandidate", field, false, false, "Boolean")
+}
+
+func (ec *executionContext) _RuleMatch_address(ctx context.Context, field graphql.CollectedField, obj *dto.RuleMatch) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RuleMatch_address(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Address, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Address) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RuleMatch_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RuleMatch", field, false, false, "String")
+}
+
+func (ec *executionContext) _RuleMatch_rule(ctx context.Context, field graphql.CollectedField, obj *dto.RuleMatch) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RuleMatch_rule(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Rule, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v dto.Rule) graphql.Marshaler {
+			return ec.marshalNRule2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRule(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RuleMatch_rule(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RuleMatch",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Rule(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RuleMatch_candidates(ctx context.Context, field graphql.CollectedField, obj *dto.RuleMatch) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RuleMatch_candidates(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Candidates, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto.RuleCandidate) graphql.Marshaler {
+			return ec.marshalNRuleCandidate2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRuleCandidateᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RuleMatch_candidates(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RuleMatch",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RuleCandidate(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RuleMatch_existing(ctx context.Context, field graphql.CollectedField, obj *dto.RuleMatch) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RuleMatch_existing(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Existing, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []scalar.Asset) graphql.Marshaler {
+			return ec.marshalNString2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAssetᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RuleMatch_existing(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RuleMatch", field, false, false, "String")
+}
+
+func (ec *executionContext) _Runtime_startedAt(ctx context.Context, field graphql.CollectedField, obj *dto2.Runtime) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -958,7 +9025,7 @@ func (ec *executionContext) fieldContext_Runtime_startedAt(_ context.Context, fi
 	return graphql.NewScalarFieldContext("Runtime", field, false, false, "DateTime")
 }
 
-func (ec *executionContext) _Runtime_goVersion(ctx context.Context, field graphql.CollectedField, obj *dto.Runtime) (ret graphql.Marshaler) {
+func (ec *executionContext) _Runtime_goVersion(ctx context.Context, field graphql.CollectedField, obj *dto2.Runtime) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -981,7 +9048,7 @@ func (ec *executionContext) fieldContext_Runtime_goVersion(_ context.Context, fi
 	return graphql.NewScalarFieldContext("Runtime", field, false, false, "String")
 }
 
-func (ec *executionContext) _Runtime_tigerbeetleClientVersion(ctx context.Context, field graphql.CollectedField, obj *dto.Runtime) (ret graphql.Marshaler) {
+func (ec *executionContext) _Runtime_tigerbeetleClientVersion(ctx context.Context, field graphql.CollectedField, obj *dto2.Runtime) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1004,7 +9071,7 @@ func (ec *executionContext) fieldContext_Runtime_tigerbeetleClientVersion(_ cont
 	return graphql.NewScalarFieldContext("Runtime", field, false, false, "String")
 }
 
-func (ec *executionContext) _Runtime_tigerbeetleClusterId(ctx context.Context, field graphql.CollectedField, obj *dto.Runtime) (ret graphql.Marshaler) {
+func (ec *executionContext) _Runtime_tigerbeetleClusterId(ctx context.Context, field graphql.CollectedField, obj *dto2.Runtime) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1027,7 +9094,7 @@ func (ec *executionContext) fieldContext_Runtime_tigerbeetleClusterId(_ context.
 	return graphql.NewScalarFieldContext("Runtime", field, false, false, "String")
 }
 
-func (ec *executionContext) _Runtime_postgresVersion(ctx context.Context, field graphql.CollectedField, obj *dto.Runtime) (ret graphql.Marshaler) {
+func (ec *executionContext) _Runtime_postgresVersion(ctx context.Context, field graphql.CollectedField, obj *dto2.Runtime) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1050,7 +9117,7 @@ func (ec *executionContext) fieldContext_Runtime_postgresVersion(_ context.Conte
 	return graphql.NewScalarFieldContext("Runtime", field, false, false, "String")
 }
 
-func (ec *executionContext) _Runtime_schemaVersion(ctx context.Context, field graphql.CollectedField, obj *dto.Runtime) (ret graphql.Marshaler) {
+func (ec *executionContext) _Runtime_schemaVersion(ctx context.Context, field graphql.CollectedField, obj *dto2.Runtime) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -1071,6 +9138,1545 @@ func (ec *executionContext) _Runtime_schemaVersion(ctx context.Context, field gr
 }
 func (ec *executionContext) fieldContext_Runtime_schemaVersion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Runtime", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _SearchAccount_address(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchAccount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchAccount_address(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Address, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Address) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchAccount_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SearchAccount", field, false, false, "String")
+}
+
+func (ec *executionContext) _SearchAccount_assets(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchAccount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchAccount_assets(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Assets, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []scalar.Asset) graphql.Marshaler {
+			return ec.marshalNString2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAssetᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchAccount_assets(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SearchAccount", field, false, false, "String")
+}
+
+func (ec *executionContext) _SearchHold_id(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchHold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchHold_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.ID) graphql.Marshaler {
+			return ec.marshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchHold_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SearchHold", field, false, false, "U128")
+}
+
+func (ec *executionContext) _SearchHold_status(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchHold) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchHold_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.HoldStatus) graphql.Marshaler {
+			return ec.marshalNHoldStatus2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐHoldStatus(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchHold_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SearchHold", field, false, false, "HoldStatus")
+}
+
+func (ec *executionContext) _SearchRequest_key(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchRequest_key(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Key, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchRequest_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SearchRequest", field, false, false, "String")
+}
+
+func (ec *executionContext) _SearchRequest_operation(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchRequest_operation(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Operation, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Operation) graphql.Marshaler {
+			return ec.marshalNOperation2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐOperation(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchRequest_operation(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SearchRequest", field, false, false, "Operation")
+}
+
+func (ec *executionContext) _SearchRequest_status(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchRequest_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.RequestStatus) graphql.Marshaler {
+			return ec.marshalNRequestStatus2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐRequestStatus(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchRequest_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SearchRequest", field, false, false, "RequestStatus")
+}
+
+func (ec *executionContext) _SearchResults_query(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchResults) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchResults_query(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Query, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchResults_query(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SearchResults", field, false, false, "String")
+}
+
+func (ec *executionContext) _SearchResults_accounts(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchResults) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchResults_accounts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Accounts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.SearchAccount) graphql.Marshaler {
+			return ec.marshalNSearchAccount2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchAccountᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchResults_accounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchResults",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_SearchAccount(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchResults_transactions(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchResults) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchResults_transactions(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Transactions, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.SearchTransaction) graphql.Marshaler {
+			return ec.marshalNSearchTransaction2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchTransactionᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchResults_transactions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchResults",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_SearchTransaction(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchResults_holds(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchResults) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchResults_holds(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Holds, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.SearchHold) graphql.Marshaler {
+			return ec.marshalNSearchHold2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchHoldᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchResults_holds(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchResults",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_SearchHold(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchResults_requests(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchResults) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchResults_requests(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Requests, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.SearchRequest) graphql.Marshaler {
+			return ec.marshalNSearchRequest2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchRequestᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchResults_requests(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchResults",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_SearchRequest(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchTransaction_id(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchTransaction_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.ID) graphql.Marshaler {
+			return ec.marshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchTransaction_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SearchTransaction", field, false, false, "U128")
+}
+
+func (ec *executionContext) _SearchTransaction_reference(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchTransaction_reference(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reference, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_SearchTransaction_reference(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SearchTransaction", field, false, false, "String")
+}
+
+func (ec *executionContext) _SearchTransaction_committedAt(ctx context.Context, field graphql.CollectedField, obj *dto1.SearchTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SearchTransaction_committedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CommittedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SearchTransaction_committedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SearchTransaction", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _Segment_segment(ctx context.Context, field graphql.CollectedField, obj *dto1.Segment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Segment_segment(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Segment, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Segment_segment(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Segment", field, false, false, "String")
+}
+
+func (ec *executionContext) _Segment_prefix(ctx context.Context, field graphql.CollectedField, obj *dto1.Segment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Segment_prefix(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Prefix, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Segment_prefix(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Segment", field, false, false, "String")
+}
+
+func (ec *executionContext) _Segment_accounts(ctx context.Context, field graphql.CollectedField, obj *dto1.Segment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Segment_accounts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Accounts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Segment_accounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Segment", field, false, false, "Int64")
+}
+
+func (ec *executionContext) _Segment_assets(ctx context.Context, field graphql.CollectedField, obj *dto1.Segment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Segment_assets(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Assets, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []scalar.Asset) graphql.Marshaler {
+			return ec.marshalNString2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAssetᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Segment_assets(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Segment", field, false, false, "String")
+}
+
+func (ec *executionContext) _Segment_isAccount(ctx context.Context, field graphql.CollectedField, obj *dto1.Segment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Segment_isAccount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsAccount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Segment_isAccount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Segment", field, false, false, "Boolean")
+}
+
+func (ec *executionContext) _Segment_hasChildren(ctx context.Context, field graphql.CollectedField, obj *dto1.Segment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Segment_hasChildren(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.HasChildren, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Segment_hasChildren(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Segment", field, false, false, "Boolean")
+}
+
+func (ec *executionContext) _Transaction_id(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.ID) graphql.Marshaler {
+			return ec.marshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Transaction", field, false, false, "U128")
+}
+
+func (ec *executionContext) _Transaction_ledger(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_ledger(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Ledger, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.LedgerName) graphql.Marshaler {
+			return ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_ledger(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Transaction", field, false, false, "String")
+}
+
+func (ec *executionContext) _Transaction_postings(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_postings(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Postings, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.PostingRecord) graphql.Marshaler {
+			return ec.marshalNPostingRecord2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐPostingRecordᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_postings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Transaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PostingRecord(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Transaction_reference(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_reference(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reference, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_reference(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Transaction", field, false, false, "String")
+}
+
+func (ec *executionContext) _Transaction_eventType(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_eventType(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.EventType, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v dto1.EventTypeRef) graphql.Marshaler {
+			return ec.marshalNEventTypeRef2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐEventTypeRef(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_eventType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Transaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_EventTypeRef(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Transaction_businessTime(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_businessTime(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BusinessTime, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_businessTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Transaction", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _Transaction_metadata(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_metadata(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Metadata, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Metadata) graphql.Marshaler {
+			return ec.marshalNMetadata2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Transaction", field, false, false, "Metadata")
+}
+
+func (ec *executionContext) _Transaction_committedAt(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_committedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CommittedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_committedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Transaction", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _Transaction_timestamp(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_timestamp(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Timestamp, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Timestamp) graphql.Marshaler {
+			return ec.marshalNU642githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐTimestamp(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_timestamp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Transaction", field, false, false, "U64")
+}
+
+func (ec *executionContext) _Transaction_reverts(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_reverts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Reverts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *scalar.ID) graphql.Marshaler {
+			return ec.marshalOU1282ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_reverts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Transaction", field, false, false, "U128")
+}
+
+func (ec *executionContext) _Transaction_revertedBy(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_revertedBy(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RevertedBy, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *scalar.ID) graphql.Marshaler {
+			return ec.marshalOU1282ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_revertedBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Transaction", field, false, false, "U128")
+}
+
+func (ec *executionContext) _Transaction_idempotencyKey(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_idempotencyKey(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IdempotencyKey, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_idempotencyKey(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Transaction", field, false, false, "String")
+}
+
+func (ec *executionContext) _Transaction_requestId(ctx context.Context, field graphql.CollectedField, obj *dto1.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Transaction_requestId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RequestID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Transaction_requestId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Transaction", field, false, false, "String")
+}
+
+func (ec *executionContext) _TransactionConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *graphql1.TransactionConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TransactionConnection_nodes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Nodes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.Transaction) graphql.Marshaler {
+			return ec.marshalNTransaction2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐTransactionᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TransactionConnection_nodes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TransactionConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Transaction(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TransactionConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *graphql1.TransactionConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TransactionConnection_pageInfo(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PageInfo, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v graphqlschema.PageInfo) graphql.Marshaler {
+			return ec.marshalNPageInfo2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋgraphqlschemaᚐPageInfo(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TransactionConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TransactionConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PageInfo(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WriteRequest_key(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequest_key(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Key, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequest_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequest", field, false, false, "String")
+}
+
+func (ec *executionContext) _WriteRequest_operation(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequest_operation(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Operation, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Operation) graphql.Marshaler {
+			return ec.marshalNOperation2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐOperation(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequest_operation(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequest", field, false, false, "Operation")
+}
+
+func (ec *executionContext) _WriteRequest_status(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequest_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.RequestStatus) graphql.Marshaler {
+			return ec.marshalNRequestStatus2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐRequestStatus(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequest_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequest", field, false, false, "RequestStatus")
+}
+
+func (ec *executionContext) _WriteRequest_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequest_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequest_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequest", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _WriteRequest_resolvedAt(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequest_resolvedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ResolvedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequest_resolvedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequest", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _WriteRequest_targetId(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequest_targetId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TargetID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.ID) graphql.Marshaler {
+			return ec.marshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequest_targetId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequest", field, false, false, "U128")
+}
+
+func (ec *executionContext) _WriteRequest_problemType(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequest_problemType(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ProblemType, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequest_problemType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequest", field, false, false, "String")
+}
+
+func (ec *executionContext) _WriteRequest_responseStatus(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequest_responseStatus(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ResponseStatus, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequest_responseStatus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequest", field, false, false, "Int")
+}
+
+func (ec *executionContext) _WriteRequest_requestId(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequest_requestId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RequestID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequest_requestId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequest", field, false, false, "String")
+}
+
+func (ec *executionContext) _WriteRequest_bodyHash(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequest_bodyHash(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BodyHash, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequest_bodyHash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequest", field, false, false, "String")
+}
+
+func (ec *executionContext) _WriteRequest_attempts(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequest_attempts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Attempts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequest_attempts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequest", field, false, false, "Int")
+}
+
+func (ec *executionContext) _WriteRequestConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *graphql1.WriteRequestConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestConnection_nodes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Nodes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto1.WriteRequest) graphql.Marshaler {
+			return ec.marshalNWriteRequest2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐWriteRequestᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestConnection_nodes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WriteRequestConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_WriteRequest(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WriteRequestConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *graphql1.WriteRequestConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestConnection_pageInfo(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PageInfo, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v graphqlschema.PageInfo) graphql.Marshaler {
+			return ec.marshalNPageInfo2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋgraphqlschemaᚐPageInfo(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "WriteRequestConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PageInfo(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _WriteRequestDetail_key(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_key(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Key, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "String")
+}
+
+func (ec *executionContext) _WriteRequestDetail_operation(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_operation(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Operation, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.Operation) graphql.Marshaler {
+			return ec.marshalNOperation2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐOperation(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_operation(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "Operation")
+}
+
+func (ec *executionContext) _WriteRequestDetail_status(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.RequestStatus) graphql.Marshaler {
+			return ec.marshalNRequestStatus2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐRequestStatus(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "RequestStatus")
+}
+
+func (ec *executionContext) _WriteRequestDetail_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _WriteRequestDetail_resolvedAt(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_resolvedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ResolvedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_resolvedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _WriteRequestDetail_targetId(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_targetId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TargetID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.ID) graphql.Marshaler {
+			return ec.marshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_targetId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "U128")
+}
+
+func (ec *executionContext) _WriteRequestDetail_problemType(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_problemType(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ProblemType, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_problemType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "String")
+}
+
+func (ec *executionContext) _WriteRequestDetail_responseStatus(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_responseStatus(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ResponseStatus, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_responseStatus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "Int")
+}
+
+func (ec *executionContext) _WriteRequestDetail_requestId(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_requestId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RequestID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_requestId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "String")
+}
+
+func (ec *executionContext) _WriteRequestDetail_bodyHash(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_bodyHash(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BodyHash, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_bodyHash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "String")
+}
+
+func (ec *executionContext) _WriteRequestDetail_attempts(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_attempts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Attempts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_attempts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "Int")
+}
+
+func (ec *executionContext) _WriteRequestDetail_request(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_request(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Request, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v scalar.JSON) graphql.Marshaler {
+			return ec.marshalNJSON2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐJSON(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_request(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "JSON")
+}
+
+func (ec *executionContext) _WriteRequestDetail_response(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_response(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Response, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *scalar.JSON) graphql.Marshaler {
+			return ec.marshalOJSON2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐJSON(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_response(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "JSON")
+}
+
+func (ec *executionContext) _WriteRequestDetail_transferIds(ctx context.Context, field graphql.CollectedField, obj *dto1.WriteRequestDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WriteRequestDetail_transferIds(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TransferIDs, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []scalar.ID) graphql.Marshaler {
+			return ec.marshalNU1282ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐIDᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WriteRequestDetail_transferIds(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WriteRequestDetail", field, false, false, "U128")
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2146,6 +11752,836 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputCaptureHoldInput(ctx context.Context, obj any) (graphql1.CaptureHoldInput, error) {
+	var it graphql1.CaptureHoldInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ledger", "id", "idempotencyKey", "amount"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "idempotencyKey":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idempotencyKey"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IdempotencyKey = data
+		case "amount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amount"))
+			data, err := ec.unmarshalOAmount2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Amount = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalCaptureHoldInput unmarshals raw into the CaptureHoldInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalCaptureHoldInput(ctx context.Context, raw any) (graphql1.CaptureHoldInput, error) {
+	var out graphql1.CaptureHoldInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "CaptureHoldInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputCreateEventTypeInput(ctx context.Context, obj any) (graphql2.CreateEventTypeInput, error) {
+	var it graphql2.CreateEventTypeInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ledger", "name", "code"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "code":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Code = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalCreateEventTypeInput unmarshals raw into the CreateEventTypeInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalCreateEventTypeInput(ctx context.Context, raw any) (graphql2.CreateEventTypeInput, error) {
+	var out graphql2.CreateEventTypeInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "CreateEventTypeInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputCreateHoldInput(ctx context.Context, obj any) (graphql1.CreateHoldInput, error) {
+	var it graphql1.CreateHoldInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ledger", "idempotencyKey", "source", "destination", "asset", "amount", "timeoutSeconds", "reference", "eventType", "metadata"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "idempotencyKey":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idempotencyKey"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IdempotencyKey = data
+		case "source":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("source"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Source = data
+		case "destination":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("destination"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Destination = data
+		case "asset":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("asset"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Asset = data
+		case "amount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amount"))
+			data, err := ec.unmarshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Amount = data
+		case "timeoutSeconds":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("timeoutSeconds"))
+			data, err := ec.unmarshalOInt642ᚖint64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TimeoutSeconds = data
+		case "reference":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("reference"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Reference = data
+		case "eventType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventType"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EventType = data
+		case "metadata":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("metadata"))
+			data, err := ec.unmarshalOMetadata2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Metadata = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalCreateHoldInput unmarshals raw into the CreateHoldInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalCreateHoldInput(ctx context.Context, raw any) (graphql1.CreateHoldInput, error) {
+	var out graphql1.CreateHoldInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "CreateHoldInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputCreateLedgerInput(ctx context.Context, obj any) (graphql2.CreateLedgerInput, error) {
+	var it graphql2.CreateLedgerInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "metadata"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "metadata":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("metadata"))
+			data, err := ec.unmarshalOMetadata2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Metadata = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalCreateLedgerInput unmarshals raw into the CreateLedgerInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalCreateLedgerInput(ctx context.Context, raw any) (graphql2.CreateLedgerInput, error) {
+	var out graphql2.CreateLedgerInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "CreateLedgerInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputCreateTransactionInput(ctx context.Context, obj any) (graphql1.CreateTransactionInput, error) {
+	var it graphql1.CreateTransactionInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ledger", "idempotencyKey", "postings", "reference", "eventType", "businessTime", "metadata"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "idempotencyKey":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idempotencyKey"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IdempotencyKey = data
+		case "postings":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postings"))
+			data, err := ec.unmarshalNPostingInput2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐPostingInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Postings = data
+		case "reference":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("reference"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Reference = data
+		case "eventType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventType"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EventType = data
+		case "businessTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("businessTime"))
+			data, err := ec.unmarshalODateTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BusinessTime = data
+		case "metadata":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("metadata"))
+			data, err := ec.unmarshalOMetadata2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Metadata = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalCreateTransactionInput unmarshals raw into the CreateTransactionInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalCreateTransactionInput(ctx context.Context, raw any) (graphql1.CreateTransactionInput, error) {
+	var out graphql1.CreateTransactionInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "CreateTransactionInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputDeleteRuleInput(ctx context.Context, obj any) (graphql2.DeleteRuleInput, error) {
+	var it graphql2.DeleteRuleInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ledger", "pattern"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "pattern":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pattern"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Pattern = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalDeleteRuleInput unmarshals raw into the DeleteRuleInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalDeleteRuleInput(ctx context.Context, raw any) (graphql2.DeleteRuleInput, error) {
+	var out graphql2.DeleteRuleInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "DeleteRuleInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputPostingInput(ctx context.Context, obj any) (graphql1.PostingInput, error) {
+	var it graphql1.PostingInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"source", "destination", "asset", "amount"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "source":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("source"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Source = data
+		case "destination":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("destination"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Destination = data
+		case "asset":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("asset"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Asset = data
+		case "amount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amount"))
+			data, err := ec.unmarshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Amount = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalPostingInput unmarshals raw into the PostingInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalPostingInput(ctx context.Context, raw any) (graphql1.PostingInput, error) {
+	var out graphql1.PostingInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "PostingInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputPutRuleInput(ctx context.Context, obj any) (graphql2.PutRuleInput, error) {
+	var it graphql2.PutRuleInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["history"]; !present {
+		asMap["history"] = false
+	}
+
+	fieldsInOrder := [...]string{"ledger", "pattern", "limit", "history", "code"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "pattern":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pattern"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Pattern = data
+		case "limit":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			data, err := ec.unmarshalNBalanceLimit2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐBalanceLimit(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Limit = data
+		case "history":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("history"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.History = data
+		case "code":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Code = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalPutRuleInput unmarshals raw into the PutRuleInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalPutRuleInput(ctx context.Context, raw any) (graphql2.PutRuleInput, error) {
+	var out graphql2.PutRuleInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "PutRuleInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputReplaceAccountMetadataInput(ctx context.Context, obj any) (graphql1.ReplaceAccountMetadataInput, error) {
+	var it graphql1.ReplaceAccountMetadataInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ledger", "address", "metadata"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "address":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Address = data
+		case "metadata":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("metadata"))
+			data, err := ec.unmarshalNMetadata2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Metadata = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalReplaceAccountMetadataInput unmarshals raw into the ReplaceAccountMetadataInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalReplaceAccountMetadataInput(ctx context.Context, raw any) (graphql1.ReplaceAccountMetadataInput, error) {
+	var out graphql1.ReplaceAccountMetadataInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "ReplaceAccountMetadataInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputReplaceLedgerMetadataInput(ctx context.Context, obj any) (graphql2.ReplaceLedgerMetadataInput, error) {
+	var it graphql2.ReplaceLedgerMetadataInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ledger", "metadata"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "metadata":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("metadata"))
+			data, err := ec.unmarshalNMetadata2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Metadata = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalReplaceLedgerMetadataInput unmarshals raw into the ReplaceLedgerMetadataInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalReplaceLedgerMetadataInput(ctx context.Context, raw any) (graphql2.ReplaceLedgerMetadataInput, error) {
+	var out graphql2.ReplaceLedgerMetadataInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "ReplaceLedgerMetadataInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputReplaceTransactionMetadataInput(ctx context.Context, obj any) (graphql1.ReplaceTransactionMetadataInput, error) {
+	var it graphql1.ReplaceTransactionMetadataInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ledger", "id", "metadata"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "metadata":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("metadata"))
+			data, err := ec.unmarshalNMetadata2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Metadata = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalReplaceTransactionMetadataInput unmarshals raw into the ReplaceTransactionMetadataInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalReplaceTransactionMetadataInput(ctx context.Context, raw any) (graphql1.ReplaceTransactionMetadataInput, error) {
+	var out graphql1.ReplaceTransactionMetadataInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "ReplaceTransactionMetadataInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputRevertTransactionInput(ctx context.Context, obj any) (graphql1.RevertTransactionInput, error) {
+	var it graphql1.RevertTransactionInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ledger", "id", "idempotencyKey", "reference", "metadata"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "idempotencyKey":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idempotencyKey"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IdempotencyKey = data
+		case "reference":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("reference"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Reference = data
+		case "metadata":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("metadata"))
+			data, err := ec.unmarshalOMetadata2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Metadata = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalRevertTransactionInput unmarshals raw into the RevertTransactionInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalRevertTransactionInput(ctx context.Context, raw any) (graphql1.RevertTransactionInput, error) {
+	var out graphql1.RevertTransactionInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "RevertTransactionInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputVoidHoldInput(ctx context.Context, obj any) (graphql1.VoidHoldInput, error) {
+	var it graphql1.VoidHoldInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ledger", "id", "idempotencyKey"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "idempotencyKey":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("idempotencyKey"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IdempotencyKey = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalVoidHoldInput unmarshals raw into the VoidHoldInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalVoidHoldInput(ctx context.Context, raw any) (graphql1.VoidHoldInput, error) {
+	var out graphql1.VoidHoldInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "VoidHoldInput", raw, &out)
+	return out, err
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -2154,9 +12590,625 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** object.gotpl ****************************
 
+var accountImplementors = []string{"Account"}
+
+func (ec *executionContext) _Account(ctx context.Context, sel ast.SelectionSet, obj *dto1.Account) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, accountImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Account")
+		case "address":
+			out.Values[i] = ec._Account_address(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._Account_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "metadata":
+			out.Values[i] = ec._Account_metadata(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "balances":
+			out.Values[i] = ec._Account_balances(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "openHolds":
+			out.Values[i] = ec._Account_openHolds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var accountConnectionImplementors = []string{"AccountConnection"}
+
+func (ec *executionContext) _AccountConnection(ctx context.Context, sel ast.SelectionSet, obj *graphql1.AccountConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, accountConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AccountConnection")
+		case "nodes":
+			out.Values[i] = ec._AccountConnection_nodes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._AccountConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var accountSummaryImplementors = []string{"AccountSummary"}
+
+func (ec *executionContext) _AccountSummary(ctx context.Context, sel ast.SelectionSet, obj *dto1.AccountSummary) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, accountSummaryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AccountSummary")
+		case "address":
+			out.Values[i] = ec._AccountSummary_address(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._AccountSummary_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "metadata":
+			out.Values[i] = ec._AccountSummary_metadata(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "balances":
+			out.Values[i] = ec._AccountSummary_balances(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var aggregateBalanceImplementors = []string{"AggregateBalance"}
+
+func (ec *executionContext) _AggregateBalance(ctx context.Context, sel ast.SelectionSet, obj *dto1.AggregateBalance) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aggregateBalanceImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AggregateBalance")
+		case "asset":
+			out.Values[i] = ec._AggregateBalance_asset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "accounts":
+			out.Values[i] = ec._AggregateBalance_accounts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "balance":
+			out.Values[i] = ec._AggregateBalance_balance(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "available":
+			out.Values[i] = ec._AggregateBalance_available(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reserved":
+			out.Values[i] = ec._AggregateBalance_reserved(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "incoming":
+			out.Values[i] = ec._AggregateBalance_incoming(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var aggregateBalancesImplementors = []string{"AggregateBalances"}
+
+func (ec *executionContext) _AggregateBalances(ctx context.Context, sel ast.SelectionSet, obj *dto1.AggregateBalances) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aggregateBalancesImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AggregateBalances")
+		case "prefix":
+			out.Values[i] = ec._AggregateBalances_prefix(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "asOf":
+			out.Values[i] = ec._AggregateBalances_asOf(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "accounts":
+			out.Values[i] = ec._AggregateBalances_accounts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "chunks":
+			out.Values[i] = ec._AggregateBalances_chunks(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "assets":
+			out.Values[i] = ec._AggregateBalances_assets(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var assetAmountImplementors = []string{"AssetAmount"}
+
+func (ec *executionContext) _AssetAmount(ctx context.Context, sel ast.SelectionSet, obj *dto1.AssetAmount) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, assetAmountImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AssetAmount")
+		case "asset":
+			out.Values[i] = ec._AssetAmount_asset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "amount":
+			out.Values[i] = ec._AssetAmount_amount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var assetBalanceImplementors = []string{"AssetBalance"}
+
+func (ec *executionContext) _AssetBalance(ctx context.Context, sel ast.SelectionSet, obj *dto1.AssetBalance) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, assetBalanceImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AssetBalance")
+		case "asset":
+			out.Values[i] = ec._AssetBalance_asset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "accountId":
+			out.Values[i] = ec._AssetBalance_accountId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "tbLedger":
+			out.Values[i] = ec._AssetBalance_tbLedger(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "balance":
+			out.Values[i] = ec._AssetBalance_balance(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "available":
+			out.Values[i] = ec._AssetBalance_available(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reserved":
+			out.Values[i] = ec._AssetBalance_reserved(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "incoming":
+			out.Values[i] = ec._AssetBalance_incoming(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "credits":
+			out.Values[i] = ec._AssetBalance_credits(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "debits":
+			out.Values[i] = ec._AssetBalance_debits(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "limit":
+			out.Values[i] = ec._AssetBalance_limit(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "history":
+			out.Values[i] = ec._AssetBalance_history(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "code":
+			out.Values[i] = ec._AssetBalance_code(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "rule":
+			out.Values[i] = ec._AssetBalance_rule(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._AssetBalance_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var assetSummaryImplementors = []string{"AssetSummary"}
+
+func (ec *executionContext) _AssetSummary(ctx context.Context, sel ast.SelectionSet, obj *dto1.AssetSummary) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, assetSummaryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AssetSummary")
+		case "asset":
+			out.Values[i] = ec._AssetSummary_asset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "tbLedger":
+			out.Values[i] = ec._AssetSummary_tbLedger(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._AssetSummary_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "accounts":
+			out.Values[i] = ec._AssetSummary_accounts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "issued":
+			out.Values[i] = ec._AssetSummary_issued(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var balanceHistoryImplementors = []string{"BalanceHistory"}
+
+func (ec *executionContext) _BalanceHistory(ctx context.Context, sel ast.SelectionSet, obj *dto1.BalanceHistory) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, balanceHistoryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BalanceHistory")
+		case "address":
+			out.Values[i] = ec._BalanceHistory_address(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "asset":
+			out.Values[i] = ec._BalanceHistory_asset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "data":
+			out.Values[i] = ec._BalanceHistory_data(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var balancePointImplementors = []string{"BalancePoint"}
+
+func (ec *executionContext) _BalancePoint(ctx context.Context, sel ast.SelectionSet, obj *dto1.BalancePoint) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, balancePointImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BalancePoint")
+		case "timestamp":
+			out.Values[i] = ec._BalancePoint_timestamp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "at":
+			out.Values[i] = ec._BalancePoint_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "balance":
+			out.Values[i] = ec._BalancePoint_balance(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reserved":
+			out.Values[i] = ec._BalancePoint_reserved(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "credits":
+			out.Values[i] = ec._BalancePoint_credits(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "debits":
+			out.Values[i] = ec._BalancePoint_debits(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var declinedReasonImplementors = []string{"DeclinedReason"}
+
+func (ec *executionContext) _DeclinedReason(ctx context.Context, sel ast.SelectionSet, obj *dto1.DeclinedReason) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, declinedReasonImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DeclinedReason")
+		case "reason":
+			out.Values[i] = ec._DeclinedReason_reason(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "count":
+			out.Values[i] = ec._DeclinedReason_count(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var declinedStatsImplementors = []string{"DeclinedStats"}
+
+func (ec *executionContext) _DeclinedStats(ctx context.Context, sel ast.SelectionSet, obj *dto1.DeclinedStats) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, declinedStatsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DeclinedStats")
+		case "total":
+			out.Values[i] = ec._DeclinedStats_total(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reasons":
+			out.Values[i] = ec._DeclinedStats_reasons(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
 var dependenciesImplementors = []string{"Dependencies"}
 
-func (ec *executionContext) _Dependencies(ctx context.Context, sel ast.SelectionSet, obj *dto.Dependencies) graphql.Marshaler {
+func (ec *executionContext) _Dependencies(ctx context.Context, sel ast.SelectionSet, obj *dto2.Dependencies) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, dependenciesImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -2194,7 +13246,7 @@ func (ec *executionContext) _Dependencies(ctx context.Context, sel ast.Selection
 
 var dependencyCheckImplementors = []string{"DependencyCheck"}
 
-func (ec *executionContext) _DependencyCheck(ctx context.Context, sel ast.SelectionSet, obj *dto.DependencyCheck) graphql.Marshaler {
+func (ec *executionContext) _DependencyCheck(ctx context.Context, sel ast.SelectionSet, obj *dto2.DependencyCheck) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, dependencyCheckImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -2235,9 +13287,319 @@ func (ec *executionContext) _DependencyCheck(ctx context.Context, sel ast.Select
 	return out
 }
 
+var eventTypeImplementors = []string{"EventType"}
+
+func (ec *executionContext) _EventType(ctx context.Context, sel ast.SelectionSet, obj *dto.EventType) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, eventTypeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EventType")
+		case "name":
+			out.Values[i] = ec._EventType_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "code":
+			out.Values[i] = ec._EventType_code(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "builtIn":
+			out.Values[i] = ec._EventType_builtIn(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._EventType_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "transactions":
+			out.Values[i] = ec._EventType_transactions(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var eventTypeRefImplementors = []string{"EventTypeRef"}
+
+func (ec *executionContext) _EventTypeRef(ctx context.Context, sel ast.SelectionSet, obj *dto1.EventTypeRef) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, eventTypeRefImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EventTypeRef")
+		case "name":
+			out.Values[i] = ec._EventTypeRef_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "code":
+			out.Values[i] = ec._EventTypeRef_code(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var holdImplementors = []string{"Hold"}
+
+func (ec *executionContext) _Hold(ctx context.Context, sel ast.SelectionSet, obj *dto1.Hold) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, holdImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Hold")
+		case "id":
+			out.Values[i] = ec._Hold_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ledger":
+			out.Values[i] = ec._Hold_ledger(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "source":
+			out.Values[i] = ec._Hold_source(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "destination":
+			out.Values[i] = ec._Hold_destination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "asset":
+			out.Values[i] = ec._Hold_asset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "amount":
+			out.Values[i] = ec._Hold_amount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "capturedAmount":
+			out.Values[i] = ec._Hold_capturedAmount(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._Hold_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "timeoutSeconds":
+			out.Values[i] = ec._Hold_timeoutSeconds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._Hold_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "timestamp":
+			out.Values[i] = ec._Hold_timestamp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "expiresAt":
+			out.Values[i] = ec._Hold_expiresAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "resolvedAt":
+			out.Values[i] = ec._Hold_resolvedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "reference":
+			out.Values[i] = ec._Hold_reference(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "eventType":
+			out.Values[i] = ec._Hold_eventType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "metadata":
+			out.Values[i] = ec._Hold_metadata(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "idempotencyKey":
+			out.Values[i] = ec._Hold_idempotencyKey(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pendingTransferId":
+			out.Values[i] = ec._Hold_pendingTransferId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "resolutionTransferId":
+			out.Values[i] = ec._Hold_resolutionTransferId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "tbLedger":
+			out.Values[i] = ec._Hold_tbLedger(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var holdConnectionImplementors = []string{"HoldConnection"}
+
+func (ec *executionContext) _HoldConnection(ctx context.Context, sel ast.SelectionSet, obj *graphql1.HoldConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, holdConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("HoldConnection")
+		case "nodes":
+			out.Values[i] = ec._HoldConnection_nodes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._HoldConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var holdStatsImplementors = []string{"HoldStats"}
+
+func (ec *executionContext) _HoldStats(ctx context.Context, sel ast.SelectionSet, obj *dto1.HoldStats) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, holdStatsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("HoldStats")
+		case "open":
+			out.Values[i] = ec._HoldStats_open(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "captured":
+			out.Values[i] = ec._HoldStats_captured(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "voided":
+			out.Values[i] = ec._HoldStats_voided(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "expired":
+			out.Values[i] = ec._HoldStats_expired(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reserved":
+			out.Values[i] = ec._HoldStats_reserved(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
 var infoImplementors = []string{"Info"}
 
-func (ec *executionContext) _Info(ctx context.Context, sel ast.SelectionSet, obj *dto.Info) graphql.Marshaler {
+func (ec *executionContext) _Info(ctx context.Context, sel ast.SelectionSet, obj *dto2.Info) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, infoImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -2283,6 +13645,474 @@ func (ec *executionContext) _Info(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var ledgerImplementors = []string{"Ledger"}
+
+func (ec *executionContext) _Ledger(ctx context.Context, sel ast.SelectionSet, obj *graphql2.Ledger) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ledgerImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Ledger")
+		case "name":
+			out.Values[i] = ec._Ledger_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "metadata":
+			out.Values[i] = ec._Ledger_metadata(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "createdAt":
+			out.Values[i] = ec._Ledger_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "assetCodes":
+			out.Values[i] = ec._Ledger_assetCodes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "accountCount":
+			out.Values[i] = ec._Ledger_accountCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "rules":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_rules(ctx, field, obj)
+				})
+		case "ruleMatch":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_ruleMatch(ctx, field, obj)
+				})
+		case "eventTypes":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_eventTypes(ctx, field, obj)
+				})
+		case "assets":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_assets(ctx, field, obj)
+				})
+		case "stats":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_stats(ctx, field, obj)
+				})
+		case "accounts":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_accounts(ctx, field, obj)
+				})
+		case "account":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, false,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_account(ctx, field, obj)
+				})
+		case "accountHistory":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_accountHistory(ctx, field, obj)
+				})
+		case "segments":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_segments(ctx, field, obj)
+				})
+		case "aggregateBalances":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_aggregateBalances(ctx, field, obj)
+				})
+		case "transactions":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_transactions(ctx, field, obj)
+				})
+		case "transaction":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, false,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_transaction(ctx, field, obj)
+				})
+		case "holds":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_holds(ctx, field, obj)
+				})
+		case "holdCounts":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_holdCounts(ctx, field, obj)
+				})
+		case "hold":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, false,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_hold(ctx, field, obj)
+				})
+		case "requests":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_requests(ctx, field, obj)
+				})
+		case "request":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, false,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_request(ctx, field, obj)
+				})
+		case "search":
+			out.ResolveConcurrently(ec.OperationContext, &deferred, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Ledger_search(ctx, field, obj)
+				})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var ledgerConnectionImplementors = []string{"LedgerConnection"}
+
+func (ec *executionContext) _LedgerConnection(ctx context.Context, sel ast.SelectionSet, obj *graphql2.LedgerConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ledgerConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LedgerConnection")
+		case "nodes":
+			out.Values[i] = ec._LedgerConnection_nodes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._LedgerConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var ledgerStatsImplementors = []string{"LedgerStats"}
+
+func (ec *executionContext) _LedgerStats(ctx context.Context, sel ast.SelectionSet, obj *dto1.LedgerStats) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ledgerStatsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LedgerStats")
+		case "accounts":
+			out.Values[i] = ec._LedgerStats_accounts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "accountsToday":
+			out.Values[i] = ec._LedgerStats_accountsToday(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "assets":
+			out.Values[i] = ec._LedgerStats_assets(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "holds":
+			out.Values[i] = ec._LedgerStats_holds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "declined":
+			out.Values[i] = ec._LedgerStats_declined(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var mutationImplementors = []string{"Mutation"}
+
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationImplementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Mutation",
+	})
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
+			Object: field.Name,
+			Field:  field,
+		})
+
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "createLedger":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createLedger(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "replaceLedgerMetadata":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_replaceLedgerMetadata(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "putRule":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_putRule(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteRule":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteRule(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createEventType":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createEventType(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createTransaction":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createTransaction(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "revertTransaction":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_revertTransaction(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "replaceTransactionMetadata":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_replaceTransactionMetadata(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createHold":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createHold(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "captureHold":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_captureHold(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "voidHold":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_voidHold(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "replaceAccountMetadata":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_replaceAccountMetadata(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var pageInfoImplementors = []string{"PageInfo"}
+
+func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *graphqlschema.PageInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, pageInfoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PageInfo")
+		case "endCursor":
+			out.Values[i] = ec._PageInfo_endCursor(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "hasNextPage":
+			out.Values[i] = ec._PageInfo_hasNextPage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var postingRecordImplementors = []string{"PostingRecord"}
+
+func (ec *executionContext) _PostingRecord(ctx context.Context, sel ast.SelectionSet, obj *dto1.PostingRecord) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, postingRecordImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PostingRecord")
+		case "source":
+			out.Values[i] = ec._PostingRecord_source(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "destination":
+			out.Values[i] = ec._PostingRecord_destination(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "asset":
+			out.Values[i] = ec._PostingRecord_asset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "amount":
+			out.Values[i] = ec._PostingRecord_amount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "transferId":
+			out.Values[i] = ec._PostingRecord_transferId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "tbLedger":
+			out.Values[i] = ec._PostingRecord_tbLedger(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -2307,6 +14137,18 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				true, true,
 				func(ctx context.Context) graphql.Marshaler {
 					return ec._Query_serviceInfo(ctx, field)
+				})
+		case "ledger":
+			out.ResolveRootConcurrently(innerCtx, ec.OperationContext, i,
+				true, false,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Query_ledger(ctx, field)
+				})
+		case "ledgers":
+			out.ResolveRootConcurrently(innerCtx, ec.OperationContext, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Query_ledgers(ctx, field)
 				})
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -2339,9 +14181,163 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
+var ruleImplementors = []string{"Rule"}
+
+func (ec *executionContext) _Rule(ctx context.Context, sel ast.SelectionSet, obj *dto.Rule) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ruleImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Rule")
+		case "pattern":
+			out.Values[i] = ec._Rule_pattern(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "limit":
+			out.Values[i] = ec._Rule_limit(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "history":
+			out.Values[i] = ec._Rule_history(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "code":
+			out.Values[i] = ec._Rule_code(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "builtIn":
+			out.Values[i] = ec._Rule_builtIn(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "segments":
+			out.Values[i] = ec._Rule_segments(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._Rule_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._Rule_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var ruleCandidateImplementors = []string{"RuleCandidate"}
+
+func (ec *executionContext) _RuleCandidate(ctx context.Context, sel ast.SelectionSet, obj *dto.RuleCandidate) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ruleCandidateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RuleCandidate")
+		case "rule":
+			out.Values[i] = ec._RuleCandidate_rule(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "matches":
+			out.Values[i] = ec._RuleCandidate_matches(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var ruleMatchImplementors = []string{"RuleMatch"}
+
+func (ec *executionContext) _RuleMatch(ctx context.Context, sel ast.SelectionSet, obj *dto.RuleMatch) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ruleMatchImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RuleMatch")
+		case "address":
+			out.Values[i] = ec._RuleMatch_address(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "rule":
+			out.Values[i] = ec._RuleMatch_rule(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "candidates":
+			out.Values[i] = ec._RuleMatch_candidates(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "existing":
+			out.Values[i] = ec._RuleMatch_existing(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
 var runtimeImplementors = []string{"Runtime"}
 
-func (ec *executionContext) _Runtime(ctx context.Context, sel ast.SelectionSet, obj *dto.Runtime) graphql.Marshaler {
+func (ec *executionContext) _Runtime(ctx context.Context, sel ast.SelectionSet, obj *dto2.Runtime) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, runtimeImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -2378,6 +14374,629 @@ func (ec *executionContext) _Runtime(ctx context.Context, sel ast.SelectionSet, 
 		case "schemaVersion":
 			out.Values[i] = ec._Runtime_schemaVersion(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var searchAccountImplementors = []string{"SearchAccount"}
+
+func (ec *executionContext) _SearchAccount(ctx context.Context, sel ast.SelectionSet, obj *dto1.SearchAccount) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, searchAccountImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SearchAccount")
+		case "address":
+			out.Values[i] = ec._SearchAccount_address(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "assets":
+			out.Values[i] = ec._SearchAccount_assets(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var searchHoldImplementors = []string{"SearchHold"}
+
+func (ec *executionContext) _SearchHold(ctx context.Context, sel ast.SelectionSet, obj *dto1.SearchHold) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, searchHoldImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SearchHold")
+		case "id":
+			out.Values[i] = ec._SearchHold_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._SearchHold_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var searchRequestImplementors = []string{"SearchRequest"}
+
+func (ec *executionContext) _SearchRequest(ctx context.Context, sel ast.SelectionSet, obj *dto1.SearchRequest) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, searchRequestImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SearchRequest")
+		case "key":
+			out.Values[i] = ec._SearchRequest_key(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "operation":
+			out.Values[i] = ec._SearchRequest_operation(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._SearchRequest_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var searchResultsImplementors = []string{"SearchResults"}
+
+func (ec *executionContext) _SearchResults(ctx context.Context, sel ast.SelectionSet, obj *dto1.SearchResults) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, searchResultsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SearchResults")
+		case "query":
+			out.Values[i] = ec._SearchResults_query(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "accounts":
+			out.Values[i] = ec._SearchResults_accounts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "transactions":
+			out.Values[i] = ec._SearchResults_transactions(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "holds":
+			out.Values[i] = ec._SearchResults_holds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "requests":
+			out.Values[i] = ec._SearchResults_requests(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var searchTransactionImplementors = []string{"SearchTransaction"}
+
+func (ec *executionContext) _SearchTransaction(ctx context.Context, sel ast.SelectionSet, obj *dto1.SearchTransaction) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, searchTransactionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SearchTransaction")
+		case "id":
+			out.Values[i] = ec._SearchTransaction_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reference":
+			out.Values[i] = ec._SearchTransaction_reference(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "committedAt":
+			out.Values[i] = ec._SearchTransaction_committedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var segmentImplementors = []string{"Segment"}
+
+func (ec *executionContext) _Segment(ctx context.Context, sel ast.SelectionSet, obj *dto1.Segment) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, segmentImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Segment")
+		case "segment":
+			out.Values[i] = ec._Segment_segment(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "prefix":
+			out.Values[i] = ec._Segment_prefix(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "accounts":
+			out.Values[i] = ec._Segment_accounts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "assets":
+			out.Values[i] = ec._Segment_assets(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isAccount":
+			out.Values[i] = ec._Segment_isAccount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasChildren":
+			out.Values[i] = ec._Segment_hasChildren(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var transactionImplementors = []string{"Transaction"}
+
+func (ec *executionContext) _Transaction(ctx context.Context, sel ast.SelectionSet, obj *dto1.Transaction) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, transactionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Transaction")
+		case "id":
+			out.Values[i] = ec._Transaction_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ledger":
+			out.Values[i] = ec._Transaction_ledger(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "postings":
+			out.Values[i] = ec._Transaction_postings(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reference":
+			out.Values[i] = ec._Transaction_reference(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "eventType":
+			out.Values[i] = ec._Transaction_eventType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "businessTime":
+			out.Values[i] = ec._Transaction_businessTime(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "metadata":
+			out.Values[i] = ec._Transaction_metadata(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "committedAt":
+			out.Values[i] = ec._Transaction_committedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "timestamp":
+			out.Values[i] = ec._Transaction_timestamp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reverts":
+			out.Values[i] = ec._Transaction_reverts(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "revertedBy":
+			out.Values[i] = ec._Transaction_revertedBy(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "idempotencyKey":
+			out.Values[i] = ec._Transaction_idempotencyKey(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "requestId":
+			out.Values[i] = ec._Transaction_requestId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var transactionConnectionImplementors = []string{"TransactionConnection"}
+
+func (ec *executionContext) _TransactionConnection(ctx context.Context, sel ast.SelectionSet, obj *graphql1.TransactionConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, transactionConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TransactionConnection")
+		case "nodes":
+			out.Values[i] = ec._TransactionConnection_nodes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._TransactionConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var writeRequestImplementors = []string{"WriteRequest"}
+
+func (ec *executionContext) _WriteRequest(ctx context.Context, sel ast.SelectionSet, obj *dto1.WriteRequest) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, writeRequestImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WriteRequest")
+		case "key":
+			out.Values[i] = ec._WriteRequest_key(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "operation":
+			out.Values[i] = ec._WriteRequest_operation(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._WriteRequest_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._WriteRequest_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "resolvedAt":
+			out.Values[i] = ec._WriteRequest_resolvedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "targetId":
+			out.Values[i] = ec._WriteRequest_targetId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "problemType":
+			out.Values[i] = ec._WriteRequest_problemType(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "responseStatus":
+			out.Values[i] = ec._WriteRequest_responseStatus(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "requestId":
+			out.Values[i] = ec._WriteRequest_requestId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "bodyHash":
+			out.Values[i] = ec._WriteRequest_bodyHash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "attempts":
+			out.Values[i] = ec._WriteRequest_attempts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var writeRequestConnectionImplementors = []string{"WriteRequestConnection"}
+
+func (ec *executionContext) _WriteRequestConnection(ctx context.Context, sel ast.SelectionSet, obj *graphql1.WriteRequestConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, writeRequestConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WriteRequestConnection")
+		case "nodes":
+			out.Values[i] = ec._WriteRequestConnection_nodes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._WriteRequestConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var writeRequestDetailImplementors = []string{"WriteRequestDetail"}
+
+func (ec *executionContext) _WriteRequestDetail(ctx context.Context, sel ast.SelectionSet, obj *dto1.WriteRequestDetail) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, writeRequestDetailImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WriteRequestDetail")
+		case "key":
+			out.Values[i] = ec._WriteRequestDetail_key(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "operation":
+			out.Values[i] = ec._WriteRequestDetail_operation(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._WriteRequestDetail_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._WriteRequestDetail_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "resolvedAt":
+			out.Values[i] = ec._WriteRequestDetail_resolvedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "targetId":
+			out.Values[i] = ec._WriteRequestDetail_targetId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "problemType":
+			out.Values[i] = ec._WriteRequestDetail_problemType(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "responseStatus":
+			out.Values[i] = ec._WriteRequestDetail_responseStatus(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "requestId":
+			out.Values[i] = ec._WriteRequestDetail_requestId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "bodyHash":
+			out.Values[i] = ec._WriteRequestDetail_bodyHash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "attempts":
+			out.Values[i] = ec._WriteRequestDetail_attempts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "request":
+			out.Values[i] = ec._WriteRequestDetail_request(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "response":
+			out.Values[i] = ec._WriteRequestDetail_response(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "transferIds":
+			out.Values[i] = ec._WriteRequestDetail_transferIds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		default:
@@ -2759,6 +15378,178 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNAccount2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAccount(ctx context.Context, sel ast.SelectionSet, v *dto1.Account) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "Account!")
+		return graphql.Null
+	}
+	return ec._Account(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNAccountConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐAccountConnection(ctx context.Context, sel ast.SelectionSet, v *graphql1.AccountConnection) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "AccountConnection!")
+		return graphql.Null
+	}
+	return ec._AccountConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNAccountSummary2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAccountSummary(ctx context.Context, sel ast.SelectionSet, v dto1.AccountSummary) graphql.Marshaler {
+	return ec._AccountSummary(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAccountSummary2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAccountSummaryᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.AccountSummary) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNAccountSummary2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAccountSummary(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAggregateBalance2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAggregateBalance(ctx context.Context, sel ast.SelectionSet, v dto1.AggregateBalance) graphql.Marshaler {
+	return ec._AggregateBalance(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAggregateBalance2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAggregateBalanceᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.AggregateBalance) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNAggregateBalance2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAggregateBalance(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAggregateBalances2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAggregateBalances(ctx context.Context, sel ast.SelectionSet, v *dto1.AggregateBalances) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "AggregateBalances!")
+		return graphql.Null
+	}
+	return ec._AggregateBalances(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx context.Context, v any) (scalar.Amount, error) {
+	var res scalar.Amount
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx context.Context, sel ast.SelectionSet, v scalar.Amount) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNAssetAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetAmount(ctx context.Context, sel ast.SelectionSet, v dto1.AssetAmount) graphql.Marshaler {
+	return ec._AssetAmount(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAssetAmount2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetAmountᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.AssetAmount) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNAssetAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetAmount(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAssetBalance2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetBalance(ctx context.Context, sel ast.SelectionSet, v dto1.AssetBalance) graphql.Marshaler {
+	return ec._AssetBalance(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAssetBalance2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetBalanceᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.AssetBalance) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNAssetBalance2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetBalance(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAssetSummary2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetSummary(ctx context.Context, sel ast.SelectionSet, v dto1.AssetSummary) graphql.Marshaler {
+	return ec._AssetSummary(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAssetSummary2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetSummaryᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.AssetSummary) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNAssetSummary2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAssetSummary(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBalanceHistory2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐBalanceHistory(ctx context.Context, sel ast.SelectionSet, v *dto1.BalanceHistory) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "BalanceHistory!")
+		return graphql.Null
+	}
+	return ec._BalanceHistory(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNBalanceLimit2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐBalanceLimit(ctx context.Context, v any) (scalar.BalanceLimit, error) {
+	var res scalar.BalanceLimit
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNBalanceLimit2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐBalanceLimit(ctx context.Context, sel ast.SelectionSet, v scalar.BalanceLimit) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNBalancePoint2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐBalancePoint(ctx context.Context, sel ast.SelectionSet, v dto1.BalancePoint) graphql.Marshaler {
+	return ec._BalancePoint(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBalancePoint2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐBalancePointᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.BalancePoint) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNBalancePoint2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐBalancePoint(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -2771,6 +15562,31 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		graphql.AddInvalidNullFromMarshaler(ctx, "Boolean!")
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNCaptureHoldInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐCaptureHoldInput(ctx context.Context, v any) (graphql1.CaptureHoldInput, error) {
+	res, err := ec.unmarshalInputCaptureHoldInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCreateEventTypeInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐCreateEventTypeInput(ctx context.Context, v any) (graphql2.CreateEventTypeInput, error) {
+	res, err := ec.unmarshalInputCreateEventTypeInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCreateHoldInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐCreateHoldInput(ctx context.Context, v any) (graphql1.CreateHoldInput, error) {
+	res, err := ec.unmarshalInputCreateHoldInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCreateLedgerInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐCreateLedgerInput(ctx context.Context, v any) (graphql2.CreateLedgerInput, error) {
+	res, err := ec.unmarshalInputCreateLedgerInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCreateTransactionInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐCreateTransactionInput(ctx context.Context, v any) (graphql1.CreateTransactionInput, error) {
+	res, err := ec.unmarshalInputCreateTransactionInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNDateTime2timeᚐTime(ctx context.Context, v any) (time.Time, error) {
@@ -2787,11 +15603,40 @@ func (ec *executionContext) marshalNDateTime2timeᚐTime(ctx context.Context, se
 	return res
 }
 
-func (ec *executionContext) marshalNDependencies2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencies(ctx context.Context, sel ast.SelectionSet, v dto.Dependencies) graphql.Marshaler {
+func (ec *executionContext) marshalNDeclinedReason2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐDeclinedReason(ctx context.Context, sel ast.SelectionSet, v dto1.DeclinedReason) graphql.Marshaler {
+	return ec._DeclinedReason(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDeclinedReason2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐDeclinedReasonᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.DeclinedReason) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNDeclinedReason2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐDeclinedReason(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNDeclinedStats2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐDeclinedStats(ctx context.Context, sel ast.SelectionSet, v dto1.DeclinedStats) graphql.Marshaler {
+	return ec._DeclinedStats(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNDeleteRuleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐDeleteRuleInput(ctx context.Context, v any) (graphql2.DeleteRuleInput, error) {
+	res, err := ec.unmarshalInputDeleteRuleInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDependencies2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencies(ctx context.Context, sel ast.SelectionSet, v dto2.Dependencies) graphql.Marshaler {
 	return ec._Dependencies(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNDependencyCheck2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencyCheck(ctx context.Context, sel ast.SelectionSet, v dto.DependencyCheck) graphql.Marshaler {
+func (ec *executionContext) marshalNDependencyCheck2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencyCheck(ctx context.Context, sel ast.SelectionSet, v dto2.DependencyCheck) graphql.Marshaler {
 	return ec._DependencyCheck(ctx, sel, &v)
 }
 
@@ -2805,12 +15650,116 @@ func (ec *executionContext) marshalNDependencyStatus2githubᚗcomᚋwilfriedago�
 	return v
 }
 
-func (ec *executionContext) marshalNInfo2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐInfo(ctx context.Context, sel ast.SelectionSet, v *dto.Info) graphql.Marshaler {
+func (ec *executionContext) marshalNEventType2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐEventType(ctx context.Context, sel ast.SelectionSet, v dto.EventType) graphql.Marshaler {
+	return ec._EventType(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNEventType2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐEventTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []dto.EventType) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNEventType2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐEventType(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNEventType2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐEventType(ctx context.Context, sel ast.SelectionSet, v *dto.EventType) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "EventType!")
+		return graphql.Null
+	}
+	return ec._EventType(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNEventTypeRef2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐEventTypeRef(ctx context.Context, sel ast.SelectionSet, v dto1.EventTypeRef) graphql.Marshaler {
+	return ec._EventTypeRef(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNHold2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHold(ctx context.Context, sel ast.SelectionSet, v dto1.Hold) graphql.Marshaler {
+	return ec._Hold(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNHold2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHoldᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.Hold) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNHold2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHold(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNHold2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHold(ctx context.Context, sel ast.SelectionSet, v *dto1.Hold) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "Hold!")
+		return graphql.Null
+	}
+	return ec._Hold(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNHoldConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐHoldConnection(ctx context.Context, sel ast.SelectionSet, v *graphql1.HoldConnection) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "HoldConnection!")
+		return graphql.Null
+	}
+	return ec._HoldConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNHoldStats2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHoldStats(ctx context.Context, sel ast.SelectionSet, v dto1.HoldStats) graphql.Marshaler {
+	return ec._HoldStats(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNHoldStats2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHoldStats(ctx context.Context, sel ast.SelectionSet, v *dto1.HoldStats) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "HoldStats!")
+		return graphql.Null
+	}
+	return ec._HoldStats(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNHoldStatus2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐHoldStatus(ctx context.Context, v any) (scalar.HoldStatus, error) {
+	var res scalar.HoldStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNHoldStatus2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐHoldStatus(ctx context.Context, sel ast.SelectionSet, v scalar.HoldStatus) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNInfo2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐInfo(ctx context.Context, sel ast.SelectionSet, v *dto2.Info) graphql.Marshaler {
 	if v == nil {
 		graphql.AddInvalidNullError(ctx, "Info!")
 		return graphql.Null
 	}
 	return ec._Info(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		graphql.AddInvalidNullFromMarshaler(ctx, "Int!")
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNInt642int64(ctx context.Context, v any) (int64, error) {
@@ -2827,6 +15776,370 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 	return res
 }
 
+func (ec *executionContext) unmarshalNJSON2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐJSON(ctx context.Context, v any) (scalar.JSON, error) {
+	var res scalar.JSON
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNJSON2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐJSON(ctx context.Context, sel ast.SelectionSet, v scalar.JSON) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "JSON!")
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) marshalNLedger2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx context.Context, sel ast.SelectionSet, v graphql2.Ledger) graphql.Marshaler {
+	return ec._Ledger(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNLedger2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedgerᚄ(ctx context.Context, sel ast.SelectionSet, v []graphql2.Ledger) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNLedger2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx context.Context, sel ast.SelectionSet, v *graphql2.Ledger) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "Ledger!")
+		return graphql.Null
+	}
+	return ec._Ledger(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNLedgerConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedgerConnection(ctx context.Context, sel ast.SelectionSet, v *graphql2.LedgerConnection) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "LedgerConnection!")
+		return graphql.Null
+	}
+	return ec._LedgerConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNLedgerStats2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐLedgerStats(ctx context.Context, sel ast.SelectionSet, v *dto1.LedgerStats) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "LedgerStats!")
+		return graphql.Null
+	}
+	return ec._LedgerStats(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNMetadata2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx context.Context, v any) (scalar.Metadata, error) {
+	var res scalar.Metadata
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNMetadata2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx context.Context, sel ast.SelectionSet, v scalar.Metadata) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "Metadata!")
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalNOperation2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐOperation(ctx context.Context, v any) (scalar.Operation, error) {
+	var res scalar.Operation
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNOperation2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐOperation(ctx context.Context, sel ast.SelectionSet, v scalar.Operation) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋgraphqlschemaᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v graphqlschema.PageInfo) graphql.Marshaler {
+	return ec._PageInfo(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNPostingInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐPostingInput(ctx context.Context, v any) (graphql1.PostingInput, error) {
+	res, err := ec.unmarshalInputPostingInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNPostingInput2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐPostingInputᚄ(ctx context.Context, v any) ([]graphql1.PostingInput, error) {
+	vSlice := graphql.CoerceList(v)
+	var err error
+	res := make([]graphql1.PostingInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNPostingInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐPostingInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNPostingRecord2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐPostingRecord(ctx context.Context, sel ast.SelectionSet, v dto1.PostingRecord) graphql.Marshaler {
+	return ec._PostingRecord(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPostingRecord2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐPostingRecordᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.PostingRecord) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNPostingRecord2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐPostingRecord(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNPutRuleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐPutRuleInput(ctx context.Context, v any) (graphql2.PutRuleInput, error) {
+	res, err := ec.unmarshalInputPutRuleInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNReplaceAccountMetadataInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐReplaceAccountMetadataInput(ctx context.Context, v any) (graphql1.ReplaceAccountMetadataInput, error) {
+	res, err := ec.unmarshalInputReplaceAccountMetadataInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNReplaceLedgerMetadataInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐReplaceLedgerMetadataInput(ctx context.Context, v any) (graphql2.ReplaceLedgerMetadataInput, error) {
+	res, err := ec.unmarshalInputReplaceLedgerMetadataInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNReplaceTransactionMetadataInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐReplaceTransactionMetadataInput(ctx context.Context, v any) (graphql1.ReplaceTransactionMetadataInput, error) {
+	res, err := ec.unmarshalInputReplaceTransactionMetadataInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNRequestStatus2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐRequestStatus(ctx context.Context, v any) (scalar.RequestStatus, error) {
+	var res scalar.RequestStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRequestStatus2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐRequestStatus(ctx context.Context, sel ast.SelectionSet, v scalar.RequestStatus) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNRevertTransactionInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐRevertTransactionInput(ctx context.Context, v any) (graphql1.RevertTransactionInput, error) {
+	res, err := ec.unmarshalInputRevertTransactionInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRule2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRule(ctx context.Context, sel ast.SelectionSet, v dto.Rule) graphql.Marshaler {
+	return ec._Rule(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRule2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRuleᚄ(ctx context.Context, sel ast.SelectionSet, v []dto.Rule) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNRule2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRule(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNRule2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRule(ctx context.Context, sel ast.SelectionSet, v *dto.Rule) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "Rule!")
+		return graphql.Null
+	}
+	return ec._Rule(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRuleCandidate2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRuleCandidate(ctx context.Context, sel ast.SelectionSet, v dto.RuleCandidate) graphql.Marshaler {
+	return ec._RuleCandidate(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRuleCandidate2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRuleCandidateᚄ(ctx context.Context, sel ast.SelectionSet, v []dto.RuleCandidate) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNRuleCandidate2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRuleCandidate(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNRuleMatch2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋdtoᚐRuleMatch(ctx context.Context, sel ast.SelectionSet, v *dto.RuleMatch) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "RuleMatch!")
+		return graphql.Null
+	}
+	return ec._RuleMatch(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSearchAccount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchAccount(ctx context.Context, sel ast.SelectionSet, v dto1.SearchAccount) graphql.Marshaler {
+	return ec._SearchAccount(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSearchAccount2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchAccountᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.SearchAccount) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNSearchAccount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchAccount(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSearchHold2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchHold(ctx context.Context, sel ast.SelectionSet, v dto1.SearchHold) graphql.Marshaler {
+	return ec._SearchHold(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSearchHold2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchHoldᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.SearchHold) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNSearchHold2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchHold(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSearchRequest2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchRequest(ctx context.Context, sel ast.SelectionSet, v dto1.SearchRequest) graphql.Marshaler {
+	return ec._SearchRequest(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSearchRequest2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.SearchRequest) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNSearchRequest2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchRequest(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSearchResults2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchResults(ctx context.Context, sel ast.SelectionSet, v *dto1.SearchResults) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "SearchResults!")
+		return graphql.Null
+	}
+	return ec._SearchResults(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSearchTransaction2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchTransaction(ctx context.Context, sel ast.SelectionSet, v dto1.SearchTransaction) graphql.Marshaler {
+	return ec._SearchTransaction(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSearchTransaction2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchTransactionᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.SearchTransaction) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNSearchTransaction2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSearchTransaction(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSegment2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSegment(ctx context.Context, sel ast.SelectionSet, v dto1.Segment) graphql.Marshaler {
+	return ec._Segment(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSegment2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSegmentᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.Segment) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNSegment2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐSegment(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNSignedAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐSignedAmount(ctx context.Context, v any) (scalar.SignedAmount, error) {
+	var res scalar.SignedAmount
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSignedAmount2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐSignedAmount(ctx context.Context, sel ast.SelectionSet, v scalar.SignedAmount) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx context.Context, v any) (scalar.Address, error) {
+	var res scalar.Address
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAddress(ctx context.Context, sel ast.SelectionSet, v scalar.Address) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx context.Context, v any) (scalar.Asset, error) {
+	var res scalar.Asset
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx context.Context, sel ast.SelectionSet, v scalar.Asset) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx context.Context, v any) (scalar.LedgerName, error) {
+	var res scalar.LedgerName
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐLedgerName(ctx context.Context, sel ast.SelectionSet, v scalar.LedgerName) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -2839,6 +16152,153 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		graphql.AddInvalidNullFromMarshaler(ctx, "String!")
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNString2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAssetᚄ(ctx context.Context, v any) ([]scalar.Asset, error) {
+	vSlice := graphql.CoerceList(v)
+	var err error
+	res := make([]scalar.Asset, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAssetᚄ(ctx context.Context, sel ast.SelectionSet, v []scalar.Asset) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAsset(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNTransaction2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐTransaction(ctx context.Context, sel ast.SelectionSet, v dto1.Transaction) graphql.Marshaler {
+	return ec._Transaction(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTransaction2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐTransactionᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.Transaction) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNTransaction2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐTransaction(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNTransaction2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐTransaction(ctx context.Context, sel ast.SelectionSet, v *dto1.Transaction) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "Transaction!")
+		return graphql.Null
+	}
+	return ec._Transaction(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNTransactionConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐTransactionConnection(ctx context.Context, sel ast.SelectionSet, v *graphql1.TransactionConnection) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "TransactionConnection!")
+		return graphql.Null
+	}
+	return ec._TransactionConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx context.Context, v any) (scalar.ID, error) {
+	var res scalar.ID
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx context.Context, sel ast.SelectionSet, v scalar.ID) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNU1282ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐIDᚄ(ctx context.Context, v any) ([]scalar.ID, error) {
+	vSlice := graphql.CoerceList(v)
+	var err error
+	res := make([]scalar.ID, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNU1282ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐIDᚄ(ctx context.Context, sel ast.SelectionSet, v []scalar.ID) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNU1282githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNU642githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐTimestamp(ctx context.Context, v any) (scalar.Timestamp, error) {
+	var res scalar.Timestamp
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNU642githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐTimestamp(ctx context.Context, sel ast.SelectionSet, v scalar.Timestamp) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNVoidHoldInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐVoidHoldInput(ctx context.Context, v any) (graphql1.VoidHoldInput, error) {
+	res, err := ec.unmarshalInputVoidHoldInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNWriteRequest2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐWriteRequest(ctx context.Context, sel ast.SelectionSet, v dto1.WriteRequest) graphql.Marshaler {
+	return ec._WriteRequest(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNWriteRequest2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐWriteRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []dto1.WriteRequest) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNWriteRequest2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐWriteRequest(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNWriteRequestConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐWriteRequestConnection(ctx context.Context, sel ast.SelectionSet, v *graphql1.WriteRequestConnection) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "WriteRequestConnection!")
+		return graphql.Null
+	}
+	return ec._WriteRequestConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -2983,6 +16443,29 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) marshalOAccount2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAccount(ctx context.Context, sel ast.SelectionSet, v *dto1.Account) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Account(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOAmount2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx context.Context, v any) (*scalar.Amount, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(scalar.Amount)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOAmount2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐAmount(ctx context.Context, sel ast.SelectionSet, v *scalar.Amount) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3013,6 +16496,65 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) unmarshalODateTime2ᚖtimeᚐTime(ctx context.Context, v any) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalODateTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalTime(*v)
+	return res
+}
+
+func (ec *executionContext) marshalOHold2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐHold(ctx context.Context, sel ast.SelectionSet, v *dto1.Hold) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Hold(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOHoldStatus2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐHoldStatus(ctx context.Context, v any) (*scalar.HoldStatus, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(scalar.HoldStatus)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOHoldStatus2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐHoldStatus(ctx context.Context, sel ast.SelectionSet, v *scalar.HoldStatus) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalInt(*v)
+	return res
+}
+
 func (ec *executionContext) unmarshalOInt642ᚖint64(ctx context.Context, v any) (*int64, error) {
 	if v == nil {
 		return nil, nil
@@ -3031,7 +16573,78 @@ func (ec *executionContext) marshalOInt642ᚖint64(ctx context.Context, sel ast.
 	return res
 }
 
-func (ec *executionContext) marshalORuntime2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐRuntime(ctx context.Context, sel ast.SelectionSet, v *dto.Runtime) graphql.Marshaler {
+func (ec *executionContext) unmarshalOJSON2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐJSON(ctx context.Context, v any) (*scalar.JSON, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(scalar.JSON)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOJSON2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐJSON(ctx context.Context, sel ast.SelectionSet, v *scalar.JSON) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) marshalOLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx context.Context, sel ast.SelectionSet, v *graphql2.Ledger) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Ledger(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOMetadata2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx context.Context, v any) (*scalar.Metadata, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(scalar.Metadata)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOMetadata2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx context.Context, sel ast.SelectionSet, v *scalar.Metadata) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOOperation2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐOperation(ctx context.Context, v any) (*scalar.Operation, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(scalar.Operation)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOOperation2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐOperation(ctx context.Context, sel ast.SelectionSet, v *scalar.Operation) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalORequestStatus2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐRequestStatus(ctx context.Context, v any) (*scalar.RequestStatus, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(scalar.RequestStatus)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalORequestStatus2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐRequestStatus(ctx context.Context, sel ast.SelectionSet, v *scalar.RequestStatus) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) marshalORuntime2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐRuntime(ctx context.Context, sel ast.SelectionSet, v *dto2.Runtime) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -3054,6 +16667,36 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	_ = ctx
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOTransaction2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐTransaction(ctx context.Context, sel ast.SelectionSet, v *dto1.Transaction) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Transaction(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOU1282ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx context.Context, v any) (*scalar.ID, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(scalar.ID)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOU1282ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐID(ctx context.Context, sel ast.SelectionSet, v *scalar.ID) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) marshalOWriteRequestDetail2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐWriteRequestDetail(ctx context.Context, sel ast.SelectionSet, v *dto1.WriteRequestDetail) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._WriteRequestDetail(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

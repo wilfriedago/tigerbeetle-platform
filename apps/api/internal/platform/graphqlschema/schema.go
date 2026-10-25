@@ -44,6 +44,15 @@ type PageInfo struct {
 	HasNextPage bool    `json:"hasNextPage"`
 }
 
+// PageInfoOf turns the cursor of the next page into page information. The cursor is the one REST
+// returns as next, so a cursor from one transport works on the other.
+func PageInfoOf(next string) PageInfo {
+	if next == "" {
+		return PageInfo{}
+	}
+	return PageInfo{EndCursor: &next, HasNextPage: true}
+}
+
 // New returns an empty schema that already maps time.Time to DateTime and int64 to Int64.
 func New() *Schema {
 	s := &Schema{

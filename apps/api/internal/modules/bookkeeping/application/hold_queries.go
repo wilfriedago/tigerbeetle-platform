@@ -137,3 +137,14 @@ func (u *holdQueries) List(ctx context.Context, in ListHoldsInput) ([]HoldView, 
 	}
 	return views, next, counts, nil
 }
+
+func (u *holdQueries) Counts(ctx context.Context, ledgerName string) (domain.HoldCounts, error) {
+	if err := u.ledgers.Require(ctx, ledgerName); err != nil {
+		return domain.HoldCounts{}, err
+	}
+	counts, err := u.holds.CountHolds(ctx, ledgerName, u.clock.Now())
+	if err != nil {
+		return domain.HoldCounts{}, fmt.Errorf("count holds: %w", err)
+	}
+	return counts, nil
+}

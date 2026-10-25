@@ -32,9 +32,9 @@ type WriteRequest struct {
 // WriteRequestDetail is a write request with its stored request, outcome and minted IDs.
 type WriteRequestDetail struct {
 	WriteRequest
-	Request     map[string]any `json:"request"`
-	Response    map[string]any `json:"response,omitempty"`
-	TransferIDs []scalar.ID    `json:"transferIds"`
+	Request     scalar.JSON  `json:"request" doc:"The canonical request body as stored."`
+	Response    *scalar.JSON `json:"response,omitempty" doc:"The stored response or problem body."`
+	TransferIDs []scalar.ID  `json:"transferIds" doc:"The transfer IDs minted before the first submission, in chain order."`
 }
 
 // Schema describes WriteRequestDetail as WriteRequest plus the stored request and outcome. The
@@ -93,14 +93,15 @@ func WriteRequestDetailFrom(rec *domain.WriteRecord) WriteRequestDetail {
 		out.TransferIDs[i] = scalar.IDOf(id)
 	}
 	if len(rec.Response) > 0 {
-		out.Response = jsonObject(rec.Response)
+		response := jsonObject(rec.Response)
+		out.Response = &response
 	}
 	return out
 }
 
 // jsonObject decodes a stored JSON object for display; anything else becomes an empty object.
-func jsonObject(raw []byte) map[string]any {
-	out := map[string]any{}
+func jsonObject(raw []byte) scalar.JSON {
+	out := scalar.JSON{}
 	_ = json.Unmarshal(raw, &out)
 	return out
 }

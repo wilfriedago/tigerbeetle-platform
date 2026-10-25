@@ -43,6 +43,8 @@ type HoldQueries interface {
 	Get(ctx context.Context, ledgerName, id string) (HoldView, error)
 	// List returns holds newest first, the cursor of the next page and the count per status.
 	List(ctx context.Context, in ListHoldsInput) ([]HoldView, string, domain.HoldCounts, error)
+	// Counts returns the count of holds per visible status.
+	Counts(ctx context.Context, ledgerName string) (domain.HoldCounts, error)
 }
 
 // AccountCommands edits accounts. Accounts are created by the writes that first name them.

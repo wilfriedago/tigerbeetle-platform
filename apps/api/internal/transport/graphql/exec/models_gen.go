@@ -2,5 +2,8 @@
 
 package exec
 
+type Mutation struct {
+}
+
 type Query struct {
 }

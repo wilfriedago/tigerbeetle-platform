@@ -59,7 +59,9 @@ func httpHandler(r resources, m modules, cfg config.Config, svc Service, logger 
 	}
 	if cfg.GraphQLEnabled {
 		mux.Handle("POST /graphql", graphqltransport.NewHandler(graphqltransport.NewResolver(graphqltransport.Modules{
-			Health: health,
+			Health:      health,
+			Ledgers:     m.ledgers,
+			Bookkeeping: m.bookkeeping,
 		})))
 	}
 	return restapi.Handler(mux, logger)

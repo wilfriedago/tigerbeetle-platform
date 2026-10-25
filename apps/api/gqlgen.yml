@@ -19,7 +19,15 @@ autobind:
   - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar
   - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto
   - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/graphql
+  - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/dto
+  - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/graphql
+  - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/dto
+  - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/graphql
 models:
+  # The REST answer type ledgers/interfaces/dto.Ledger shares the name; GraphQL's Ledger is its own
+  # type with the fields other modules add.
+  Ledger:
+    model: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/graphql.Ledger
   # Ledger names, addresses and assets are String in the schema and named string types in Go;
   # listing them here lets gqlgen bind them without a resolver per field.
   String:
