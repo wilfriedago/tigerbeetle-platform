@@ -88,6 +88,8 @@ var titles = map[string]string{
 	"unknown-event-type":      "Unknown event type",
 	"built-in-rule":           "Built-in rule",
 	"already-exists":          "Already exists",
+	"unknown-method":          "Unknown method",
+	"deadline-exceeded":       "Deadline exceeded",
 }
 
 // TitleFor returns the title of a reason: the one in the table, or the reason with its dashes
