@@ -6,10 +6,12 @@ ADR-0014 records how the console is built (TanStack, feature slices, the design 
 
 This document describes the structure of the web console (`apps/console`): every route, what
 each page shows, which actions it offers and which API it depends on. The console only talks to
-the platform API through `packages/api-client` (ADR-0003), so every page below is bounded by
-what the API can answer. The domain rules that shape the pages come from the decision records
-linked in each section. The "API:" line of each page records the state when the page was
-proposed; all of them exist now.
+the platform API (ADR-0003), so every page below is bounded by what the API can answer: the
+ledger pages through GraphQL (`POST /graphql`, ADR-0023), the System page through the REST
+client `packages/api-client`. The domain rules that shape the pages come from the decision
+records linked in each section. The "API:" line of each page names the REST operation as it was
+proposed; all of them exist, and the page reads the same use case through the matching GraphQL
+field, often several of them in one request.
 
 Where the code lives: the route file is `apps/console/src/routes/_console/` plus the URL (for
 example `ledgers/$ledger/transactions/index.tsx`), and the page is in `src/features/<slice>/`.

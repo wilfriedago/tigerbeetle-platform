@@ -30,7 +30,17 @@ root justfile, in phases 0 to 7 with a review stop after each.
   - `internal/transport/rest` lists every REST operation; the spec stayed byte-identical.
   - depguard enforces the layering, and `just lint-depguard-probe` (in CI) proves every rule
     fires on its fixture in `apps/api/testdata/depguard`.
-- Phase 4 (GraphQL) comes next, then 5 (gRPC), 6 (AMQP and NATS RPC) and 7 (Kafka).
+- Phase 4 (GraphQL, ADR-0020 and ADR-0023) is done, from e359d28:
+  - `cmd/graphqlschema` writes `packages/graphql/schema.graphql` from the modules'
+    `interfaces/graphql` registrations with the in-repo generator `internal/platform/graphqlschema`;
+    gqlgen generates the executor in `internal/transport/graphql/exec` from it.
+  - `POST /graphql` behind `GRAPHQL_ENABLED`: complexity 1000, depth 12, 1 MiB, introspection on,
+    errors with the problem members in `extensions`. A write made over GraphQL replays over REST
+    under the same key.
+  - The console's ledger slices (ledgers, accounts and balances, transactions, holds, requests,
+    settings, overview) run on GraphQL; the System page stays on the REST client. The write
+    forms read an address's account and rule in one request.
+- Phase 5 (gRPC) comes next, then 6 (AMQP and NATS RPC) and 7 (Kafka).
 
 The API implements the ledger surface (ADR-0004 to ADR-0010, details in ADR-0013) and the console
 covers every page of `docs/console.md` (ADR-0014). The work is on the `feat/console` branch, not
@@ -39,6 +49,13 @@ merged and not pushed, so CI has never run on GitHub. Everything below was verif
 
 Working and verified:
 
+- After phase 4: `TESTCONTAINERS_RYUK_DISABLED=true just test-integration` passes, including
+  `cmd/api/graphql_integration_test.go` (a ledger, a transaction replayed over REST under the
+  same key, a reused key, nested reads with null for a missing hold and ledger, and a decline with
+  its code, reason and posting in the extensions). The console was driven in
+  a browser against the compose stack and seed data: every ledger page renders from GraphQL, the
+  request drawer shows a stored decline, and a hold voided from the console commits and updates
+  the counts.
 - After phase 3: `just lint`, `just lint-depguard-probe`, `just typecheck`, `just test`,
   `just build` and `just generate` (no diff) pass, and the pre-commit hook formats and lints a staged Go file and lints a staged
   spec through just.
@@ -78,6 +95,7 @@ Not done, by design or by circumstance:
 | Runtime image                  | `gcr.io/distroless/base-debian13:nonroot`                                                                                                                                                                      |
 | Postgres                       | `postgres:18.6-trixie`, pgx v5.11.0, sqlc v1.31.1, goose v3.29.0 (library only)                                                                                                                                |
 | REST                           | Huma v2.39.1 (`humago` on the standard ServeMux); oasdiff 1.34.1 (installed by `scripts/install-tools.sh`, sha256 pinned)                                                                                      |
+| GraphQL                        | gqlgen v0.17.98 (a `go tool`), gqlparser v2.5.64; console: graphql-codegen 7.4.6 with client-preset 6.2.3, graphql 17.0.2, @graphql-typed-document-node/core 3.2.0                                             |
 | golangci-lint, govulncheck     | v2.15.0, v1.9.0 (installed by `scripts/install-tools.sh`)                                                                                                                                                      |
 | just                           | 1.59.0 (installed by `scripts/install-tools.sh`, sha256 pinned per platform)                                                                                                                                   |
 | env, go-cmp, testcontainers-go | v11.4.1, v0.7.0, v0.44.0                                                                                                                                                                                       |
@@ -235,6 +253,24 @@ place.
     rows, then asks bookkeeping for the footprints of the whole page in one query
     (`LedgerFootprints`, one row per requested name), as plan section 4.5 planned.
 
+45. **commitlint rejects a sentence-case subject**, so a subject that starts with "GraphQL" fails;
+    write "serve a GraphQL schema" or "graphql end-to-end".
+46. **Oxfmt formats `.graphql` files.** `vp check --fix` reformats the generated schema and the
+    generator's golden files, and `just generate-check` then fails. The root `vite.config.ts`
+    ignores `packages/graphql/schema.graphql`, `apps/console/src/graphql/gen/**` and the
+    generator's testdata.
+47. **gqlgen crashes (nil Tuple) when it autobinds `platform/graphqlschema`**, whose generic
+    functions are named `Query` and `Mutation`. `gqlgen.yml` binds `PageInfo` explicitly instead,
+    and the modules name their resolver types `Queries` and `Mutations`.
+48. **Two embedded types with the same name are ambiguous in Go.** The root resolvers embed the
+    `Queries` of three modules through type aliases (`healthQueries`, `ledgersQueries`), which
+    give each embedded field its own name.
+49. **graphql-codegen's client preset imports `@graphql-typed-document-node/core` once a document
+    exists**, so the console lists it as a devDependency. Fragments are found by name across
+    files: a document can spread a fragment declared in another slice without importing it.
+50. **`present()` strips nulls deeply**, which would change stored JSON. The request detail keeps
+    the stored request and response bodies as they are and presents only the record's members.
+
 ## Decisions amended along the way
 
 On 2026-10-25 the owner approved the migration plan and answered its questions (plan section 23).
@@ -266,29 +302,41 @@ Earlier, during the console work, the owner approved these on 2026-10-24; the AD
 
 API (`apps/api`):
 
-- Domain `internal/domain/ledger`: amounts (u128), addresses, assets, rules and their matching,
-  postings, metadata, event types, write operations and statuses, problems with stable reasons.
-- Use cases `internal/app`: `writes.go` is the one write protocol of ADR-0007 for transactions,
-  reverts, holds, captures and voids; `reconciler.go`; `accounts.go`, `transactions.go`,
-  `holds.go`, `ledgers.go`, `settings.go`, `overview.go` (stats, requests, search).
-- Adapters: `tigerbeetle/ledger.go` (bounded calls, result names), `postgres` (sqlc queries in
-  `apps/api/queries`, migrations 00001 to 00008), `httpapi` (strict handlers, problem mapping).
-- Wiring `cmd/api/wire.go`; the end-to-end test is `cmd/api/api_integration_test.go`.
+- Kernel `internal/kernel/ledger`: amounts (u128), addresses, assets, rules and their matching,
+  metadata, event types, the six error sentinels and `Problem`, the clock, page cursors.
+- Modules `internal/modules/<module>/{domain,application,infrastructure,interfaces}`:
+  - `ledgers`: ledgers, account rules, event types; `application/directory.go` and
+    `policy_queries.go` are what bookkeeping asks of it.
+  - `bookkeeping`: `application/writeflow.go` is the one write protocol of ADR-0007 for
+    transactions, reverts, holds, captures and voids; `reconciler.go`; the account, transaction,
+    hold, request, overview and footprint queries. `infrastructure/tigerbeetle` holds the bounded
+    calls and `id.go`.
+  - `health`: liveness, readiness and service information, an interfaces layer only.
+  - Each has `interfaces/dto` (wire types), `rest/v1` and `graphql`.
+- Transports `internal/transport/rest` (the operation list) and `internal/transport/graphql`
+  (handler, resolver root, schema registry, generated `exec`).
+- `internal/bootstrap`: resources, module construction (`modules.go`), servers and runners.
+- `internal/platform`: config, logging, httpserver, postgres, tigerbeetle, readiness, restapi,
+  graphqlschema, problem, scalar, requestid.
+- End-to-end tests in `cmd/api/*_integration_test.go`.
 
 Console (`apps/console/src`):
 
 - `routes/`: one file per URL under `_console/`; `__root.tsx` provides Query and tooltips.
 - `features/`: `ledgers`, `overview`, `transactions` (with `new-transaction/`), `accounts`,
-  `balances`, `assets`, `holds`, `requests`, `settings`, `system`, `preferences`, `search`.
+  `balances`, `assets`, `holds`, `requests`, `settings`, `system`, `preferences`, `search`. Each
+  `api.ts` holds its GraphQL documents and query options; `system` uses the REST client.
+- `graphql/gen`: the typed documents graphql-codegen writes.
 - `components/ui` (shadcn, restyled), `components/ledger` (domain display), `components/form`
   (TanStack Form hook), `components/data-table`, `components/layout` (shell, page, breadcrumbs).
-- `lib/`: `money.ts`, `preflight.ts`, `net-effect.ts`, `validation.ts`, `idempotency.ts`,
-  `time.ts`, `preferences.ts`, `curl.ts`, `api.ts`, `query-client.ts`.
+- `lib/`: `graphql/` (client, errors, `present()`), `money.ts`, `preflight.ts`, `net-effect.ts`,
+  `validation.ts`, `idempotency.ts`, `time.ts`, `preferences.ts`, `curl.ts`, `api.ts`,
+  `query-client.ts`.
 - `styles/globals.css`: the Ledger Instrument tokens and their mapping to shadcn variables.
 
 ## Suggested next steps, in order
 
-1. Phases 4 to 7 (plan section 19), each ending with an update of this file; one combined
+1. Phases 5 to 7 (plan section 19), each ending with an update of this file; one combined
    summary of versions and deviations for the owner at the end.
 2. The owner reviews phases 2 to 7 together.
 3. Push to GitHub, open the pull request for `feat/console`, make CI green, install Renovate.

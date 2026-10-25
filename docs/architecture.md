@@ -18,7 +18,8 @@ applications otherwise build around TigerBeetle themselves, and leaves every bal
 TigerBeetle. It has three layers, built in this order:
 
 1. A Go API service (`apps/api`) in front of TigerBeetle, with Postgres holding metadata.
-2. A web console (`apps/console`) that only talks to that API through `packages/api-client`.
+2. A web console (`apps/console`) that only talks to that API: GraphQL for the ledger pages,
+   the generated REST client `packages/api-client` for the system pages (ADR-0023).
 3. Later, a versioned posting-rule DSL that compiles to batches of linked transfers.
 
 The API surface is built on TigerBeetle's own primitives: ledgers as namespaces, accounts
@@ -59,11 +60,24 @@ tag, over a hand-written fetch layer (ADR-0019). `just generate` runs the genera
 dependency order (ADR-0016), the `codegen-drift` CI job fails on stale output, and the `openapi`
 job fails a pull request that breaks the contract (`just spec-diff`).
 
+The GraphQL schema `packages/graphql/schema.graphql` is generated from Go as well (ADR-0020).
+Each module's `interfaces/graphql` declares its queries, its mutations and the fields it adds to
+`Ledger` as Go functions over plain structs, the same `dto` types REST answers with;
+`internal/transport/graphql/schema` registers them all, and `cmd/graphqlschema` renders the SDL
+with the in-repo generator `internal/platform/graphqlschema`. gqlgen then generates the executor
+in `internal/transport/graphql/exec` from that SDL, bound to the same Go types, so a resolver is
+a call to a use case and nothing is hand-mapped. `POST /graphql` serves it when
+`GRAPHQL_ENABLED` is set (the default), with a complexity limit of 1000, a depth limit of 12 and
+a 1 MiB body. The console's documents live in each feature's `api.ts`, typed by graphql-codegen
+from the schema. GraphQL is internal to the console, like REST until authentication is decided;
+REST stays the API for third parties.
+
 ## Code layout of apps/api
 
 ```
 cmd/api/main.go                    reads the config, then bootstrap.Build and App.Run
 cmd/openapi                        writes packages/openapi/openapi.yaml from the registrations
+cmd/graphqlschema                  writes packages/graphql/schema.graphql from the registrations
 internal/bootstrap                 opens the resources, builds the modules, runs servers and workers
 internal/kernel/ledger             shared kernel: names, addresses, assets, IDs, amounts, rules,
                                    event types, the error sentinels and Problem, Clock, paging
@@ -72,9 +86,12 @@ internal/modules/bookkeeping       accounts, transactions, holds, write requests
                                    the reconciler; the write path of ADR-0007
 internal/modules/health            liveness, readiness, service information (interfaces only)
 internal/transport/rest            the one list of REST operations, every module's
+internal/transport/graphql         POST /graphql: handler, resolver root, schema registry, and
+                                   the gqlgen executor in exec (generated)
 internal/platform/...              config, logging, httpserver, postgres (pool, migrations),
-                                   tigerbeetle (client), readiness, restapi (Huma), problem,
-                                   scalar, requestid: process and transport plumbing
+                                   tigerbeetle (client), readiness, restapi (Huma),
+                                   graphqlschema (the SDL generator), problem, scalar,
+                                   requestid: process and transport plumbing
 migrations/                        goose SQL, one sequence, embedded with go:embed
 testdata/depguard/                 one deliberate violation per depguard rule
 ```
@@ -88,7 +105,7 @@ have their own life cycle and are never written in a chain.
 Inside a module the layers are `domain` (rules and the ports infrastructure implements),
 `application` (one type per command family and one per query family, exported as interfaces in
 `usecases.go`), `infrastructure` (Postgres through its own sqlc queries, TigerBeetle) and
-`interfaces` (`dto`, the wire types every transport shares, and `rest/v1`). A use case holds
+`interfaces` (`dto`, the wire types every transport shares, `rest/v1` and `graphql`). A use case holds
 interfaces, never concrete types, so the application tests run on hand-written fakes and never
 start a database.
 
@@ -115,12 +132,16 @@ Infrastructure wraps them with `fmt.Errorf("postgres: get ledger: %w", err)`; th
 the chain intact, so `errors.Is(err, ledger.ErrNotFound)` holds in any layer while the driver's
 message stays available for the log. `internal/platform/problem` maps any error to a
 transport-neutral problem and never copies driver text; `internal/platform/restapi` renders it
-as RFC 9457 `application/problem+json`.
+as RFC 9457 `application/problem+json`, and `internal/transport/graphql` puts the same members
+(code, type, title, status, detail, requestId, retryAfter, posting, results) in the extensions of
+a GraphQL error.
 
 ## The write path
 
 A transaction is `POST /v1/ledgers/{ledger}/transactions` with an `Idempotency-Key` header
-(the path shape of ADR-0004). One API transaction becomes
+(the path shape of ADR-0004), or the `createTransaction` mutation with `idempotencyKey` in its
+input; both reach the same use case, so a key written on one transport replays on the other
+(ADR-0024). One API transaction becomes
 exactly one batch of linked transfers, which must fit one TigerBeetle request (default maximum
 8189 events, and a linked chain cannot span requests), so the service caps the number of
 postings per transaction well below that.
