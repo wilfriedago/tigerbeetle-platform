@@ -116,9 +116,10 @@ services:
     ports:
       - '${CONSOLE_PORT:-5173}:5173'
     volumes:
-      # Live reload for the console and the client without rebuilding the image.
+      # Live reload for the console, the client and the schema without rebuilding the image.
       - ./apps/console/src:/workspace/apps/console/src
       - ./packages/api-client/src:/workspace/packages/api-client/src
+      - ./packages/graphql:/workspace/packages/graphql
     depends_on:
       api:
         condition: service_started

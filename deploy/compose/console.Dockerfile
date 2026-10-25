@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Vite dev server for the console, built from the repository root so the workspace packages
-# (api-client, openapi) are available. Source directories are bind-mounted by compose.yaml.
+# (api-client, graphql, openapi) are available. Source directories are bind-mounted by compose.yaml.
 FROM node:24.22.1-trixie-slim
 
 # Same pnpm as the packageManager field in package.json.
@@ -10,6 +10,7 @@ WORKDIR /workspace
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/console/package.json apps/console/
 COPY packages/api-client/package.json packages/api-client/
+COPY packages/graphql/package.json packages/graphql/
 COPY packages/openapi/package.json packages/openapi/
 # --ignore-scripts skips the root prepare script, which installs the git hooks and needs git.
 # Dependency build scripts are not approved in pnpm-workspace.yaml, so nothing else is skipped.
