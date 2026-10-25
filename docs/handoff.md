@@ -65,7 +65,17 @@ root justfile, in phases 0 to 7 with a review stop after each.
   - Switches `AMQP_RPC_ENABLED`, `NATS_RPC_ENABLED` and their settings; readiness reports the
     enabled brokers and answers 200 `degraded` when one is down.
   - Compose profile `brokers` (`just compose-up-brokers`) and `just test-e2e`.
-- Phase 7 (Kafka) comes next.
+- Phase 7 (Kafka, ADR-0022) is done:
+  - The `brokers` profile adds `apache/kafka:4.3.2` and the TigerBeetle CDC job (the server
+    image's `amqp` subcommand), with a fixed subnet and addresses for `tigerbeetle` and
+    `rabbitmq`, and a RabbitMQ definitions file for the exchange `tbp.cdc` and the queue
+    `tbp.ledger-events.relay`.
+  - `internal/platform/kafka` (franz-go, idempotent, acks=all); bookkeeping's
+    `interfaces/cdc` (consumer and exact decoder), `application/relay_ledger_event.go` and
+    `infrastructure/kafka` (publisher); `KAFKA_EVENTS_ENABLED` and its settings; readiness
+    reports `kafka`.
+  - `docs/ledger-events.md` is the record format.
+- All seven phases are done; the owner reviews phases 2 to 7 together.
 
 Where the commits are: phases 0 to 4 and the first three commits of phase 5 (up to 725f75b)
 are on `feat/console` in the main checkout. While phase 5 ran, the main checkout gained
@@ -83,6 +93,12 @@ merged and not pushed, so CI has never run on GitHub. Everything below was verif
 
 Working and verified:
 
+- After phase 7: `cmd/api/kafka_integration_test.go` runs TigerBeetle, Postgres, RabbitMQ, the
+  CDC job and Kafka in containers. One transaction gives one record per leg with string amounts
+  and the ledger, asset and addresses; a hold that times out gives a `two_phase_expired` record;
+  stopping the relay and the CDC job in the middle of 30 writes and starting them again leaves no
+  gap (no duplicate either in that run, which proves nothing). On the compose stack the relay
+  drained the 22 events the CDC job had queued before it existed, and `/readyz` reported kafka.
 - After phase 6: the platform integration tests (spike S5) show each request running once across
   two replicas on both brokers, concurrency capped at `RPC_CONCURRENCY`, deadlines kept, a
   dropped AMQP connection redialled, and a NATS timeout told apart from no responders.
@@ -144,6 +160,7 @@ Not done, by design or by circumstance:
 | Runtime image                  | `gcr.io/distroless/base-debian13:nonroot`                                                                                                                                                                      |
 | Postgres                       | `postgres:18.6-trixie`, pgx v5.11.0, sqlc v1.31.1, goose v3.29.0 (library only)                                                                                                                                |
 | REST                           | Huma v2.39.1 (`humago` on the standard ServeMux); oasdiff 1.34.1 (installed by `scripts/install-tools.sh`, sha256 pinned)                                                                                      |
+| Kafka                          | franz-go v1.22.2; `apache/kafka:4.3.2` pinned by digest; the CDC job runs from `ghcr.io/tigerbeetle/tigerbeetle:0.17.9`, the server's own image                                                                |
 | Broker RPC                     | amqp091-go v1.16.0, nats.go v1.55.0, testcontainers modules rabbitmq and nats v0.44.0; `rabbitmq:4.4.0-management` and `nats:2.15.1-alpine`, both pinned by digest in the `brokers` profile                    |
 | gRPC                           | grpc v1.84.0, protobuf v1.36.12; buf v1.75.0, protoc-gen-go v1.36.12, protoc-gen-go-grpc v1.6.2 (installed by `scripts/install-tools.sh`, sha256 pinned)                                                       |
 | GraphQL                        | gqlgen v0.17.98 (a `go tool`), gqlparser v2.5.64; console: graphql-codegen 7.4.6 with client-preset 6.2.3, graphql 17.0.2, @graphql-typed-document-node/core 3.2.0                                             |
@@ -353,6 +370,22 @@ place.
     acknowledgement, on the channel it publishes the request from.** The server replies to the
     `reply_to` name through the default exchange.
 
+61. **testcontainers v0.44 refuses `host:container` in `ExposedPorts`.** A fixed host port goes
+    through `HostConfigModifier` and `PortBindings` (`devstack.StartKafka`).
+62. **Kafka hands clients the address it advertises**, so a random mapped port does not work:
+    devstack picks a free host port first and advertises `127.0.0.1:<port>`.
+63. **RabbitMQ's imported definitions replace its default user.** The compose definitions file
+    holds `guest` with the hash `rabbitmqctl hash_password guest` printed; the official image
+    still lets `guest` connect from other containers.
+64. **The CDC job needs its exchange before its first publish.** Compose declares it in the
+    definitions file; the relay also declares the exchange, queue and binding when it connects,
+    so tests start the relay before the job.
+65. **A stopped `bootstrap.App` has closed its Postgres pool and TigerBeetle client.** A test that
+    stops one relay process and starts another writes through a third process, as two replicas
+    would.
+66. **franz-go's sub-packages need their own go.sum lines**: `go get
+    github.com/twmb/franz-go/pkg/kgo@v1.22.2` added kmsg and lz4.
+
 ## Decisions amended along the way
 
 On 2026-10-25 the owner approved the migration plan and answered its questions (plan section 23).
@@ -422,9 +455,11 @@ Console (`apps/console/src`):
 
 ## Suggested next steps, in order
 
-1. Phase 7 (plan section 19), each ending with an update of this file; one combined
-   summary of versions and deviations for the owner at the end.
-2. The owner reviews phases 2 to 7 together.
+1. The owner reviews phases 2 to 7 together; the combined summary of changes, versions and
+   deviations went to the owner with the last commit.
+2. Fast-forward `feat/console` to `feat/console-transports` (see "Where the commits are"), after
+   resolving the uncommitted edits in the main checkout; `bookkeeping/interfaces/rest/v1/accounts.go`
+   changed on both sides. Remove the worktree with `git worktree remove`.
 3. Push to GitHub, open the pull request for `feat/console`, make CI green, install Renovate.
 4. Review the console against `.design/home.pen` with the owner; the screens were followed
    closely but not pixel by pixel (the account tree and the pending result view simplify the
@@ -434,6 +469,8 @@ Console (`apps/console/src`):
    by Renovate, a multi-arch image and a static console image in a release pipeline.
 7. The posting-rule DSL and the console's live feed, future work in `docs/architecture.md`; the
    Kafka relay of phase 7 is the first CDC consumer.
+8. Once `main` holds the `degraded` readiness status, remove its two lines from
+   `packages/openapi/oasdiff-ignore.txt`.
 
 ## Loose ends to be aware of
 
