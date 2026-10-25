@@ -30,3 +30,15 @@ sql:
         emit_pointers_for_null_types: true
         emit_empty_slices: true
         emit_methods_with_db_argument: false
+  - engine: postgresql
+    schema: migrations
+    queries: internal/modules/bookkeeping/infrastructure/postgres/queries
+    gen:
+      go:
+        package: gen
+        out: internal/modules/bookkeeping/infrastructure/postgres/gen
+        sql_package: pgx/v5
+        emit_json_tags: false
+        emit_pointers_for_null_types: true
+        emit_empty_slices: true
+        emit_methods_with_db_argument: false
