@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
@@ -32,9 +33,9 @@ func newTestServer(t *testing.T, deps Deps) http.Handler {
 
 func statusDeps(pg, tb readyFunc) Deps {
 	checker := readiness.New(50 * time.Millisecond)
-	checker.Require(ProbePostgres, readiness.Probe(pg))
-	checker.Require(ProbeTigerBeetle, readiness.Probe(tb))
-	return Deps{Readiness: checker, Service: Service{Name: "test-service", Version: "1.2.3"}}
+	checker.Require(dto.ProbePostgres, readiness.Probe(pg))
+	checker.Require(dto.ProbeTigerBeetle, readiness.Probe(tb))
+	return Deps{Readiness: checker, Service: dto.Service{Name: "test-service", Version: "1.2.3"}}
 }
 
 func get(t *testing.T, h http.Handler, path string) *httptest.ResponseRecorder {
@@ -58,7 +59,7 @@ func TestLiveness(t *testing.T) {
 	down := readyFunc(func(context.Context) error { return errors.New("down") })
 	h := newTestServer(t, statusDeps(down, down))
 	rec := get(t, h, "/healthz")
-	if rec.Code != http.StatusOK || decode[Liveness](t, rec).Status != "ok" {
+	if rec.Code != http.StatusOK || decode[dto.Liveness](t, rec).Status != "ok" {
 		t.Fatalf("status %d body %s", rec.Code, rec.Body.String())
 	}
 	if rec.Header().Get("X-Request-Id") == "" {
@@ -100,7 +101,7 @@ func TestReadinessAndInfo(t *testing.T) {
 			if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
 				t.Errorf("/readyz Content-Type = %q", ct)
 			}
-			ready := decode[Readiness](t, rec)
+			ready := decode[dto.Readiness](t, rec)
 			if ready.Status != tt.wantStatus {
 				t.Errorf("/readyz status field = %q, want %q", ready.Status, tt.wantStatus)
 			}
@@ -110,7 +111,7 @@ func TestReadinessAndInfo(t *testing.T) {
 			if rec.Code != http.StatusOK {
 				t.Fatalf("/v1/_info status = %d, want 200", rec.Code)
 			}
-			info := decode[Info](t, rec)
+			info := decode[dto.Info](t, rec)
 			if info.Service != "test-service" || info.Version != "1.2.3" || info.Runtime == nil || info.Runtime.GoVersion == "" {
 				t.Errorf("info = %+v", info)
 			}
@@ -119,7 +120,7 @@ func TestReadinessAndInfo(t *testing.T) {
 	}
 }
 
-func checkDeps(t *testing.T, deps Dependencies, wantTB scalar.DependencyStatus, wantTBError string) {
+func checkDeps(t *testing.T, deps dto.Dependencies, wantTB scalar.DependencyStatus, wantTBError string) {
 	t.Helper()
 	if deps.Postgres.Status != scalar.DependencyUp {
 		t.Errorf("postgres status = %q, want up", deps.Postgres.Status)

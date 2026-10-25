@@ -16,21 +16,28 @@ export PATH := `go env GOPATH 2>/dev/null || printf '%s' "$HOME/go"` + "/bin:" +
 default:
     @just --list
 
-# Order: 1. sqlc; 2. the Go commands that write the specs; 3. Go code read from the specs (from
-# phase 4 of docs/plans/ddd-transports/plan.md); 4. the TypeScript generators.
+# Order: 1. sqlc; 2. the Go commands that write the specs; 3. Go code read from the specs; 4. the
+# TypeScript generators.
 [doc('Regenerate every generated file, in dependency order.')]
 [group('generate')]
-generate: generate-sql generate-contracts generate-ts
+generate: generate-sql generate-contracts generate-servers generate-ts
 
 # Step 1: the Postgres accessors.
 [group('generate')]
 generate-sql:
     cd {{ api }} && sqlc generate
 
-# Step 2: the REST spec from the Go registrations, built without cgo (ADR-0018).
+# Step 2: the REST spec and the GraphQL schema from the Go registrations, built without cgo
+# (ADR-0018, ADR-0020).
 [group('generate')]
 generate-contracts:
     cd {{ api }} && CGO_ENABLED=0 go run ./cmd/openapi -out ../../packages/openapi/openapi.yaml
+    cd {{ api }} && CGO_ENABLED=0 go run ./cmd/graphqlschema -out ../../packages/graphql/schema.graphql
+
+# Step 3: the GraphQL executor, from the schema step 2 wrote.
+[group('generate')]
+generate-servers:
+    cd {{ api }} && go tool gqlgen generate --config gqlgen.yml
 
 # Step 4: the spec lint and TypeScript types, and the console's route tree, through Turborepo.
 [group('generate')]

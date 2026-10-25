@@ -40,6 +40,8 @@ type Config struct {
 	// RESTEnabled serves the REST operations of the ledgers and bookkeeping modules. The health
 	// operations are always served (plan section 13.1).
 	RESTEnabled bool `env:"REST_ENABLED" envDefault:"true"`
+	// GraphQLEnabled serves POST /graphql next to REST (plan section 13.1).
+	GraphQLEnabled bool `env:"GRAPHQL_ENABLED" envDefault:"true"`
 	// ReconcilerEnabled runs the reconciler in this process (plan section 13.1).
 	ReconcilerEnabled bool `env:"RECONCILER_ENABLED" envDefault:"true"`
 }

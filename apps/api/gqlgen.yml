@@ -1,0 +1,45 @@
+# gqlgen generates the GraphQL executor from the schema cmd/graphqlschema writes (ADR-0020, plan
+# section 8.8). There is no resolver block: gqlgen generates the resolver interfaces only, and the
+# modules implement them by hand, so regeneration never rewrites hand-written code. The schema
+# outside apps/api is inlined into exec.go as a string, so the Docker build context needs nothing
+# else (spike S6).
+schema:
+  - ../../packages/graphql/schema.graphql
+exec:
+  layout: single-file
+  filename: internal/transport/graphql/exec/exec.go
+  package: exec
+model:
+  # Stays empty but for the root stubs: every type binds to a module's Go type.
+  filename: internal/transport/graphql/exec/models_gen.go
+  package: exec
+# A schema type binds to the Go type of the same name in these packages. The generator refuses two
+# Go types with one GraphQL name, so the binding is never ambiguous.
+autobind:
+  - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar
+  - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto
+  - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/graphql
+models:
+  # Ledger names, addresses and assets are String in the schema and named string types in Go;
+  # listing them here lets gqlgen bind them without a resolver per field.
+  String:
+    model:
+      - github.com/99designs/gqlgen/graphql.String
+      - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar.LedgerName
+      - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar.Address
+      - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar.AddressPrefix
+      - github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar.Asset
+  # platform/graphqlschema is not autobound: its registration functions are named Query and
+  # Mutation, which autobind would take for the root types (and gqlgen v0.17.98 crashes on).
+  PageInfo:
+    model: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/graphqlschema.PageInfo
+  U128:
+    model: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar.ID
+  U64:
+    model: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar.Timestamp
+  DateTime:
+    model: github.com/99designs/gqlgen/graphql.Time
+  Int64:
+    model: github.com/99designs/gqlgen/graphql.Int64
+omit_slice_element_pointers: true
+skip_mod_tidy: true

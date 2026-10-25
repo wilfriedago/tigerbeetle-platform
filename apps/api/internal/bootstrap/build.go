@@ -13,7 +13,7 @@ import (
 	"time"
 
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
-	healthv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/rest/v1"
+	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	platformpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
@@ -92,8 +92,8 @@ func (a *App) open(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	a.closers = append(a.closers, client.Close)
 
 	checker := readiness.New(cfg.ReadinessTimeout)
-	checker.Require(healthv1.ProbePostgres, db.Ready)
-	checker.Require(healthv1.ProbeTigerBeetle, client.Ready)
+	checker.Require(healthdto.ProbePostgres, db.Ready)
+	checker.Require(healthdto.ProbeTigerBeetle, client.Ready)
 	return resources{db: db, tigerbeetle: client, readiness: checker}, nil
 }
 

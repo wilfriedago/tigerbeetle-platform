@@ -1,0 +1,10 @@
+{
+  "name": "@tigerbeetle-platform/graphql",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The GraphQL schema of the platform API, generated from the Go code.",
+  "license": "Apache-2.0",
+  "files": [
+    "schema.graphql"
+  ]
+}

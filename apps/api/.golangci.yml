@@ -174,11 +174,27 @@ linters:
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules, desc: platform has no business rule }
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport, desc: platform has no business rule }
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap, desc: platform has no business rule }
-        # cmd/openapi writes the spec without starting anything (ADR-0018): no driver, and no cgo,
-        # which just generate enforces by building it with CGO_ENABLED=0.
+        # The GraphQL registrations compile without gqlgen or its generated executor, so
+        # cmd/graphqlschema runs when the executor is stale (plan section 8.7).
+        graphql-registrations:
+          list-mode: lax
+          files:
+            - '**/internal/modules/*/interfaces/graphql/**'
+            - '**/internal/transport/graphql/schema/**'
+            - '**/internal/platform/graphqlschema/**'
+            - '**/internal/platform/scalar/**'
+            - '**/cmd/graphqlschema/**'
+          deny:
+            - { pkg: github.com/99designs/gqlgen, desc: registrations must compile when gqlgen output is stale }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/graphql/exec,
+                desc: registrations must compile when gqlgen output is stale
+              }
+        # cmd/openapi and cmd/graphqlschema write the specs without starting anything (ADR-0018):
+        # no driver, and no cgo, which just generate enforces by building them with CGO_ENABLED=0.
         spec-commands:
           list-mode: lax
-          files: ['**/cmd/openapi/**']
+          files: ['**/cmd/openapi/**', '**/cmd/graphqlschema/**']
           deny:
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/tigerbeetle, desc: spec commands build without cgo }
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres, desc: spec commands open no connection }

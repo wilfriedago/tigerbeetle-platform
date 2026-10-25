@@ -9,30 +9,33 @@ import (
 	"time"
 
 	bookkeepingv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/rest/v1"
-	healthv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/rest/v1"
+	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	ledgersv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/rest/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/httpserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
+	graphqltransport "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/graphql"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/rest"
 )
 
 // httpHandler builds the HTTP handler: the health operations always, the module operations when
-// REST is enabled, on one ServeMux behind the standard middleware of platform/restapi.
+// REST is enabled, and POST /graphql when GraphQL is, on one ServeMux behind the standard
+// middleware of platform/restapi (request ID, access log, panic recovery).
 func httpHandler(r resources, m modules, cfg config.Config, svc Service, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	api := restapi.NewAPI(mux)
-	rest.RegisterHealth(api, healthv1.Deps{
+	health := healthdto.Source{
 		Readiness: r.readiness,
 		Database:  r.db,
-		Service: healthv1.Service{
+		Service: healthdto.Service{
 			Name:                     svc.Name,
 			Version:                  svc.Version,
 			StartedAt:                time.Now().UTC(),
 			TigerBeetleClientVersion: moduleVersion("github.com/tigerbeetle/tigerbeetle-go"),
 			TigerBeetleClusterID:     clusterID(cfg.TigerBeetleClusterID),
 		},
-	})
+	}
+	rest.RegisterHealth(api, health)
 	if cfg.RESTEnabled {
 		rest.RegisterModules(api, rest.Handlers{
 			Ledgers: ledgersv1.Deps{
@@ -53,6 +56,11 @@ func httpHandler(r resources, m modules, cfg config.Config, svc Service, logger 
 				Reconciler:          m.bookkeeping.Reconciler,
 			},
 		})
+	}
+	if cfg.GraphQLEnabled {
+		mux.Handle("POST /graphql", graphqltransport.NewHandler(graphqltransport.NewResolver(graphqltransport.Modules{
+			Health: health,
+		})))
 	}
 	return restapi.Handler(mux, logger)
 }
