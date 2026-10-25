@@ -5,11 +5,11 @@ request flows through them. The reasoning lives in the decision records linked a
 project is pre-alpha: the API implements the ledger surface of ADR-0004 to ADR-0010 (see
 ADR-0013) and the console covers the pages of `docs/console.md` (see ADR-0014).
 
-A migration is under way: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka,
-the REST spec and the GraphQL schema generated from Go, a generated REST client, the console on
-GraphQL and a root justfile. `docs/plans/ddd-transports/plan.md` describes it in phases, and
-ADR-0015 to ADR-0024 record its decisions. Until a phase lands, the layout, commands and flows
-below describe the code as it is.
+The code is split into bounded-context modules and served over REST, GraphQL, gRPC, AMQP RPC and
+NATS RPC, with ledger events on Kafka; the REST spec and the GraphQL schema are generated from Go,
+the REST client from the spec, and a root justfile runs everything. The plan in
+`docs/plans/ddd-transports/plan.md` describes how it got there, in seven phases, and ADR-0015 to
+ADR-0024 record the decisions.
 
 ## Overview
 

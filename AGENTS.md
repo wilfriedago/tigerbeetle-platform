@@ -4,10 +4,9 @@ Conventions for coding agents working in this repository. Humans follow the same
 is the condensed version. The reasoning behind each rule lives in docs/adr. The current state of
 the work, the pitfalls already hit and the suggested next steps are in docs/handoff.md.
 
-A migration to bounded-context modules and new transports is under way:
-docs/plans/ddd-transports/plan.md, in phases, with ADR-0015 to ADR-0024. Until a phase lands, the
-layout, commands and workflow below describe the code as it is; each line changes in the commit
-that makes the new one true.
+The migration to bounded-context modules and new transports (docs/plans/ddd-transports/plan.md,
+ADR-0015 to ADR-0024) has landed, all seven phases; the layout, commands and workflow below
+describe the result. The plan stays as the record of why.
 
 ## Project
 
