@@ -1,6 +1,6 @@
 # 1. Record architecture decisions
 
-Status: Accepted
+Status: Accepted, amended by [ADR-0015](0015-amended-status-for-accepted-adrs.md)
 Date: 2026-10-24
 
 ## Context and Problem Statement

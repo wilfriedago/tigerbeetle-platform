@@ -1,6 +1,6 @@
 # 4. Ledger API surface
 
-Status: Accepted
+Status: Accepted, amended by [ADR-0013](0013-ledger-api-implementation.md)
 Date: 2026-10-24
 
 ## Context and Problem Statement
