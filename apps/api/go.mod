@@ -6,6 +6,7 @@ toolchain go1.27.3
 
 require (
 	github.com/caarlos0/env/v11 v11.4.1
+	github.com/danielgtaylor/huma/v2 v2.39.1
 	github.com/google/go-cmp v0.7.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/moby/moby/api v1.56.1
