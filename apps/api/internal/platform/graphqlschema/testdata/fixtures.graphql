@@ -1,0 +1,81 @@
+"Unsigned 128-bit integer as a decimal string."
+scalar Amount
+
+"RFC 3339 date-time."
+scalar DateTime
+
+"64-bit integer as a JSON number. Counts only, never money."
+scalar Int64
+
+"Key/value pairs: a JSON object of strings."
+scalar Metadata
+
+"""
+The life cycle of a "hold".
+"""
+enum HoldStatus {
+  open
+  captured
+}
+
+type Query {
+  "A ledger by name, or null when no ledger has that name."
+  ledger(name: String!): Ledger
+}
+
+type Mutation {
+  create(input: CreateInput!): Account!
+}
+
+type Account {
+  id: String!
+  createdAt: DateTime!
+  "Colon-separated segments."
+  address: String!
+  balance: Amount!
+  metadata: Metadata!
+  status: HoldStatus!
+  holds: Int64!
+  code: Int!
+  closed: Boolean!
+  note: String
+  tags: [String!]!
+  maybe: [String!]
+  gaps: [String]!
+  old: String! @deprecated(reason: "use address")
+}
+
+type AccountConnection {
+  nodes: [Account!]!
+  pageInfo: PageInfo!
+}
+
+"""
+A ledger is a namespace.
+Money never crosses ledgers.
+"""
+type Ledger {
+  name: String!
+  "Accounts in address order."
+  accounts(
+    "Page size, 1 to 100."
+    first: Int = 25
+    after: String
+    status: HoldStatus = open
+    prefix: String = "users:"
+  ): AccountConnection!
+  all: [Account!]!
+}
+
+type PageInfo {
+  "Pass as after to read the next page. Null on the last page."
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
+input CreateInput {
+  ledger: String!
+  amount: Amount!
+  metadata: Metadata
+  limit: Int = 10
+}
