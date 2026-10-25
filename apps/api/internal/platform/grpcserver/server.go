@@ -34,6 +34,7 @@ type Server struct {
 // error mapping, panic recovery; so a panic becomes an error, the error becomes a status with
 // details, and the log line sees the final code.
 func New(opts Options) *Server {
+	setLogger(opts.Logger)
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			unaryRequestID(opts.Logger), unaryAccessLog, unaryErrors, unaryRecover,
