@@ -17,12 +17,14 @@ SQLC_VERSION="v1.31.1"
 GOVULNCHECK_VERSION="v1.9.0"
 # renovate: datasource=github-releases depName=casey/just
 JUST_VERSION="1.59.0"
+# renovate: datasource=github-releases depName=oasdiff/oasdiff
+OASDIFF_VERSION="v1.34.1"
 
 for tool in "$@"; do
   case "$tool" in
-    golangci-lint | sqlc | just | govulncheck) ;;
+    golangci-lint | sqlc | just | oasdiff | govulncheck) ;;
     *)
-      echo "unknown tool: $tool (expected golangci-lint, sqlc, just or govulncheck)" >&2
+      echo "unknown tool: $tool (expected golangci-lint, sqlc, just, oasdiff or govulncheck)" >&2
       exit 1
       ;;
   esac
@@ -138,6 +140,34 @@ if wanted just; then
     fi
     tar -xzf "${tmp}/${archive}" -C "$tmp" just
     install -m 0755 "${tmp}/just" "${bin_dir}/just"
+  fi
+fi
+
+if wanted oasdiff; then
+  echo "==> oasdiff ${OASDIFF_VERSION}"
+  if [[ "$(installed_version oasdiff --version)" == *"${OASDIFF_VERSION#v}"* ]]; then
+    echo "    already installed"
+  else
+    # The release publishes checksums.txt; the digests are pinned here. The macOS archive is one
+    # universal binary for both architectures. Update them together with OASDIFF_VERSION.
+    case "${os}_${arch}" in
+      darwin_amd64 | darwin_arm64) oasdiff_target="darwin_all" oasdiff_sha256="64948ba30c5555d3d15b95a7f3eda22fa83c15cf37fd4dad1720c0deb0a07cb5" ;;
+      linux_amd64) oasdiff_target="linux_amd64" oasdiff_sha256="75775f65b0adebd26a8e013af51a799342dfdc6262d89efa9e3b7bdf89657d90" ;;
+      linux_arm64) oasdiff_target="linux_arm64" oasdiff_sha256="e8f99bbf102a4b7f235104da72d0b9d67702e78622d1d4d37169e698ee90a249" ;;
+      *)
+        echo "no pinned oasdiff checksum for ${os}_${arch}" >&2
+        exit 1
+        ;;
+    esac
+    archive="oasdiff_${OASDIFF_VERSION#v}_${oasdiff_target}.tar.gz"
+    curl -sSfL "https://github.com/oasdiff/oasdiff/releases/download/${OASDIFF_VERSION}/${archive}" -o "${tmp}/${archive}"
+    actual_sha256="$(sha256_of "${tmp}/${archive}")"
+    if [[ "$actual_sha256" != "$oasdiff_sha256" ]]; then
+      echo "oasdiff checksum mismatch for ${archive}: got ${actual_sha256}, want ${oasdiff_sha256}" >&2
+      exit 1
+    fi
+    tar -xzf "${tmp}/${archive}" -C "$tmp" oasdiff
+    install -m 0755 "${tmp}/oasdiff" "${bin_dir}/oasdiff"
   fi
 fi
 

@@ -5,14 +5,14 @@ and the one workflow everybody uses: adding an endpoint.
 
 ## Prerequisites
 
-| Tool                                   | Version      | Notes                                                                                                                                                                                   |
-| -------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Docker with Compose v2                 | any recent   | Used by the local stack, the integration tests and the image smoke test. Docker 25+ needs the seccomp override already set in the compose file.                                         |
-| Node.js                                | 24 (LTS)     | `engines` in package.json.                                                                                                                                                              |
-| pnpm                                   | 12           | `packageManager` in package.json pins the exact version; pnpm switches to it on its own. Install with `npm install --global pnpm@12` or your version manager. Corepack is not required. |
-| Go                                     | 1.27.3       | `go.mod` pins it; with `GOTOOLCHAIN=auto` (the default) Go downloads the right toolchain.                                                                                               |
-| C compiler                             | gcc or clang | The TigerBeetle Go client uses cgo. Xcode command line tools on macOS, `build-essential` on Debian.                                                                                     |
-| just, golangci-lint, sqlc, govulncheck | pinned       | Installed by `scripts/install-tools.sh` (later `just tools-install`) into `$(go env GOPATH)/bin`. Add that directory to your PATH.                                                      |
+| Tool                                            | Version      | Notes                                                                                                                                                                                   |
+| ----------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Docker with Compose v2                          | any recent   | Used by the local stack, the integration tests and the image smoke test. Docker 25+ needs the seccomp override already set in the compose file.                                         |
+| Node.js                                         | 24 (LTS)     | `engines` in package.json.                                                                                                                                                              |
+| pnpm                                            | 12           | `packageManager` in package.json pins the exact version; pnpm switches to it on its own. Install with `npm install --global pnpm@12` or your version manager. Corepack is not required. |
+| Go                                              | 1.27.3       | `go.mod` pins it; with `GOTOOLCHAIN=auto` (the default) Go downloads the right toolchain.                                                                                               |
+| C compiler                                      | gcc or clang | The TigerBeetle Go client uses cgo. Xcode command line tools on macOS, `build-essential` on Debian.                                                                                     |
+| just, golangci-lint, sqlc, govulncheck, oasdiff | pinned       | Installed by `scripts/install-tools.sh` (later `just tools-install`) into `$(go env GOPATH)/bin`. Add that directory to your PATH.                                                      |
 
 macOS note: the TigerBeetle Go client v0.17.10 is required to link on macOS 27; see ADR-0009.
 
@@ -20,7 +20,7 @@ macOS note: the TigerBeetle Go client v0.17.10 is required to link on macOS 27; 
 
 ```sh
 pnpm install              # workspace dependencies and the git hooks (vp config, ADR-0012)
-scripts/install-tools.sh  # just, golangci-lint, sqlc and govulncheck at the pinned versions
+scripts/install-tools.sh  # just, golangci-lint, sqlc, govulncheck and oasdiff at the pinned versions
 just compose-up           # TigerBeetle, Postgres, API and console in Docker
 ```
 
