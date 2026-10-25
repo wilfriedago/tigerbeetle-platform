@@ -5,10 +5,12 @@ package devstack
 import (
 	"context"
 	"net"
+	"net/netip"
 	"testing"
 	"time"
 
 	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
 	"github.com/testcontainers/testcontainers-go"
 	tcnats "github.com/testcontainers/testcontainers-go/modules/nats"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -149,4 +151,67 @@ func StartNATS(t testing.TB) string {
 		t.Fatal(err)
 	}
 	return url
+}
+
+// StartKafka runs the pinned Kafka image as one KRaft node and returns its address for clients on
+// the host. Kafka hands clients the address it advertises, so the host port is chosen first and
+// advertised as is, instead of a random mapped port the broker could not know.
+func StartKafka(t testing.TB) string {
+	t.Helper()
+	ctx := context.Background()
+	images, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := freePort(t)
+	req := testcontainers.ContainerRequest{
+		Image:        images.Kafka,
+		ExposedPorts: []string{"9092/tcp"},
+		HostConfigModifier: func(hc *container.HostConfig) {
+			hc.PortBindings = network.PortMap{
+				network.MustParsePort("9092/tcp"): {{HostIP: netip.MustParseAddr("127.0.0.1"), HostPort: port}},
+			}
+		},
+		Env: map[string]string{
+			"KAFKA_NODE_ID":                                  "1",
+			"KAFKA_PROCESS_ROLES":                            "broker,controller",
+			"KAFKA_LISTENERS":                                "PLAINTEXT://:9092,CONTROLLER://:9093",
+			"KAFKA_ADVERTISED_LISTENERS":                     "PLAINTEXT://127.0.0.1:" + port,
+			"KAFKA_LISTENER_SECURITY_PROTOCOL_MAP":           "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT",
+			"KAFKA_CONTROLLER_LISTENER_NAMES":                "CONTROLLER",
+			"KAFKA_CONTROLLER_QUORUM_VOTERS":                 "1@localhost:9093",
+			"KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR":         "1",
+			"KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR": "1",
+			"KAFKA_TRANSACTION_STATE_LOG_MIN_ISR":            "1",
+			"KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS":         "0",
+			"KAFKA_NUM_PARTITIONS":                           "3",
+		},
+		WaitingFor: wait.ForLog("Kafka Server started").WithStartupTimeout(2 * time.Minute),
+	}
+	c, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{ContainerRequest: req, Started: true})
+	if err != nil {
+		t.Fatalf("start kafka %s: %v", images.Kafka, err)
+	}
+	t.Cleanup(func() {
+		if err := c.Terminate(context.Background()); err != nil {
+			t.Logf("terminate kafka: %v", err)
+		}
+	})
+	return "127.0.0.1:" + port
+}
+
+// freePort asks the kernel for a free TCP port on the host.
+func freePort(t testing.TB) string {
+	t.Helper()
+	var lc net.ListenConfig
+	l, err := lc.Listen(context.Background(), "tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = l.Close() }()
+	_, port, err := net.SplitHostPort(l.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return port
 }
