@@ -2,18 +2,16 @@
   "name": "@tigerbeetle-platform/openapi",
   "version": "0.0.0",
   "private": true,
-  "description": "The OpenAPI contract for the platform API and the generators that read it.",
+  "description": "The OpenAPI contract of the platform API, generated from the Go code.",
   "license": "Apache-2.0",
   "files": [
     "openapi.yaml"
   ],
   "scripts": {
     "lint": "redocly lint",
-    "generate": "redocly lint && openapi-typescript --root-types --root-types-no-schema-prefix"
+    "generate": "redocly lint"
   },
   "devDependencies": {
-    "@redocly/cli": "2.71.0",
-    "openapi-typescript": "7.13.0",
-    "typescript": "5.9.3"
+    "@redocly/cli": "2.71.0"
   }
 }

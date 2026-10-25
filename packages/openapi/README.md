@@ -1,14 +1,11 @@
 # @tigerbeetle-platform/openapi
 
-`openapi.yaml` is the contract. Everything else is generated from it:
+`openapi.yaml` is the REST contract of the platform API. It is generated from the Go code by
+`apps/api/cmd/openapi` (ADR-0018) and committed; never edit it. The TypeScript client in
+`packages/api-client` is generated from it with orval (ADR-0019).
 
-- Go server interfaces, handlers and models: `apps/api/internal/adapters/httpapi/gen` (oapi-codegen).
-- TypeScript types: `packages/api-client/src/schema.d.ts` (openapi-typescript).
-
-Workflow: edit the spec, run `just generate` at the root, commit the generated files with the change.
+Workflow: change the Huma registrations in `apps/api/internal/adapters/httpapi/v1`, run
+`just generate` at the root, and commit the Go change with the regenerated spec and client.
 
 `just lint-spec` at the root (or `pnpm lint` here) runs Redocly with the `recommended-strict`
-ruleset.
-
-This package pins TypeScript 5.9 because openapi-typescript 7 needs the TypeScript 5 compiler API,
-which TypeScript 7 (the native compiler) no longer provides. The rest of the workspace uses TypeScript 7.
+ruleset. `just spec-diff` reports breaking changes against `main`, as CI does on pull requests.

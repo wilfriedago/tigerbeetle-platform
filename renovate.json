@@ -24,12 +24,6 @@
       "matchPackageNames": ["/^@commitlint//"]
     },
     {
-      "description": "TypeScript 5 is pinned in packages/openapi because openapi-typescript needs its compiler API.",
-      "matchFileNames": ["packages/openapi/package.json"],
-      "matchPackageNames": ["typescript"],
-      "allowedVersions": "<6"
-    },
-    {
       "description": "Docker images: pin to exact tags, follow Debian 13 variants only.",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["golang", "postgres", "node"],

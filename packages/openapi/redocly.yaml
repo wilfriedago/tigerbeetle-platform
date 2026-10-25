@@ -1,9 +1,7 @@
-# Read by both Redocly CLI (lint) and openapi-typescript (generate).
+# Read by Redocly CLI, which lints the generated spec before the client is generated from it.
 apis:
   platform@v1:
     root: ./openapi.yaml
-    x-openapi-ts:
-      output: ../api-client/src/schema.d.ts
 extends:
   - recommended-strict
 rules:
