@@ -299,6 +299,28 @@ export type ReplaceLedgerMetadataMutationVariables = Exact<{
 
 export type ReplaceLedgerMetadataMutation = { replaceLedgerMetadata: { name: string, metadata: Record<string, string>, createdAt: string, assetCodes: Array<string>, accountCount: number } };
 
+export type WriteRequestFieldsFragment = { key: string, operation: Operation, status: RequestStatus, createdAt: string, resolvedAt: string | null, targetId: string, problemType: string | null, responseStatus: number | null, requestId: string | null, bodyHash: string, attempts: number };
+
+export type WriteRequestsQueryVariables = Exact<{
+  name: string;
+  first?: number | null | undefined;
+  after?: string | null | undefined;
+  status?: RequestStatus | null | undefined;
+  operation?: Operation | null | undefined;
+  search?: string | null | undefined;
+}>;
+
+
+export type WriteRequestsQuery = { ledger: { requests: { nodes: Array<{ key: string, operation: Operation, status: RequestStatus, createdAt: string, resolvedAt: string | null, targetId: string, problemType: string | null, responseStatus: number | null, requestId: string | null, bodyHash: string, attempts: number }>, pageInfo: { endCursor: string | null } } } | null };
+
+export type WriteRequestQueryVariables = Exact<{
+  name: string;
+  key: string;
+}>;
+
+
+export type WriteRequestQuery = { ledger: { request: { key: string, operation: Operation, status: RequestStatus, createdAt: string, resolvedAt: string | null, targetId: string, problemType: string | null, responseStatus: number | null, requestId: string | null, bodyHash: string, attempts: number, request: Record<string, unknown>, response: Record<string, unknown> | null, transferIds: Array<string> } | null } | null };
+
 export type RuleFieldsFragment = { pattern: string, limit: BalanceLimit, history: boolean, code: number, builtIn: boolean, segments: number, createdAt: string | null, updatedAt: string | null };
 
 export type EventTypeFieldsFragment = { name: string, code: number, builtIn: boolean, createdAt: string | null, transactions: number };
@@ -502,6 +524,21 @@ export const AssetSummaryFieldsFragmentDoc = new TypedDocumentString(`
   issued
 }
     `, {"fragmentName":"AssetSummaryFields"}) as unknown as TypedDocumentString<AssetSummaryFieldsFragment, unknown>;
+export const WriteRequestFieldsFragmentDoc = new TypedDocumentString(`
+    fragment WriteRequestFields on WriteRequest {
+  key
+  operation
+  status
+  createdAt
+  resolvedAt
+  targetId
+  problemType
+  responseStatus
+  requestId
+  bodyHash
+  attempts
+}
+    `, {"fragmentName":"WriteRequestFields"}) as unknown as TypedDocumentString<WriteRequestFieldsFragment, unknown>;
 export const RuleFieldsFragmentDoc = new TypedDocumentString(`
     fragment RuleFields on Rule {
   pattern
@@ -1054,6 +1091,60 @@ export const ReplaceLedgerMetadataDocument = new TypedDocumentString(`
   assetCodes
   accountCount
 }`) as unknown as TypedDocumentString<ReplaceLedgerMetadataMutation, ReplaceLedgerMetadataMutationVariables>;
+export const WriteRequestsDocument = new TypedDocumentString(`
+    query WriteRequests($name: String!, $first: Int, $after: String, $status: RequestStatus, $operation: Operation, $search: String) {
+  ledger(name: $name) {
+    requests(
+      first: $first
+      after: $after
+      status: $status
+      operation: $operation
+      search: $search
+    ) {
+      nodes {
+        ...WriteRequestFields
+      }
+      pageInfo {
+        endCursor
+      }
+    }
+  }
+}
+    fragment WriteRequestFields on WriteRequest {
+  key
+  operation
+  status
+  createdAt
+  resolvedAt
+  targetId
+  problemType
+  responseStatus
+  requestId
+  bodyHash
+  attempts
+}`) as unknown as TypedDocumentString<WriteRequestsQuery, WriteRequestsQueryVariables>;
+export const WriteRequestDocument = new TypedDocumentString(`
+    query WriteRequest($name: String!, $key: String!) {
+  ledger(name: $name) {
+    request(key: $key) {
+      key
+      operation
+      status
+      createdAt
+      resolvedAt
+      targetId
+      problemType
+      responseStatus
+      requestId
+      bodyHash
+      attempts
+      request
+      response
+      transferIds
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<WriteRequestQuery, WriteRequestQueryVariables>;
 export const RulesDocument = new TypedDocumentString(`
     query Rules($name: String!) {
   ledger(name: $name) {

@@ -39,6 +39,9 @@ type Documents = {
     "\n  query Search($name: String!, $q: String!) {\n    ledger(name: $name) {\n      search(q: $q) {\n        query\n        accounts {\n          address\n          assets\n        }\n        transactions {\n          id\n          reference\n          committedAt\n        }\n        holds {\n          id\n          status\n        }\n        requests {\n          key\n          operation\n          status\n        }\n      }\n    }\n  }\n": typeof types.SearchDocument,
     "\n  mutation CreateLedger($input: CreateLedgerInput!) {\n    createLedger(input: $input) {\n      ...LedgerFields\n    }\n  }\n": typeof types.CreateLedgerDocument,
     "\n  mutation ReplaceLedgerMetadata($input: ReplaceLedgerMetadataInput!) {\n    replaceLedgerMetadata(input: $input) {\n      ...LedgerFields\n    }\n  }\n": typeof types.ReplaceLedgerMetadataDocument,
+    "\n  fragment WriteRequestFields on WriteRequest {\n    key\n    operation\n    status\n    createdAt\n    resolvedAt\n    targetId\n    problemType\n    responseStatus\n    requestId\n    bodyHash\n    attempts\n  }\n": typeof types.WriteRequestFieldsFragmentDoc,
+    "\n  query WriteRequests($name: String!, $first: Int, $after: String, $status: RequestStatus, $operation: Operation, $search: String) {\n    ledger(name: $name) {\n      requests(first: $first, after: $after, status: $status, operation: $operation, search: $search) {\n        nodes {\n          ...WriteRequestFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n": typeof types.WriteRequestsDocument,
+    "\n  query WriteRequest($name: String!, $key: String!) {\n    ledger(name: $name) {\n      request(key: $key) {\n        key\n        operation\n        status\n        createdAt\n        resolvedAt\n        targetId\n        problemType\n        responseStatus\n        requestId\n        bodyHash\n        attempts\n        request\n        response\n        transferIds\n      }\n    }\n  }\n": typeof types.WriteRequestDocument,
     "\n  fragment RuleFields on Rule {\n    pattern\n    limit\n    history\n    code\n    builtIn\n    segments\n    createdAt\n    updatedAt\n  }\n": typeof types.RuleFieldsFragmentDoc,
     "\n  fragment EventTypeFields on EventType {\n    name\n    code\n    builtIn\n    createdAt\n    transactions\n  }\n": typeof types.EventTypeFieldsFragmentDoc,
     "\n  query Rules($name: String!) {\n    ledger(name: $name) {\n      rules {\n        ...RuleFields\n      }\n    }\n  }\n": typeof types.RulesDocument,
@@ -79,6 +82,9 @@ const documents: Documents = {
     "\n  query Search($name: String!, $q: String!) {\n    ledger(name: $name) {\n      search(q: $q) {\n        query\n        accounts {\n          address\n          assets\n        }\n        transactions {\n          id\n          reference\n          committedAt\n        }\n        holds {\n          id\n          status\n        }\n        requests {\n          key\n          operation\n          status\n        }\n      }\n    }\n  }\n": types.SearchDocument,
     "\n  mutation CreateLedger($input: CreateLedgerInput!) {\n    createLedger(input: $input) {\n      ...LedgerFields\n    }\n  }\n": types.CreateLedgerDocument,
     "\n  mutation ReplaceLedgerMetadata($input: ReplaceLedgerMetadataInput!) {\n    replaceLedgerMetadata(input: $input) {\n      ...LedgerFields\n    }\n  }\n": types.ReplaceLedgerMetadataDocument,
+    "\n  fragment WriteRequestFields on WriteRequest {\n    key\n    operation\n    status\n    createdAt\n    resolvedAt\n    targetId\n    problemType\n    responseStatus\n    requestId\n    bodyHash\n    attempts\n  }\n": types.WriteRequestFieldsFragmentDoc,
+    "\n  query WriteRequests($name: String!, $first: Int, $after: String, $status: RequestStatus, $operation: Operation, $search: String) {\n    ledger(name: $name) {\n      requests(first: $first, after: $after, status: $status, operation: $operation, search: $search) {\n        nodes {\n          ...WriteRequestFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n": types.WriteRequestsDocument,
+    "\n  query WriteRequest($name: String!, $key: String!) {\n    ledger(name: $name) {\n      request(key: $key) {\n        key\n        operation\n        status\n        createdAt\n        resolvedAt\n        targetId\n        problemType\n        responseStatus\n        requestId\n        bodyHash\n        attempts\n        request\n        response\n        transferIds\n      }\n    }\n  }\n": types.WriteRequestDocument,
     "\n  fragment RuleFields on Rule {\n    pattern\n    limit\n    history\n    code\n    builtIn\n    segments\n    createdAt\n    updatedAt\n  }\n": types.RuleFieldsFragmentDoc,
     "\n  fragment EventTypeFields on EventType {\n    name\n    code\n    builtIn\n    createdAt\n    transactions\n  }\n": types.EventTypeFieldsFragmentDoc,
     "\n  query Rules($name: String!) {\n    ledger(name: $name) {\n      rules {\n        ...RuleFields\n      }\n    }\n  }\n": types.RulesDocument,
@@ -191,6 +197,18 @@ export function graphql(source: "\n  mutation CreateLedger($input: CreateLedgerI
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  mutation ReplaceLedgerMetadata($input: ReplaceLedgerMetadataInput!) {\n    replaceLedgerMetadata(input: $input) {\n      ...LedgerFields\n    }\n  }\n"): typeof import('./graphql').ReplaceLedgerMetadataDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  fragment WriteRequestFields on WriteRequest {\n    key\n    operation\n    status\n    createdAt\n    resolvedAt\n    targetId\n    problemType\n    responseStatus\n    requestId\n    bodyHash\n    attempts\n  }\n"): typeof import('./graphql').WriteRequestFieldsFragmentDoc;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query WriteRequests($name: String!, $first: Int, $after: String, $status: RequestStatus, $operation: Operation, $search: String) {\n    ledger(name: $name) {\n      requests(first: $first, after: $after, status: $status, operation: $operation, search: $search) {\n        nodes {\n          ...WriteRequestFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n"): typeof import('./graphql').WriteRequestsDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query WriteRequest($name: String!, $key: String!) {\n    ledger(name: $name) {\n      request(key: $key) {\n        key\n        operation\n        status\n        createdAt\n        resolvedAt\n        targetId\n        problemType\n        responseStatus\n        requestId\n        bodyHash\n        attempts\n        request\n        response\n        transferIds\n      }\n    }\n  }\n"): typeof import('./graphql').WriteRequestDocument;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
