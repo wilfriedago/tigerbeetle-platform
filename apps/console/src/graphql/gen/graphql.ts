@@ -24,6 +24,20 @@ export type CreateLedgerInput = {
   name: string;
 };
 
+export type CreateTransactionInput = {
+  /** The client's business time, stored in user_data_64. Not the committed time. */
+  businessTime?: string | null | undefined;
+  /** An event type name of the ledger; the default event type when absent. */
+  eventType?: string | null | undefined;
+  /** Makes the write safe to retry: the same key and input replay the first answer (ADR-0007). */
+  idempotencyKey: string;
+  ledger: string;
+  metadata?: Record<string, string> | null | undefined;
+  /** 1 to 64 postings, applied atomically. */
+  postings: Array<PostingInput>;
+  reference?: string | null | undefined;
+};
+
 export type DeleteRuleInput = {
   ledger: string;
   pattern: string;
@@ -43,6 +57,15 @@ export type Operation =
   | 'revert'
   | 'transaction'
   | 'void';
+
+export type PostingInput = {
+  amount: string;
+  asset: string;
+  /** The credited account. */
+  destination: string;
+  /** The debited account. */
+  source: string;
+};
 
 export type PutRuleInput = {
   /** The TigerBeetle account code, 1 to 65535. */
@@ -65,12 +88,26 @@ export type ReplaceLedgerMetadataInput = {
   metadata: Record<string, string>;
 };
 
+export type ReplaceTransactionMetadataInput = {
+  id: string;
+  ledger: string;
+  metadata: Record<string, string>;
+};
+
 /** The state of an idempotency record. */
 export type RequestStatus =
   | 'committed'
   | 'declined'
   | 'failed'
   | 'pending';
+
+export type RevertTransactionInput = {
+  id: string;
+  idempotencyKey: string;
+  ledger: string;
+  metadata?: Record<string, string> | null | undefined;
+  reference?: string | null | undefined;
+};
 
 export type AccountSummaryFieldsFragment = { address: string, createdAt: string, metadata: Record<string, string>, balances: Array<{ asset: string, accountId: string, tbLedger: number, balance: string, available: string, reserved: string, incoming: string, credits: string, debits: string, limit: BalanceLimit, history: boolean, code: number, rule: string, createdAt: string }> };
 
@@ -239,6 +276,52 @@ export type CreateEventTypeMutationVariables = Exact<{
 
 export type CreateEventTypeMutation = { createEventType: { name: string, code: number, builtIn: boolean, createdAt: string | null, transactions: number } };
 
+export type TransactionFieldsFragment = { id: string, ledger: string, reference: string | null, businessTime: string | null, metadata: Record<string, string>, committedAt: string, timestamp: string, reverts: string | null, revertedBy: string | null, idempotencyKey: string, requestId: string | null, postings: Array<{ source: string, destination: string, asset: string, amount: string, transferId: string, tbLedger: number }>, eventType: { name: string, code: number } };
+
+export type TransactionsQueryVariables = Exact<{
+  name: string;
+  first?: number | null | undefined;
+  after?: string | null | undefined;
+  address?: string | null | undefined;
+  asset?: string | null | undefined;
+  reference?: string | null | undefined;
+  eventType?: string | null | undefined;
+  committedAfter?: string | null | undefined;
+  committedBefore?: string | null | undefined;
+}>;
+
+
+export type TransactionsQuery = { ledger: { transactions: { nodes: Array<{ id: string, ledger: string, reference: string | null, businessTime: string | null, metadata: Record<string, string>, committedAt: string, timestamp: string, reverts: string | null, revertedBy: string | null, idempotencyKey: string, requestId: string | null, postings: Array<{ source: string, destination: string, asset: string, amount: string, transferId: string, tbLedger: number }>, eventType: { name: string, code: number } }>, pageInfo: { endCursor: string | null } } } | null };
+
+export type TransactionQueryVariables = Exact<{
+  name: string;
+  id: string;
+}>;
+
+
+export type TransactionQuery = { ledger: { transaction: { id: string, ledger: string, reference: string | null, businessTime: string | null, metadata: Record<string, string>, committedAt: string, timestamp: string, reverts: string | null, revertedBy: string | null, idempotencyKey: string, requestId: string | null, postings: Array<{ source: string, destination: string, asset: string, amount: string, transferId: string, tbLedger: number }>, eventType: { name: string, code: number } } | null } | null };
+
+export type CreateTransactionMutationVariables = Exact<{
+  input: CreateTransactionInput;
+}>;
+
+
+export type CreateTransactionMutation = { createTransaction: { id: string, ledger: string, reference: string | null, businessTime: string | null, metadata: Record<string, string>, committedAt: string, timestamp: string, reverts: string | null, revertedBy: string | null, idempotencyKey: string, requestId: string | null, postings: Array<{ source: string, destination: string, asset: string, amount: string, transferId: string, tbLedger: number }>, eventType: { name: string, code: number } } };
+
+export type RevertTransactionMutationVariables = Exact<{
+  input: RevertTransactionInput;
+}>;
+
+
+export type RevertTransactionMutation = { revertTransaction: { id: string, ledger: string, reference: string | null, businessTime: string | null, metadata: Record<string, string>, committedAt: string, timestamp: string, reverts: string | null, revertedBy: string | null, idempotencyKey: string, requestId: string | null, postings: Array<{ source: string, destination: string, asset: string, amount: string, transferId: string, tbLedger: number }>, eventType: { name: string, code: number } } };
+
+export type ReplaceTransactionMetadataMutationVariables = Exact<{
+  input: ReplaceTransactionMetadataInput;
+}>;
+
+
+export type ReplaceTransactionMetadataMutation = { replaceTransactionMetadata: { id: string, ledger: string, reference: string | null, businessTime: string | null, metadata: Record<string, string>, committedAt: string, timestamp: string, reverts: string | null, revertedBy: string | null, idempotencyKey: string, requestId: string | null, postings: Array<{ source: string, destination: string, asset: string, amount: string, transferId: string, tbLedger: number }>, eventType: { name: string, code: number } } };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -343,6 +426,33 @@ export const EventTypeFieldsFragmentDoc = new TypedDocumentString(`
   transactions
 }
     `, {"fragmentName":"EventTypeFields"}) as unknown as TypedDocumentString<EventTypeFieldsFragment, unknown>;
+export const TransactionFieldsFragmentDoc = new TypedDocumentString(`
+    fragment TransactionFields on Transaction {
+  id
+  ledger
+  postings {
+    source
+    destination
+    asset
+    amount
+    transferId
+    tbLedger
+  }
+  reference
+  eventType {
+    name
+    code
+  }
+  businessTime
+  metadata
+  committedAt
+  timestamp
+  reverts
+  revertedBy
+  idempotencyKey
+  requestId
+}
+    `, {"fragmentName":"TransactionFields"}) as unknown as TypedDocumentString<TransactionFieldsFragment, unknown>;
 export const AccountsDocument = new TypedDocumentString(`
     query Accounts($name: String!, $first: Int, $after: String, $prefix: String, $search: String, $asset: String) {
   ledger(name: $name) {
@@ -768,3 +878,176 @@ export const CreateEventTypeDocument = new TypedDocumentString(`
   createdAt
   transactions
 }`) as unknown as TypedDocumentString<CreateEventTypeMutation, CreateEventTypeMutationVariables>;
+export const TransactionsDocument = new TypedDocumentString(`
+    query Transactions($name: String!, $first: Int, $after: String, $address: String, $asset: String, $reference: String, $eventType: String, $committedAfter: DateTime, $committedBefore: DateTime) {
+  ledger(name: $name) {
+    transactions(
+      first: $first
+      after: $after
+      address: $address
+      asset: $asset
+      reference: $reference
+      eventType: $eventType
+      committedAfter: $committedAfter
+      committedBefore: $committedBefore
+    ) {
+      nodes {
+        ...TransactionFields
+      }
+      pageInfo {
+        endCursor
+      }
+    }
+  }
+}
+    fragment TransactionFields on Transaction {
+  id
+  ledger
+  postings {
+    source
+    destination
+    asset
+    amount
+    transferId
+    tbLedger
+  }
+  reference
+  eventType {
+    name
+    code
+  }
+  businessTime
+  metadata
+  committedAt
+  timestamp
+  reverts
+  revertedBy
+  idempotencyKey
+  requestId
+}`) as unknown as TypedDocumentString<TransactionsQuery, TransactionsQueryVariables>;
+export const TransactionDocument = new TypedDocumentString(`
+    query Transaction($name: String!, $id: U128!) {
+  ledger(name: $name) {
+    transaction(id: $id) {
+      ...TransactionFields
+    }
+  }
+}
+    fragment TransactionFields on Transaction {
+  id
+  ledger
+  postings {
+    source
+    destination
+    asset
+    amount
+    transferId
+    tbLedger
+  }
+  reference
+  eventType {
+    name
+    code
+  }
+  businessTime
+  metadata
+  committedAt
+  timestamp
+  reverts
+  revertedBy
+  idempotencyKey
+  requestId
+}`) as unknown as TypedDocumentString<TransactionQuery, TransactionQueryVariables>;
+export const CreateTransactionDocument = new TypedDocumentString(`
+    mutation CreateTransaction($input: CreateTransactionInput!) {
+  createTransaction(input: $input) {
+    ...TransactionFields
+  }
+}
+    fragment TransactionFields on Transaction {
+  id
+  ledger
+  postings {
+    source
+    destination
+    asset
+    amount
+    transferId
+    tbLedger
+  }
+  reference
+  eventType {
+    name
+    code
+  }
+  businessTime
+  metadata
+  committedAt
+  timestamp
+  reverts
+  revertedBy
+  idempotencyKey
+  requestId
+}`) as unknown as TypedDocumentString<CreateTransactionMutation, CreateTransactionMutationVariables>;
+export const RevertTransactionDocument = new TypedDocumentString(`
+    mutation RevertTransaction($input: RevertTransactionInput!) {
+  revertTransaction(input: $input) {
+    ...TransactionFields
+  }
+}
+    fragment TransactionFields on Transaction {
+  id
+  ledger
+  postings {
+    source
+    destination
+    asset
+    amount
+    transferId
+    tbLedger
+  }
+  reference
+  eventType {
+    name
+    code
+  }
+  businessTime
+  metadata
+  committedAt
+  timestamp
+  reverts
+  revertedBy
+  idempotencyKey
+  requestId
+}`) as unknown as TypedDocumentString<RevertTransactionMutation, RevertTransactionMutationVariables>;
+export const ReplaceTransactionMetadataDocument = new TypedDocumentString(`
+    mutation ReplaceTransactionMetadata($input: ReplaceTransactionMetadataInput!) {
+  replaceTransactionMetadata(input: $input) {
+    ...TransactionFields
+  }
+}
+    fragment TransactionFields on Transaction {
+  id
+  ledger
+  postings {
+    source
+    destination
+    asset
+    amount
+    transferId
+    tbLedger
+  }
+  reference
+  eventType {
+    name
+    code
+  }
+  businessTime
+  metadata
+  committedAt
+  timestamp
+  reverts
+  revertedBy
+  idempotencyKey
+  requestId
+}`) as unknown as TypedDocumentString<ReplaceTransactionMetadataMutation, ReplaceTransactionMetadataMutationVariables>;

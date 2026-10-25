@@ -41,6 +41,12 @@ type Documents = {
     "\n  mutation PutRule($input: PutRuleInput!) {\n    putRule(input: $input) {\n      ...RuleFields\n    }\n  }\n": typeof types.PutRuleDocument,
     "\n  mutation DeleteRule($input: DeleteRuleInput!) {\n    deleteRule(input: $input)\n  }\n": typeof types.DeleteRuleDocument,
     "\n  mutation CreateEventType($input: CreateEventTypeInput!) {\n    createEventType(input: $input) {\n      ...EventTypeFields\n    }\n  }\n": typeof types.CreateEventTypeDocument,
+    "\n  fragment TransactionFields on Transaction {\n    id\n    ledger\n    postings {\n      source\n      destination\n      asset\n      amount\n      transferId\n      tbLedger\n    }\n    reference\n    eventType {\n      name\n      code\n    }\n    businessTime\n    metadata\n    committedAt\n    timestamp\n    reverts\n    revertedBy\n    idempotencyKey\n    requestId\n  }\n": typeof types.TransactionFieldsFragmentDoc,
+    "\n  query Transactions(\n    $name: String!\n    $first: Int\n    $after: String\n    $address: String\n    $asset: String\n    $reference: String\n    $eventType: String\n    $committedAfter: DateTime\n    $committedBefore: DateTime\n  ) {\n    ledger(name: $name) {\n      transactions(\n        first: $first\n        after: $after\n        address: $address\n        asset: $asset\n        reference: $reference\n        eventType: $eventType\n        committedAfter: $committedAfter\n        committedBefore: $committedBefore\n      ) {\n        nodes {\n          ...TransactionFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n": typeof types.TransactionsDocument,
+    "\n  query Transaction($name: String!, $id: U128!) {\n    ledger(name: $name) {\n      transaction(id: $id) {\n        ...TransactionFields\n      }\n    }\n  }\n": typeof types.TransactionDocument,
+    "\n  mutation CreateTransaction($input: CreateTransactionInput!) {\n    createTransaction(input: $input) {\n      ...TransactionFields\n    }\n  }\n": typeof types.CreateTransactionDocument,
+    "\n  mutation RevertTransaction($input: RevertTransactionInput!) {\n    revertTransaction(input: $input) {\n      ...TransactionFields\n    }\n  }\n": typeof types.RevertTransactionDocument,
+    "\n  mutation ReplaceTransactionMetadata($input: ReplaceTransactionMetadataInput!) {\n    replaceTransactionMetadata(input: $input) {\n      ...TransactionFields\n    }\n  }\n": typeof types.ReplaceTransactionMetadataDocument,
 };
 const documents: Documents = {
     "\n  fragment AccountSummaryFields on AccountSummary {\n    address\n    createdAt\n    metadata\n    balances {\n      asset\n      accountId\n      tbLedger\n      balance\n      available\n      reserved\n      incoming\n      credits\n      debits\n      limit\n      history\n      code\n      rule\n      createdAt\n    }\n  }\n": types.AccountSummaryFieldsFragmentDoc,
@@ -69,6 +75,12 @@ const documents: Documents = {
     "\n  mutation PutRule($input: PutRuleInput!) {\n    putRule(input: $input) {\n      ...RuleFields\n    }\n  }\n": types.PutRuleDocument,
     "\n  mutation DeleteRule($input: DeleteRuleInput!) {\n    deleteRule(input: $input)\n  }\n": types.DeleteRuleDocument,
     "\n  mutation CreateEventType($input: CreateEventTypeInput!) {\n    createEventType(input: $input) {\n      ...EventTypeFields\n    }\n  }\n": types.CreateEventTypeDocument,
+    "\n  fragment TransactionFields on Transaction {\n    id\n    ledger\n    postings {\n      source\n      destination\n      asset\n      amount\n      transferId\n      tbLedger\n    }\n    reference\n    eventType {\n      name\n      code\n    }\n    businessTime\n    metadata\n    committedAt\n    timestamp\n    reverts\n    revertedBy\n    idempotencyKey\n    requestId\n  }\n": types.TransactionFieldsFragmentDoc,
+    "\n  query Transactions(\n    $name: String!\n    $first: Int\n    $after: String\n    $address: String\n    $asset: String\n    $reference: String\n    $eventType: String\n    $committedAfter: DateTime\n    $committedBefore: DateTime\n  ) {\n    ledger(name: $name) {\n      transactions(\n        first: $first\n        after: $after\n        address: $address\n        asset: $asset\n        reference: $reference\n        eventType: $eventType\n        committedAfter: $committedAfter\n        committedBefore: $committedBefore\n      ) {\n        nodes {\n          ...TransactionFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n": types.TransactionsDocument,
+    "\n  query Transaction($name: String!, $id: U128!) {\n    ledger(name: $name) {\n      transaction(id: $id) {\n        ...TransactionFields\n      }\n    }\n  }\n": types.TransactionDocument,
+    "\n  mutation CreateTransaction($input: CreateTransactionInput!) {\n    createTransaction(input: $input) {\n      ...TransactionFields\n    }\n  }\n": types.CreateTransactionDocument,
+    "\n  mutation RevertTransaction($input: RevertTransactionInput!) {\n    revertTransaction(input: $input) {\n      ...TransactionFields\n    }\n  }\n": types.RevertTransactionDocument,
+    "\n  mutation ReplaceTransactionMetadata($input: ReplaceTransactionMetadataInput!) {\n    replaceTransactionMetadata(input: $input) {\n      ...TransactionFields\n    }\n  }\n": types.ReplaceTransactionMetadataDocument,
 };
 
 /**
@@ -175,6 +187,30 @@ export function graphql(source: "\n  mutation DeleteRule($input: DeleteRuleInput
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  mutation CreateEventType($input: CreateEventTypeInput!) {\n    createEventType(input: $input) {\n      ...EventTypeFields\n    }\n  }\n"): typeof import('./graphql').CreateEventTypeDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  fragment TransactionFields on Transaction {\n    id\n    ledger\n    postings {\n      source\n      destination\n      asset\n      amount\n      transferId\n      tbLedger\n    }\n    reference\n    eventType {\n      name\n      code\n    }\n    businessTime\n    metadata\n    committedAt\n    timestamp\n    reverts\n    revertedBy\n    idempotencyKey\n    requestId\n  }\n"): typeof import('./graphql').TransactionFieldsFragmentDoc;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Transactions(\n    $name: String!\n    $first: Int\n    $after: String\n    $address: String\n    $asset: String\n    $reference: String\n    $eventType: String\n    $committedAfter: DateTime\n    $committedBefore: DateTime\n  ) {\n    ledger(name: $name) {\n      transactions(\n        first: $first\n        after: $after\n        address: $address\n        asset: $asset\n        reference: $reference\n        eventType: $eventType\n        committedAfter: $committedAfter\n        committedBefore: $committedBefore\n      ) {\n        nodes {\n          ...TransactionFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n"): typeof import('./graphql').TransactionsDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Transaction($name: String!, $id: U128!) {\n    ledger(name: $name) {\n      transaction(id: $id) {\n        ...TransactionFields\n      }\n    }\n  }\n"): typeof import('./graphql').TransactionDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation CreateTransaction($input: CreateTransactionInput!) {\n    createTransaction(input: $input) {\n      ...TransactionFields\n    }\n  }\n"): typeof import('./graphql').CreateTransactionDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation RevertTransaction($input: RevertTransactionInput!) {\n    revertTransaction(input: $input) {\n      ...TransactionFields\n    }\n  }\n"): typeof import('./graphql').RevertTransactionDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation ReplaceTransactionMetadata($input: ReplaceTransactionMetadataInput!) {\n    replaceTransactionMetadata(input: $input) {\n      ...TransactionFields\n    }\n  }\n"): typeof import('./graphql').ReplaceTransactionMetadataDocument;
 
 
 export function graphql(source: string) {
