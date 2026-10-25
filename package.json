@@ -5,20 +5,6 @@
   "description": "An open-source platform that makes TigerBeetle easier to work with: a ledger API, a web console and, later, a posting-rule DSL.",
   "license": "Apache-2.0",
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "lint": "turbo lint",
-    "format": "turbo format",
-    "test": "turbo test",
-    "typecheck": "turbo typecheck",
-    "generate": "turbo run generate",
-    "test:integration": "turbo test:integration",
-    "stack:up": "docker compose --project-directory . -f deploy/compose/compose.yaml up --build --detach --wait",
-    "stack:down": "docker compose --project-directory . -f deploy/compose/compose.yaml down",
-    "stack:logs": "docker compose --project-directory . -f deploy/compose/compose.yaml logs --follow",
-    "stack:reset": "docker compose --project-directory . -f deploy/compose/compose.yaml down --volumes",
-    "tools:install": "scripts/install-tools.sh",
-    "versions:check": "scripts/check-versions.sh",
     "prepare": "vp config --hooks-dir .githooks"
   },
   "devDependencies": {

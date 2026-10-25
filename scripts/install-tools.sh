@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Installs the pinned developer tools that are not managed by go.mod or package.json.
-# Used locally (pnpm tools:install) and in CI. Binaries land in $(go env GOPATH)/bin.
+# Used locally (just tools-install, or the script itself the first time, since it installs just)
+# and in CI. Binaries land in $(go env GOPATH)/bin.
 #
 # Versions are pinned here and bumped by Renovate (see renovate.json customManagers).
 set -euo pipefail

@@ -1,5 +1,5 @@
 # Local development stack: TigerBeetle, Postgres, the API and the console.
-# Run from the repository root with `pnpm stack:up` (docker compose --project-directory . ...),
+# Run from the repository root with `just compose-up` (docker compose --project-directory . ...),
 # so variables come from the root .env (see .env.example) and build contexts resolve correctly.
 #
 # Image tags here are the pinned versions of the stack. scripts/check-versions.sh and the Go
