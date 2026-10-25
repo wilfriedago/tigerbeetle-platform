@@ -1,6 +1,6 @@
 # 13. Implementing the ledger API: schema, write protocol and reads
 
-Status: Accepted
+Status: Accepted, amended by [ADR-0024](0024-transport-neutral-write-protocol.md)
 Date: 2026-10-25
 
 ## Context and Problem Statement
