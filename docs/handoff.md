@@ -23,8 +23,9 @@ Working and verified:
   posting, ways forward, a new key on retry) and shows balances read back; holds capture in
   part and void; the Cmd+K search, the account tree and the request drawer work; the shell
   collapses to a drawer at phone width.
-- The earlier setup checks still hold: `pnpm stack:up` and `/readyz`, the image smoke test,
-  `scripts/check-versions.sh`, `govulncheck`.
+- `pnpm stack:up` builds and starts the whole stack; `/readyz` answers 200 and the console in
+  its container serves every page through the proxy. The image smoke test,
+  `scripts/check-versions.sh` and `govulncheck` were not rerun for this work.
 
 Not done, by design or by circumstance:
 
@@ -121,6 +122,9 @@ place.
     used `npx agent-browser@0.39.2` with its own Chrome (`agent-browser install`) instead.
 21. **cmdk keeps its highlight when items change.** With server-side search the palette controls
     the selected value and resets it to the first match when an answer arrives.
+22. **The console container needs `--ignore-scripts` and `--host`.** The root `prepare` script
+    installs the Vite+ git hooks and fails without git, and `vp dev` listens on the container's
+    localhost unless told otherwise. `deploy/compose/console.Dockerfile` handles both.
 
 ## Decisions amended along the way
 
