@@ -6,6 +6,15 @@ this file for the state of the work.
 
 ## Where things stand
 
+A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
+owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the
+REST spec and GraphQL schema generated from Go, an orval REST client, the console on GraphQL and a
+root justfile, in phases 0 to 7 with a review stop after each. Phase 0 (documentation only) is
+done: ADR-0015 to ADR-0024 are written, the amended ADRs carry their new status lines, and
+AGENTS.md and docs/architecture.md point at the plan. It waits for the owner's review; phase 1
+(the justfile) comes next. Nothing below this paragraph has changed yet: the code, the commands
+and the layout are still those of the console work.
+
 The API implements the ledger surface (ADR-0004 to ADR-0010, details in ADR-0013) and the console
 covers every page of `docs/console.md` (ADR-0014). The work is on the `feat/console` branch, not
 merged and not pushed, so CI has never run on GitHub. Everything below was verified on macOS 27
@@ -125,10 +134,33 @@ place.
 22. **The console container needs `--ignore-scripts` and `--host`.** The root `prepare` script
     installs the Vite+ git hooks and fails without git, and `vp dev` listens on the container's
     localhost unless told otherwise. `deploy/compose/console.Dockerfile` handles both.
+23. **A partly staged file breaks the pre-commit hook.** When a file is staged and also has
+    unstaged changes, and `vp check --fix` reformats the staged version, lint-staged cannot put the
+    unstaged changes back: it prints "Failed to restore unstaged changes", reverts and aborts the
+    commit. Stage whole files.
+24. **Staged Go files fail the hook until phase 1 commit 4.** The shim `apps/api/package.json` was
+    deleted (67af5db), but the `staged` block still runs `pnpm --filter api ...` for Go files.
+    Phase 0 committed Markdown only; phase 1 commit 4 points the hook at just.
+25. **TigerBeetle CDC as seen from the 0.17.9 image** (spike S3, ADR-0022). u128 and u64 values
+    are JSON numbers up to 2^53 - 1 and JSON strings from 2^53 on; nanosecond timestamps are
+    always strings, so decode both forms without a float. `--host` takes an IP address only. The
+    job keeps its progress as headers on `tigerbeetle.internal.progress.<cluster>` and holds the
+    exclusive queue `tigerbeetle.internal.locker.<cluster>`, so a second job fails with
+    `RESOURCE_LOCKED`. Expirations arrive as `two_phase_expired` with no client involved.
+26. **RabbitMQ's `guest` user only connects from localhost.** A container needs a user created
+    with `RABBITMQ_DEFAULT_USER` and `RABBITMQ_DEFAULT_PASS`.
+27. **`tigerbeetle repl` wants a terminal**, and piped input prints "ANSI escape sequences not
+    supported". `repl --command="create_accounts ...;"`, absent from `--help`, runs one statement
+    and prints JSON, which suits scripts.
 
 ## Decisions amended along the way
 
-The owner approved these on 2026-10-24; the ADRs reflect them.
+On 2026-10-25 the owner approved the migration plan and answered its questions (plan section 23).
+ADR-0015 adds the status `Accepted, amended by ADR-NNNN`; ADR-0001, 0002, 0003, 0004, 0007, 0009,
+0012, 0013 and 0014 carry it, and ADR-0008 is superseded by ADR-0018 and ADR-0019. Read the
+amending ADRs before acting on an amended one.
+
+Earlier, during the console work, the owner approved these on 2026-10-24; the ADRs reflect them.
 
 - **Transfer IDs are minted, not hashed** (ADR-0007). The pending idempotency record stores the
   transaction ID and one `ID()` per leg; retries and the reconciler reuse them. Hashing the
@@ -174,14 +206,18 @@ Console (`apps/console/src`):
 
 ## Suggested next steps, in order
 
-1. Push to GitHub, open the pull request for `feat/console`, make CI green, install Renovate.
-2. Review the console against `.design/home.pen` with the owner; the screens were followed
+1. The owner reviews phase 0: the ADR set and the status lines (plan section 18).
+2. Phase 1, the justfile, as listed in plan section 19, then phases 2 to 7, each ending with a
+   review stop, an update of this file and a summary of versions and deviations.
+3. Push to GitHub, open the pull request for `feat/console`, make CI green, install Renovate.
+4. Review the console against `.design/home.pen` with the owner; the screens were followed
    closely but not pixel by pixel (the account tree and the pending result view simplify the
    design's activity log and cancel button, which the API does not support).
-3. Transaction list filters on metadata and on "reverted" need API support first.
-4. Operational follow-ups: a custom seccomp profile instead of `unconfined`, image digests pinned
+5. Transaction list filters on metadata and on "reverted" need API support first.
+6. Operational follow-ups: a custom seccomp profile instead of `unconfined`, image digests pinned
    by Renovate, a multi-arch image and a static console image in a release pipeline.
-5. The posting-rule DSL and the CDC live feed, future work in `docs/architecture.md`.
+7. The posting-rule DSL and the console's live feed, future work in `docs/architecture.md`; the
+   Kafka relay of phase 7 is the first CDC consumer.
 
 ## Loose ends to be aware of
 

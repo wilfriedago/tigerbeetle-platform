@@ -5,6 +5,12 @@ request flows through them. The reasoning lives in the decision records linked a
 project is pre-alpha: the API implements the ledger surface of ADR-0004 to ADR-0010 (see
 ADR-0013) and the console covers the pages of `docs/console.md` (see ADR-0014).
 
+A migration is under way: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka,
+the REST spec and the GraphQL schema generated from Go, a generated REST client, the console on
+GraphQL and a root justfile. `docs/plans/ddd-transports/plan.md` describes it in phases, and
+ADR-0015 to ADR-0024 record its decisions. Until a phase lands, the layout, commands and flows
+below describe the code as it is.
+
 ## Overview
 
 The platform makes TigerBeetle easier to work with: it adds the naming, context and tooling that
@@ -207,3 +213,23 @@ Cursor pagination orders by the stored big-endian ID, which is time order.
 - `docs/adr/0010-holds-as-two-phase-transfers.md`: holds as two-phase transfers.
 - `docs/adr/0011-vite-plus-toolchain-for-typescript.md`: Vite+ (`vp check`) replaces Biome.
 - `docs/adr/0012-vite-plus-git-hooks.md`: Vite+ git hooks (`vp staged`) replace lefthook.
+- `docs/adr/0013-ledger-api-implementation.md`: how the API implements the ledger surface.
+- `docs/adr/0014-console-architecture.md`: TanStack, feature slices and the design system.
+- `docs/adr/0015-amended-status-for-accepted-adrs.md`: the `Accepted, amended by` status.
+- `docs/adr/0016-justfile-as-the-single-entry-point.md`: just for every task, Turborepo for
+  TypeScript.
+- `docs/adr/0017-bounded-context-modules-and-dependency-rules.md`: modules, kernel, platform and
+  the depguard rules.
+- `docs/adr/0018-rest-spec-generated-from-go-with-huma.md`: the REST spec generated from Go.
+- `docs/adr/0019-rest-client-generated-with-orval.md`: the generated REST client.
+- `docs/adr/0020-graphql-schema-generated-from-go-registrations.md`: the GraphQL schema
+  generator and gqlgen.
+- `docs/adr/0021-transports-over-one-application-layer.md`: gRPC, AMQP RPC, NATS RPC, errors and
+  readiness.
+- `docs/adr/0022-ledger-events-to-kafka-through-tigerbeetle-cdc.md`: ledger events through
+  TigerBeetle CDC.
+- `docs/adr/0023-console-on-graphql.md`: the console on GraphQL.
+- `docs/adr/0024-transport-neutral-write-protocol.md`: the write protocol on every transport.
+
+An ADR whose status reads `Accepted, amended by ...` is partly replaced; the amending ADRs say
+which parts (ADR-0015). ADR-0008 is superseded by ADR-0018 and ADR-0019.

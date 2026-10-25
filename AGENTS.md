@@ -4,6 +4,11 @@ Conventions for coding agents working in this repository. Humans follow the same
 is the condensed version. The reasoning behind each rule lives in docs/adr. The current state of
 the work, the pitfalls already hit and the suggested next steps are in docs/handoff.md.
 
+A migration to bounded-context modules and new transports is under way:
+docs/plans/ddd-transports/plan.md, in phases, with ADR-0015 to ADR-0024. Until a phase lands, the
+layout, commands and workflow below describe the code as it is; each line changes in the commit
+that makes the new one true.
+
 ## Project
 
 - tigerbeetle-platform: a Go API in front of TigerBeetle with Postgres for metadata, a React
@@ -91,4 +96,7 @@ the work, the pitfalls already hit and the suggested next steps are in docs/hand
   `scripts/install-tools.sh`.
 - No emojis anywhere. SQL keywords uppercase, identifiers lowercase. `.editorconfig` applies.
 - Out of scope until decided otherwise: authentication, release pipelines, Kubernetes.
+- An ADR whose status reads `Accepted, amended by ADR-NNNN` is partly replaced: read the amending
+  ADRs before acting on it. A new ADR that replaces part of an older one sets that status line in
+  the same commit (ADR-0015).
 - When instructions conflict or a tool behaves unexpectedly, stop and ask rather than guess.
