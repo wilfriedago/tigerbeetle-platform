@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi"
+	v1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
@@ -80,8 +81,7 @@ func wire(ctx context.Context, cfg config.Config, logger *slog.Logger, opts ...w
 	holds := app.NewHolds(writes)
 	reconciler := app.NewReconciler(metadata, transactions, holds, clock, cfg.ReconcilerGracePeriod, cfg.ReconcilerInterval, logger)
 
-	handler := httpapi.NewHandler(httpapi.Deps{
-		Logger:       logger,
+	handler := httpapi.NewHandler(logger, v1.Deps{
 		Status:       app.NewStatus(ledgerStore, metadata, cfg.ReadinessTimeout),
 		Ledgers:      app.NewLedgers(metadata, clock),
 		Settings:     app.NewSettings(metadata, metadata, metadata, metadata, metadata, clock),
@@ -90,9 +90,9 @@ func wire(ctx context.Context, cfg config.Config, logger *slog.Logger, opts ...w
 		Holds:        holds,
 		Overview:     app.NewOverview(metadata, accounts, tb, clock),
 		Reconciler:   reconciler,
-		Service:      serviceName,
-		Version:      version,
-		Runtime: httpapi.Runtime{
+		Service: v1.Service{
+			Name:                     serviceName,
+			Version:                  version,
 			StartedAt:                time.Now().UTC(),
 			TigerBeetleClientVersion: moduleVersion("github.com/tigerbeetle/tigerbeetle-go"),
 			TigerBeetleClusterID:     strconv.FormatUint(cfg.TigerBeetleClusterID, 10),

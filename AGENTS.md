@@ -23,11 +23,14 @@ that makes the new one true.
   - `cmd/api/main.go`: entrypoint, all wiring by hand. No DI framework, no globals, no `init()`.
   - `internal/domain/ledger`: pure types and rules, no I/O imports.
   - `internal/app`: use cases; `ports.go` declares the interfaces they need.
-  - `internal/adapters/tigerbeetle`, `postgres`, `httpapi`: implement the ports. Generated code
-    is in `gen` subpackages, committed, excluded from lint, never edited by hand.
-  - `internal/platform`: config, logging, HTTP server lifecycle.
-  - `migrations/` (goose, embedded), `queries/` (sqlc), `sqlc.yaml`, `oapi-codegen.yaml`.
-- `packages/openapi/openapi.yaml` is the contract. `packages/api-client` is generated types plus a
+  - `internal/adapters/tigerbeetle`, `postgres`, `httpapi`: implement the ports. `httpapi/v1`
+    registers the REST operations on Huma with typed input and output structs (ADR-0018).
+    Generated code (sqlc) is in `gen` subpackages, committed, excluded from lint, never edited.
+  - `internal/platform`: config, logging, HTTP server lifecycle, the Huma REST builder
+    (`restapi`), the transport-neutral problem mapping, wire scalars and request IDs.
+  - `migrations/` (goose, embedded), `queries/` (sqlc), `sqlc.yaml`. `cmd/openapi` writes the spec.
+- `packages/openapi/openapi.yaml` is the contract, generated from the Go registrations by
+  `cmd/openapi`; never edit it. `packages/api-client` is generated types plus a
   ky client. `deploy/compose` is the local stack.
 - `apps/console`: React console on TanStack Router, Query, Form, Table and Pacer (ADR-0014).
   - `src/routes`: thin file routes (search schema, loader, crumb). `src/route-tree.gen.ts` is
@@ -47,7 +50,8 @@ that makes the new one true.
 ## Go rules
 
 - Standard library first: `net/http` with Go 1.22+ patterns, `log/slog` JSON, `testing` with
-  `go-cmp`. No web framework, no assertion library.
+  `go-cmp`. No web framework except Huma on the ServeMux for REST (ADR-0018), no assertion
+  library.
 - `context.Context` is the first parameter of anything doing I/O.
 - Errors: typed domain errors (`ledger.ErrNotFound`, `ErrAlreadyExists`, `ErrInvalid`,
   `ErrUnavailable`), wrapped with `%w`, checked with `errors.Is` and `errors.As`. The HTTP adapter

@@ -16,21 +16,21 @@ export PATH := `go env GOPATH 2>/dev/null || printf '%s' "$HOME/go"` + "/bin:" +
 default:
     @just --list
 
-# Order: 1. sqlc; 2. the Go commands that write the specs (from phase 2 of
-# docs/plans/ddd-transports/plan.md); 3. Go code read from the specs; 4. the TypeScript generators.
+# Order: 1. sqlc; 2. the Go commands that write the specs; 3. Go code read from the specs (from
+# phase 4 of docs/plans/ddd-transports/plan.md); 4. the TypeScript generators.
 [doc('Regenerate every generated file, in dependency order.')]
 [group('generate')]
-generate: generate-sql generate-servers generate-ts
+generate: generate-sql generate-contracts generate-ts
 
 # Step 1: the Postgres accessors.
 [group('generate')]
 generate-sql:
     cd {{ api }} && sqlc generate
 
-# Step 3: the Go HTTP server from the hand-written spec (oapi-codegen, until phase 2).
+# Step 2: the REST spec from the Go registrations, built without cgo (ADR-0018).
 [group('generate')]
-generate-servers:
-    cd {{ api }} && go tool oapi-codegen -config oapi-codegen.yaml ../../packages/openapi/openapi.yaml
+generate-contracts:
+    cd {{ api }} && CGO_ENABLED=0 go run ./cmd/openapi -out ../../packages/openapi/openapi.yaml
 
 # Step 4: the spec lint and TypeScript types, and the console's route tree, through Turborepo.
 [group('generate')]

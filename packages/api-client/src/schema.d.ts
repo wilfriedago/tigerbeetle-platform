@@ -110,10 +110,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
+            path?: never;
             cookie?: never;
         };
         /**
@@ -135,86 +132,11 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/ledgers/{ledger}/metadata": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Replace ledger metadata
-         * @description Replaces the metadata of the ledger with the given key/value pairs.
-         */
-        put: operations["replaceLedgerMetadata"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        /**
-         * Ledger overview figures
-         * @description The figures of the ledger overview: money issued per asset (minus the balance of `world`,
-         *     read from TigerBeetle), account and hold counts, reserved amounts, and the declined writes
-         *     of the last 24 hours with their reasons.
-         */
-        get: operations["getLedgerStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/assets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        /**
-         * List assets
-         * @description The assets used in the ledger, each with its TigerBeetle ledger number (ADR-0005), its
-         *     account count and the money issued. A scale never changes: a new scale is a new asset.
-         */
-        get: operations["listAssets"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/ledgers/{ledger}/accounts": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
+            path?: never;
             cookie?: never;
         };
         /**
@@ -237,12 +159,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description The account address, such as `users:1234:wallet`. */
-                address: components["parameters"]["AccountAddress"];
-            };
+            path?: never;
             cookie?: never;
         };
         /**
@@ -259,41 +176,11 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/ledgers/{ledger}/accounts/{address}/metadata": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description The account address, such as `users:1234:wallet`. */
-                address: components["parameters"]["AccountAddress"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Replace account metadata
-         * @description Replaces the metadata of an existing account.
-         */
-        put: operations["replaceAccountMetadata"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/ledgers/{ledger}/accounts/{address}/history": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description The account address, such as `users:1234:wallet`. */
-                address: components["parameters"]["AccountAddress"];
-            };
+            path?: never;
             cookie?: never;
         };
         /**
@@ -311,14 +198,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/ledgers/{ledger}/accounts/{address}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace account metadata
+         * @description Replaces the metadata of an existing account.
+         */
+        put: operations["replaceAccountMetadata"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ledgers/{ledger}/aggregate/balances": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
+            path?: never;
             cookie?: never;
         };
         /**
@@ -341,10 +245,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
+            path?: never;
             cookie?: never;
         };
         /**
@@ -361,14 +262,314 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/ledgers/{ledger}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List assets
+         * @description The assets used in the ledger, each with its TigerBeetle ledger number (ADR-0005), its
+         *     account count and the money issued. A scale never changes: a new scale is a new asset.
+         */
+        get: operations["listAssets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/event-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List event types
+         * @description The event types of the ledger with their TigerBeetle `code` and usage.
+         */
+        get: operations["listEventTypes"];
+        put?: never;
+        /**
+         * Create an event type
+         * @description Registers an event type. Event types are append-only: a code never changes meaning, so
+         *     there is no edit or delete (ADR-0007). Without a code, the next free one is assigned.
+         */
+        post: operations["createEventType"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List holds
+         * @description Holds newest first. `expired` is derived from the cluster clock and the hold timeout.
+         */
+        get: operations["listHolds"];
+        put?: never;
+        /**
+         * Create a hold
+         * @description Reserves an amount with a TigerBeetle pending transfer (ADR-0010). The source's available
+         *     balance drops by the amount at once; nothing moves until the hold is captured.
+         */
+        post: operations["createHold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/holds/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a hold
+         * @description The hold, its pending transfer and, once resolved, the transfer that resolved it.
+         */
+        get: operations["getHold"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/holds/{id}/capture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Capture a hold
+         * @description Posts the pending transfer. Without an amount the full hold is captured; a smaller amount
+         *     captures that much and releases the rest. A hold is captured once (409
+         *     `hold-already-resolved`) and not after it expired (409 `hold-expired`).
+         */
+        post: operations["captureHold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/holds/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Void a hold
+         * @description Voids the pending transfer and releases the whole amount to the source.
+         */
+        post: operations["voidHold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace ledger metadata
+         * @description Replaces the metadata of the ledger with the given key/value pairs.
+         */
+        put: operations["replaceLedgerMetadata"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List write requests
+         * @description The idempotency records of the ledger, newest first: every write with its key, operation
+         *     and outcome. This is the only place where declined and in-flight writes are visible.
+         */
+        get: operations["listWriteRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/requests/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a write request
+         * @description The record with the stored request, the stored outcome and the minted IDs.
+         */
+        get: operations["getWriteRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List account rules
+         * @description The rules that decide the flags of new accounts, most specific first, including the built-in
+         *     `*` and `world` defaults. A rule change applies to accounts created afterwards; existing
+         *     accounts keep the flags stored on their row (ADR-0006).
+         */
+        get: operations["listRules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/rules/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Which rule wins for an address
+         * @description The rule that would create the account for an address, and every rule considered.
+         */
+        get: operations["matchRule"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/rules/{pattern}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Create or replace a rule
+         * @description Creates or replaces the rule for a pattern. Putting `*` or `world` replaces the built-in default.
+         */
+        put: operations["putRule"];
+        post?: never;
+        /**
+         * Delete a rule
+         * @description Deletes a stored rule. Deleting a stored `*` or `world` restores the built-in default.
+         */
+        delete: operations["deleteRule"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search the ledger
+         * @description Finds what a query names: a 32-hex ID opens a transaction or hold, an address or prefix
+         *     finds accounts, a reference finds transactions, an Idempotency-Key finds a write request.
+         */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ledgers/{ledger}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ledger overview figures
+         * @description The figures of the ledger overview: money issued per asset (minus the balance of `world`,
+         *     read from TigerBeetle), account and hold counts, reserved amounts, and the declined writes
+         *     of the last 24 hours with their reasons.
+         */
+        get: operations["getLedgerStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ledgers/{ledger}/transactions": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
+            path?: never;
             cookie?: never;
         };
         /**
@@ -397,12 +598,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
-            };
+            path?: never;
             cookie?: never;
         };
         /**
@@ -422,12 +618,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
@@ -447,12 +638,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
@@ -471,341 +657,287 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/ledgers/{ledger}/holds": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        /**
-         * List holds
-         * @description Holds newest first. `expired` is derived from the cluster clock and the hold timeout.
-         */
-        get: operations["listHolds"];
-        put?: never;
-        /**
-         * Create a hold
-         * @description Reserves an amount with a TigerBeetle pending transfer (ADR-0010). The source's available
-         *     balance drops by the amount at once; nothing moves until the hold is captured.
-         */
-        post: operations["createHold"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/holds/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
-            };
-            cookie?: never;
-        };
-        /**
-         * Get a hold
-         * @description The hold, its pending transfer and, once resolved, the transfer that resolved it.
-         */
-        get: operations["getHold"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/holds/{id}/capture": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Capture a hold
-         * @description Posts the pending transfer. Without an amount the full hold is captured; a smaller amount
-         *     captures that much and releases the rest. A hold is captured once (409
-         *     `hold-already-resolved`) and not after it expired (409 `hold-expired`).
-         */
-        post: operations["captureHold"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/holds/{id}/void": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Void a hold
-         * @description Voids the pending transfer and releases the whole amount to the source.
-         */
-        post: operations["voidHold"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/requests": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        /**
-         * List write requests
-         * @description The idempotency records of the ledger, newest first: every write with its key, operation
-         *     and outcome. This is the only place where declined and in-flight writes are visible.
-         */
-        get: operations["listWriteRequests"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/requests/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description The Idempotency-Key. */
-                key: string;
-            };
-            cookie?: never;
-        };
-        /**
-         * Get a write request
-         * @description The record with the stored request, the stored outcome and the minted IDs.
-         */
-        get: operations["getWriteRequest"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/rules": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        /**
-         * List account rules
-         * @description The rules that decide the flags of new accounts, most specific first, including the built-in
-         *     `*` and `world` defaults. A rule change applies to accounts created afterwards; existing
-         *     accounts keep the flags stored on their row (ADR-0006).
-         */
-        get: operations["listRules"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/rules/match": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        /**
-         * Which rule wins for an address
-         * @description The rule that would create the account for an address, and every rule considered.
-         */
-        get: operations["matchRule"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/rules/{pattern}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description `*`, an address such as `world`, or a prefix ending with a colon such as `users:`. */
-                pattern: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Create or replace a rule
-         * @description Creates or replaces the rule for a pattern. Putting `*` or `world` replaces the built-in default.
-         */
-        put: operations["putRule"];
-        post?: never;
-        /**
-         * Delete a rule
-         * @description Deletes a stored rule. Deleting a stored `*` or `world` restores the built-in default.
-         */
-        delete: operations["deleteRule"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/event-types": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        /**
-         * List event types
-         * @description The event types of the ledger with their TigerBeetle `code` and usage.
-         */
-        get: operations["listEventTypes"];
-        put?: never;
-        /**
-         * Create an event type
-         * @description Registers an event type. Event types are append-only: a code never changes meaning, so
-         *     there is no edit or delete (ADR-0007). Without a code, the next free one is assigned.
-         */
-        post: operations["createEventType"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/ledgers/{ledger}/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        /**
-         * Search the ledger
-         * @description Finds what a query names: a 32-hex ID opens a transaction or hold, an address or prefix
-         *     finds accounts, a reference finds transactions, an Idempotency-Key finds a write request.
-         */
-        get: operations["search"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        Liveness: {
-            /** @constant */
-            status: "ok";
+        Account: components["schemas"]["AccountSummary"] & {
+            /**
+             * Format: int64
+             * @description Open holds from this address.
+             */
+            openHolds: number;
+        };
+        AccountList: {
+            data: components["schemas"]["AccountSummary"][];
+            next?: string;
+        };
+        AccountSummary: {
+            address: components["schemas"]["Address"];
+            balances: components["schemas"]["AssetBalance"][];
+            /** Format: date-time */
+            createdAt: string;
+            metadata: components["schemas"]["Metadata"];
+        };
+        /**
+         * @description Colon-separated segments of letters, digits, dash and underscore.
+         * @example users:1234:wallet
+         */
+        Address: string;
+        /**
+         * @description An address prefix on whole segments, with an optional trailing colon.
+         * @example users:
+         * @example users:1234
+         */
+        AddressPrefix: string;
+        AggregateBalance: {
+            /** Format: int64 */
+            accounts: number;
+            asset: components["schemas"]["Asset"];
+            available: components["schemas"]["SignedAmount"];
+            balance: components["schemas"]["SignedAmount"];
+            incoming: components["schemas"]["Amount"];
+            reserved: components["schemas"]["Amount"];
+        };
+        AggregateBalances: {
+            /**
+             * Format: int64
+             * @description Addresses summed.
+             */
+            accounts: number;
+            /**
+             * Format: date-time
+             * @description When the last chunk was read.
+             */
+            asOf: string;
+            assets: components["schemas"]["AggregateBalance"][];
+            /** @description TigerBeetle lookups made. More than one means the sum is not one snapshot. */
+            chunks: number;
+            prefix: string;
+        };
+        /**
+         * @description An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+         * @example 125000
+         */
+        Amount: string;
+        /**
+         * @description `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
+         * @example EUR/2
+         * @example XOF/0
+         */
+        Asset: string;
+        AssetAmount: {
+            amount: components["schemas"]["Amount"];
+            asset: components["schemas"]["Asset"];
+        };
+        /** @description One TigerBeetle account of an address, with its balances and frozen flags. */
+        AssetBalance: {
+            accountId: components["schemas"]["Id"];
+            asset: components["schemas"]["Asset"];
+            /** @description Balance minus reserved. */
+            available: components["schemas"]["SignedAmount"];
+            /** @description Credits posted minus debits posted. */
+            balance: components["schemas"]["SignedAmount"];
+            /** @description The TigerBeetle account code. */
+            code: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Total credits posted. */
+            credits: components["schemas"]["Amount"];
+            /** @description Total debits posted. */
+            debits: components["schemas"]["Amount"];
+            history: boolean;
+            /** @description Pending credits. Not part of available. */
+            incoming: components["schemas"]["Amount"];
+            limit: components["schemas"]["BalanceLimit"];
+            /** @description Pending debits, the amount held by open holds. */
+            reserved: components["schemas"]["Amount"];
+            /** @description The pattern of the rule that created the account. */
+            rule: string;
+            /** Format: int64 */
+            tbLedger: number;
+        };
+        AssetList: {
+            data: components["schemas"]["AssetSummary"][];
+        };
+        AssetSummary: {
+            /** Format: int64 */
+            accounts: number;
+            asset: components["schemas"]["Asset"];
+            /**
+             * Format: date-time
+             * @description First use of the asset in the ledger.
+             */
+            createdAt: string;
+            /** @description Money issued, minus the balance of world, read from TigerBeetle. */
+            issued: components["schemas"]["SignedAmount"];
+            /**
+             * Format: int64
+             * @description The TigerBeetle ledger number of this (ledger, asset) pair.
+             */
+            tbLedger: number;
+        };
+        BalanceHistory: {
+            address: components["schemas"]["Address"];
+            asset: components["schemas"]["Asset"];
+            data: components["schemas"]["BalancePoint"][];
+        };
+        /**
+         * @description The balance limit flag of TigerBeetle accounts created by a rule.
+         * @enum {string}
+         */
+        BalanceLimit: "none" | "debits_must_not_exceed_credits" | "credits_must_not_exceed_debits";
+        BalancePoint: {
+            /** Format: date-time */
+            at: string;
+            balance: components["schemas"]["SignedAmount"];
+            credits: components["schemas"]["Amount"];
+            debits: components["schemas"]["Amount"];
+            reserved: components["schemas"]["Amount"];
+            timestamp: components["schemas"]["TigerBeetleTimestamp"];
+        };
+        CaptureHoldRequest: {
+            /** @description The amount to capture; the full hold when absent. Must not be zero. */
+            amount?: components["schemas"]["Amount"];
+        };
+        CreateEventTypeRequest: {
+            code?: number;
+            name: string;
+        };
+        CreateHoldRequest: {
+            amount: components["schemas"]["Amount"];
+            asset: components["schemas"]["Asset"];
+            destination: components["schemas"]["Address"];
+            eventType?: string;
+            metadata?: components["schemas"]["Metadata"];
+            reference?: string;
+            source: components["schemas"]["Address"];
+            /**
+             * Format: int64
+             * @description Releases the hold after this many seconds on the cluster clock; 0 or absent means never.
+             */
+            timeoutSeconds?: number;
+        };
+        CreateLedgerRequest: {
+            metadata?: components["schemas"]["Metadata"];
+        };
+        CreateTransactionRequest: {
+            /** Format: date-time */
+            businessTime?: string;
+            /** @description An event type name of the ledger; the default event type when absent. */
+            eventType?: string;
+            metadata?: components["schemas"]["Metadata"];
+            postings: components["schemas"]["Posting"][];
+            reference?: string;
+        };
+        /** @description Declined and failed writes in the last 24 hours. */
+        DeclinedStats: {
+            reasons: {
+                /** Format: int64 */
+                count: number;
+                /** @example exceeds-credits */
+                reason: string;
+            }[];
+            /** Format: int64 */
+            total: number;
+        };
+        Dependencies: {
+            postgres: components["schemas"]["DependencyCheck"];
+            tigerbeetle: components["schemas"]["DependencyCheck"];
+        };
+        /** @description The result of probing one dependency. */
+        DependencyCheck: {
+            /** @description A short, client-safe reason when the status is down. Never raw driver output. */
+            error?: string;
+            /**
+             * Format: int64
+             * @description Round-trip time of the probe in milliseconds.
+             */
+            latencyMs: number;
+            status: components["schemas"]["DependencyStatus"];
         };
         /**
          * @description Whether a dependency answered the readiness probe in time.
          * @enum {string}
          */
         DependencyStatus: "up" | "down";
-        /** @description The result of probing one dependency. */
-        DependencyCheck: {
-            status: components["schemas"]["DependencyStatus"];
-            /**
-             * Format: int64
-             * @description Round-trip time of the probe in milliseconds.
-             */
-            latencyMs: number;
-            /** @description A short, client-safe reason when the status is down. Never raw driver output. */
-            error?: string;
-        };
-        Dependencies: {
-            postgres: components["schemas"]["DependencyCheck"];
-            tigerbeetle: components["schemas"]["DependencyCheck"];
-        };
-        Readiness: {
-            /** @enum {string} */
-            status: "ready" | "not_ready";
-            dependencies: components["schemas"]["Dependencies"];
-        };
-        /** @description Versions and settings of the running service. */
-        Runtime: {
+        EventType: {
+            builtIn: boolean;
+            code: number;
             /** Format: date-time */
-            startedAt: string;
-            /** @example go1.27.3 */
-            goVersion: string;
-            /** @example v0.17.10 */
-            tigerbeetleClientVersion: string;
-            /** @description The cluster ID, a u128 in decimal. */
-            tigerbeetleClusterId: string;
-            /** @description The server version reported by Postgres, when reachable. */
-            postgresVersion?: string;
+            createdAt?: string;
+            /** @example card.authorized */
+            name: string;
             /**
              * Format: int64
-             * @description The last applied migration, when reachable.
+             * @description Transactions and holds recorded with this event type.
              */
-            schemaVersion?: number;
+            transactions: number;
         };
+        EventTypeList: {
+            data: components["schemas"]["EventType"][];
+        };
+        EventTypeRef: {
+            code: number;
+            name: string;
+        };
+        Hold: {
+            amount: components["schemas"]["Amount"];
+            asset: components["schemas"]["Asset"];
+            capturedAmount?: components["schemas"]["Amount"];
+            /** Format: date-time */
+            createdAt: string;
+            destination: components["schemas"]["Address"];
+            eventType: components["schemas"]["EventTypeRef"];
+            /** Format: date-time */
+            expiresAt?: string;
+            id: components["schemas"]["Id"];
+            idempotencyKey: string;
+            ledger: components["schemas"]["LedgerName"];
+            metadata: components["schemas"]["Metadata"];
+            pendingTransferId: components["schemas"]["Id"];
+            reference?: string;
+            resolutionTransferId?: components["schemas"]["Id"];
+            /** Format: date-time */
+            resolvedAt?: string;
+            source: components["schemas"]["Address"];
+            status: components["schemas"]["HoldStatus"];
+            /** Format: int64 */
+            tbLedger?: number;
+            /**
+             * Format: int64
+             * @description Seconds on the cluster clock; 0 means no timeout.
+             */
+            timeoutSeconds: number;
+            timestamp: components["schemas"]["TigerBeetleTimestamp"];
+        };
+        HoldList: {
+            counts: components["schemas"]["HoldStats"];
+            data: components["schemas"]["Hold"][];
+            next?: string;
+        };
+        HoldStats: {
+            /** Format: int64 */
+            captured: number;
+            /** Format: int64 */
+            expired: number;
+            /** Format: int64 */
+            open: number;
+            /** @description The amount held by open holds, per asset. */
+            reserved: components["schemas"]["AssetAmount"][];
+            /** Format: int64 */
+            voided: number;
+        };
+        /** @enum {string} */
+        HoldStatus: "open" | "captured" | "voided" | "expired";
+        /**
+         * @description A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+         * @example 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+         */
+        Id: string;
         Info: {
+            dependencies: components["schemas"]["Dependencies"];
+            runtime?: components["schemas"]["Runtime"];
             /** @example tigerbeetle-platform-api */
             service: string;
             /**
@@ -813,11 +945,105 @@ export interface components {
              * @example 0.0.1
              */
             version: string;
+        };
+        Ledger: {
+            /**
+             * Format: int64
+             * @description The number of addresses in the ledger.
+             */
+            accounts: number;
+            /** @description The assets used so far, in canonical form. */
+            assets: components["schemas"]["Asset"][];
+            /** Format: date-time */
+            createdAt: string;
+            metadata: components["schemas"]["Metadata"];
+            name: components["schemas"]["LedgerName"];
+        };
+        LedgerList: {
+            data: components["schemas"]["Ledger"][];
+            /** @description The cursor of the next page; absent on the last page. */
+            next?: string;
+        };
+        /**
+         * @description Lowercase letters, digits, dash and underscore, 1 to 63 characters, starting with a letter or digit.
+         * @example eu-payments
+         */
+        LedgerName: string;
+        LedgerStats: {
+            /** Format: int64 */
+            accounts: number;
+            /**
+             * Format: int64
+             * @description Accounts created since midnight UTC.
+             */
+            accountsToday: number;
+            assets: components["schemas"]["AssetSummary"][];
+            declined: components["schemas"]["DeclinedStats"];
+            holds: components["schemas"]["HoldStats"];
+        };
+        Liveness: {
+            /** @constant */
+            status: "ok";
+        };
+        /** @description Key/value pairs for your own systems, stored in Postgres. At most 64 entries. */
+        Metadata: {
+            [key: string]: string;
+        };
+        /** @enum {string} */
+        Operation: "transaction" | "revert" | "hold" | "capture" | "void";
+        Posting: {
+            amount: components["schemas"]["Amount"];
+            asset: components["schemas"]["Asset"];
+            /** @description The credited account. */
+            destination: components["schemas"]["Address"];
+            /** @description The debited account. */
+            source: components["schemas"]["Address"];
+        };
+        PostingRecord: components["schemas"]["Posting"] & {
+            /** Format: int64 */
+            tbLedger: number;
+            transferId: components["schemas"]["Id"];
+        };
+        /** @description RFC 9457 problem details. */
+        Problem: {
+            /** @description A human-readable explanation specific to this occurrence. */
+            detail?: string;
+            /** @description A URI reference that identifies the specific occurrence. */
+            instance?: string;
+            /** @description The zero-based index of the posting that caused the problem. */
+            posting?: number;
+            /** @description The request ID, also returned in the X-Request-Id header. */
+            requestId?: string;
+            /**
+             * @description The TigerBeetle result of every posting of a declined chain, in order, such as
+             *     `["linked_event_failed", "exceeds_credits"]`. Nothing was applied.
+             */
+            results?: string[];
+            /** @description The HTTP status code. */
+            status: number;
+            /** @description The transaction or hold ID minted for a declined write. */
+            targetId?: components["schemas"]["Id"];
+            /** @description A short, human-readable summary of the problem type. */
+            title: string;
+            /**
+             * Format: uri-reference
+             * @description A URI reference that identifies the problem type.
+             * @default about:blank
+             */
+            type: string;
+        };
+        PutRuleRequest: {
+            code: number;
+            /** @default false */
+            history: boolean;
+            limit: components["schemas"]["BalanceLimit"];
+        };
+        Readiness: {
             dependencies: components["schemas"]["Dependencies"];
-            runtime?: components["schemas"]["Runtime"];
+            /** @enum {string} */
+            status: "ready" | "not_ready";
         };
         ReconcilerStatus: {
-            running: boolean;
             /** @description A pending record younger than this is a write in progress, not a crash. */
             gracePeriodSeconds: number;
             intervalSeconds: number;
@@ -830,6 +1056,7 @@ export interface components {
              * @description Pending records, across all ledgers.
              */
             pending: number;
+            running: boolean;
             /**
              * Format: int64
              * @description Pending records older than the grace period that the reconciler could not settle.
@@ -837,389 +1064,170 @@ export interface components {
             stuck: number;
             stuckRequests?: components["schemas"]["StuckRequest"][];
         };
-        StuckRequest: {
-            ledger: components["schemas"]["LedgerName"];
-            key: string;
-            operation: components["schemas"]["Operation"];
-            /** Format: date-time */
-            createdAt: string;
-            attempts: number;
-            note?: string;
-        };
-        /**
-         * @description Lowercase letters, digits, dash and underscore, 1 to 63 characters, starting with a letter or digit.
-         * @example eu-payments
-         */
-        LedgerName: string;
-        /**
-         * @description Colon-separated segments of letters, digits, dash and underscore.
-         * @example users:1234:wallet
-         */
-        Address: string;
-        /**
-         * @description An address prefix on whole segments, with an optional trailing colon.
-         * @example users:
-         * @example users:1234
-         */
-        AddressPrefix: string;
-        /**
-         * @description `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
-         * @example EUR/2
-         * @example XOF/0
-         */
-        Asset: string;
-        /**
-         * @description An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
-         * @example 125000
-         */
-        Amount: string;
-        /**
-         * @description A signed integer in the asset's smallest unit, for balances.
-         * @example -481230000
-         */
-        SignedAmount: string;
-        /**
-         * @description A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
-         * @example 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
-         */
-        Id: string;
-        /** @description The TigerBeetle timestamp, nanoseconds since the Unix epoch, as a decimal string. */
-        TigerBeetleTimestamp: string;
-        /** @description Key/value pairs for your own systems, stored in Postgres. At most 64 entries. */
-        Metadata: {
-            [key: string]: string;
-        };
-        AssetAmount: {
-            asset: components["schemas"]["Asset"];
-            amount: components["schemas"]["Amount"];
-        };
-        Ledger: {
-            name: components["schemas"]["LedgerName"];
-            metadata: components["schemas"]["Metadata"];
-            /** Format: date-time */
-            createdAt: string;
-            /** @description The assets used so far, in canonical form. */
-            assets: components["schemas"]["Asset"][];
-            /**
-             * Format: int64
-             * @description The number of addresses in the ledger.
-             */
-            accounts: number;
-        };
-        LedgerList: {
-            data: components["schemas"]["Ledger"][];
-            /** @description The cursor of the next page; absent on the last page. */
-            next?: string;
-        };
-        CreateLedgerRequest: {
+        /** @enum {string} */
+        RequestStatus: "pending" | "committed" | "declined" | "failed";
+        RevertTransactionRequest: {
             metadata?: components["schemas"]["Metadata"];
+            reference?: string;
         };
-        LedgerStats: {
-            /** Format: int64 */
-            accounts: number;
+        Rule: {
+            /** @description A default that applies without being stored. */
+            builtIn: boolean;
+            code: number;
+            /** Format: date-time */
+            createdAt?: string;
+            history: boolean;
+            limit: components["schemas"]["BalanceLimit"];
+            /**
+             * @example users:
+             * @example world
+             * @example *
+             */
+            pattern: string;
+            /** @description Specificity; the most specific matching rule wins. */
+            segments: number;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        RuleCandidate: {
+            matches: boolean;
+            rule: components["schemas"]["Rule"];
+        };
+        RuleList: {
+            data: components["schemas"]["Rule"][];
+        };
+        RuleMatch: {
+            address: components["schemas"]["Address"];
+            candidates: components["schemas"]["RuleCandidate"][];
+            /** @description Assets this address already has accounts in; those keep their frozen flags. */
+            existing: components["schemas"]["Asset"][];
+            rule: components["schemas"]["Rule"];
+        };
+        /** @description Versions and settings of the running service. */
+        Runtime: {
+            /** @example go1.27.3 */
+            goVersion: string;
+            /** @description The server version reported by Postgres, when reachable. */
+            postgresVersion?: string;
             /**
              * Format: int64
-             * @description Accounts created since midnight UTC.
+             * @description The last applied migration, when reachable.
              */
-            accountsToday: number;
-            assets: components["schemas"]["AssetSummary"][];
-            holds: components["schemas"]["HoldStats"];
-            declined: components["schemas"]["DeclinedStats"];
+            schemaVersion?: number;
+            /** Format: date-time */
+            startedAt: string;
+            /** @example v0.17.10 */
+            tigerbeetleClientVersion: string;
+            /** @description The cluster ID, a u128 in decimal. */
+            tigerbeetleClusterId: string;
         };
-        HoldStats: {
-            /** Format: int64 */
-            open: number;
-            /** Format: int64 */
-            captured: number;
-            /** Format: int64 */
-            voided: number;
-            /** Format: int64 */
-            expired: number;
-            /** @description The amount held by open holds, per asset. */
-            reserved: components["schemas"]["AssetAmount"][];
-        };
-        /** @description Declined and failed writes in the last 24 hours. */
-        DeclinedStats: {
-            /** Format: int64 */
-            total: number;
-            reasons: {
-                /** @example exceeds-credits */
-                reason: string;
-                /** Format: int64 */
-                count: number;
+        SearchResults: {
+            accounts: {
+                address: components["schemas"]["Address"];
+                assets: components["schemas"]["Asset"][];
+            }[];
+            holds: {
+                id: components["schemas"]["Id"];
+                status: components["schemas"]["HoldStatus"];
+            }[];
+            query: string;
+            requests: {
+                key: string;
+                operation: components["schemas"]["Operation"];
+                status: components["schemas"]["RequestStatus"];
+            }[];
+            transactions: {
+                /** Format: date-time */
+                committedAt: string;
+                id: components["schemas"]["Id"];
+                reference?: string;
             }[];
         };
-        AssetSummary: {
-            asset: components["schemas"]["Asset"];
-            /**
-             * Format: int64
-             * @description The TigerBeetle ledger number of this (ledger, asset) pair.
-             */
-            tbLedger: number;
-            /**
-             * Format: date-time
-             * @description First use of the asset in the ledger.
-             */
-            createdAt: string;
-            /** Format: int64 */
-            accounts: number;
-            /** @description Money issued, minus the balance of world, read from TigerBeetle. */
-            issued: components["schemas"]["SignedAmount"];
-        };
-        AssetList: {
-            data: components["schemas"]["AssetSummary"][];
-        };
-        /**
-         * @description The balance limit flag of TigerBeetle accounts created by a rule.
-         * @enum {string}
-         */
-        BalanceLimit: "none" | "debits_must_not_exceed_credits" | "credits_must_not_exceed_debits";
-        /** @description One TigerBeetle account of an address, with its balances and frozen flags. */
-        AssetBalance: {
-            asset: components["schemas"]["Asset"];
-            accountId: components["schemas"]["Id"];
-            /** Format: int64 */
-            tbLedger: number;
-            /** @description Credits posted minus debits posted. */
-            balance: components["schemas"]["SignedAmount"];
-            /** @description Balance minus reserved. */
-            available: components["schemas"]["SignedAmount"];
-            /** @description Pending debits, the amount held by open holds. */
-            reserved: components["schemas"]["Amount"];
-            /** @description Pending credits. Not part of available. */
-            incoming: components["schemas"]["Amount"];
-            /** @description Total credits posted. */
-            credits: components["schemas"]["Amount"];
-            /** @description Total debits posted. */
-            debits: components["schemas"]["Amount"];
-            limit: components["schemas"]["BalanceLimit"];
-            history: boolean;
-            /** @description The TigerBeetle account code. */
-            code: number;
-            /** @description The pattern of the rule that created the account. */
-            rule: string;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        AccountSummary: {
-            address: components["schemas"]["Address"];
-            /** Format: date-time */
-            createdAt: string;
-            metadata: components["schemas"]["Metadata"];
-            balances: components["schemas"]["AssetBalance"][];
-        };
-        AccountList: {
-            data: components["schemas"]["AccountSummary"][];
-            next?: string;
-        };
-        Account: components["schemas"]["AccountSummary"] & {
-            /**
-             * Format: int64
-             * @description Open holds from this address.
-             */
-            openHolds: number;
-        };
-        BalancePoint: {
-            timestamp: components["schemas"]["TigerBeetleTimestamp"];
-            /** Format: date-time */
-            at: string;
-            balance: components["schemas"]["SignedAmount"];
-            reserved: components["schemas"]["Amount"];
-            credits: components["schemas"]["Amount"];
-            debits: components["schemas"]["Amount"];
-        };
-        BalanceHistory: {
-            address: components["schemas"]["Address"];
-            asset: components["schemas"]["Asset"];
-            data: components["schemas"]["BalancePoint"][];
-        };
-        AggregateBalance: {
-            asset: components["schemas"]["Asset"];
-            /** Format: int64 */
-            accounts: number;
-            balance: components["schemas"]["SignedAmount"];
-            available: components["schemas"]["SignedAmount"];
-            reserved: components["schemas"]["Amount"];
-            incoming: components["schemas"]["Amount"];
-        };
-        AggregateBalances: {
-            prefix: string;
-            /**
-             * Format: date-time
-             * @description When the last chunk was read.
-             */
-            asOf: string;
-            /**
-             * Format: int64
-             * @description Addresses summed.
-             */
-            accounts: number;
-            /** @description TigerBeetle lookups made. More than one means the sum is not one snapshot. */
-            chunks: number;
-            assets: components["schemas"]["AggregateBalance"][];
-        };
         Segment: {
-            /** @example 1234 */
-            segment: string;
-            /**
-             * @description The full path of the segment.
-             * @example users:1234
-             */
-            prefix: string;
             /**
              * Format: int64
              * @description Addresses at or below the segment.
              */
             accounts: number;
             assets: components["schemas"]["Asset"][];
+            hasChildren: boolean;
             /** @description The prefix is itself an address. */
             isAccount: boolean;
-            hasChildren: boolean;
+            /**
+             * @description The full path of the segment.
+             * @example users:1234
+             */
+            prefix: string;
+            /** @example 1234 */
+            segment: string;
         };
         SegmentList: {
-            prefix?: string;
             data: components["schemas"]["Segment"][];
+            prefix?: string;
         };
-        Posting: {
-            /** @description The debited account. */
-            source: components["schemas"]["Address"];
-            /** @description The credited account. */
-            destination: components["schemas"]["Address"];
-            asset: components["schemas"]["Asset"];
-            amount: components["schemas"]["Amount"];
-        };
-        PostingRecord: components["schemas"]["Posting"] & {
-            transferId: components["schemas"]["Id"];
-            /** Format: int64 */
-            tbLedger: number;
-        };
-        EventTypeRef: {
-            name: string;
-            code: number;
-        };
-        Transaction: {
-            id: components["schemas"]["Id"];
+        /**
+         * @description A signed integer in the asset's smallest unit, for balances.
+         * @example -481230000
+         */
+        SignedAmount: string;
+        StuckRequest: {
+            attempts: number;
+            /** Format: date-time */
+            createdAt: string;
+            key: string;
             ledger: components["schemas"]["LedgerName"];
-            postings: components["schemas"]["PostingRecord"][];
-            reference?: string;
-            eventType: components["schemas"]["EventTypeRef"];
+            note?: string;
+            operation: components["schemas"]["Operation"];
+        };
+        /** @description The TigerBeetle timestamp, nanoseconds since the Unix epoch, as a decimal string. */
+        TigerBeetleTimestamp: string;
+        Transaction: {
             /**
              * Format: date-time
              * @description The client's business time, stored in `user_data_64`. Not the committed time.
              */
             businessTime?: string;
-            metadata: components["schemas"]["Metadata"];
             /**
              * Format: date-time
              * @description The TigerBeetle timestamp of the chain, the only time the ledger knows.
              */
             committedAt: string;
-            timestamp: components["schemas"]["TigerBeetleTimestamp"];
-            /** @description The transaction this one reverts. */
-            reverts?: components["schemas"]["Id"];
+            eventType: components["schemas"]["EventTypeRef"];
+            id: components["schemas"]["Id"];
+            idempotencyKey: string;
+            ledger: components["schemas"]["LedgerName"];
+            metadata: components["schemas"]["Metadata"];
+            postings: components["schemas"]["PostingRecord"][];
+            reference?: string;
+            requestId?: string;
             /** @description The transaction that reverted this one. */
             revertedBy?: components["schemas"]["Id"];
-            idempotencyKey: string;
-            requestId?: string;
+            /** @description The transaction this one reverts. */
+            reverts?: components["schemas"]["Id"];
+            timestamp: components["schemas"]["TigerBeetleTimestamp"];
         };
         TransactionList: {
             data: components["schemas"]["Transaction"][];
             next?: string;
         };
-        CreateTransactionRequest: {
-            postings: components["schemas"]["Posting"][];
-            reference?: string;
-            /** @description An event type name of the ledger; the default event type when absent. */
-            eventType?: string;
-            /** Format: date-time */
-            businessTime?: string;
-            metadata?: components["schemas"]["Metadata"];
-        };
-        RevertTransactionRequest: {
-            reference?: string;
-            metadata?: components["schemas"]["Metadata"];
-        };
-        /** @enum {string} */
-        HoldStatus: "open" | "captured" | "voided" | "expired";
-        Hold: {
-            id: components["schemas"]["Id"];
-            ledger: components["schemas"]["LedgerName"];
-            source: components["schemas"]["Address"];
-            destination: components["schemas"]["Address"];
-            asset: components["schemas"]["Asset"];
-            amount: components["schemas"]["Amount"];
-            capturedAmount?: components["schemas"]["Amount"];
-            status: components["schemas"]["HoldStatus"];
-            /**
-             * Format: int64
-             * @description Seconds on the cluster clock; 0 means no timeout.
-             */
-            timeoutSeconds: number;
-            /** Format: date-time */
-            createdAt: string;
-            timestamp: components["schemas"]["TigerBeetleTimestamp"];
-            /** Format: date-time */
-            expiresAt?: string;
-            /** Format: date-time */
-            resolvedAt?: string;
-            reference?: string;
-            eventType: components["schemas"]["EventTypeRef"];
-            metadata: components["schemas"]["Metadata"];
-            idempotencyKey: string;
-            pendingTransferId: components["schemas"]["Id"];
-            resolutionTransferId?: components["schemas"]["Id"];
-            /** Format: int64 */
-            tbLedger?: number;
-        };
-        HoldList: {
-            data: components["schemas"]["Hold"][];
-            next?: string;
-            counts: components["schemas"]["HoldStats"];
-        };
-        CreateHoldRequest: {
-            source: components["schemas"]["Address"];
-            destination: components["schemas"]["Address"];
-            asset: components["schemas"]["Asset"];
-            amount: components["schemas"]["Amount"];
-            /**
-             * Format: int64
-             * @description Releases the hold after this many seconds on the cluster clock; 0 or absent means never.
-             */
-            timeoutSeconds?: number;
-            reference?: string;
-            eventType?: string;
-            metadata?: components["schemas"]["Metadata"];
-        };
-        CaptureHoldRequest: {
-            /** @description The amount to capture; the full hold when absent. Must not be zero. */
-            amount?: components["schemas"]["Amount"];
-        };
-        /** @enum {string} */
-        Operation: "transaction" | "revert" | "hold" | "capture" | "void";
-        /** @enum {string} */
-        RequestStatus: "pending" | "committed" | "declined" | "failed";
         WriteRequest: {
-            key: string;
-            operation: components["schemas"]["Operation"];
-            status: components["schemas"]["RequestStatus"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            resolvedAt?: string;
-            /** @description The transaction or hold minted for this write. */
-            targetId: components["schemas"]["Id"];
-            /** @description The problem type of a declined or failed write. */
-            problemType?: string;
-            responseStatus?: number;
-            requestId?: string;
-            /** @description SHA-256 of the canonical request body, hex. */
-            bodyHash: string;
             /** @description TigerBeetle submissions, including reconciler retries. */
             attempts: number;
-        };
-        WriteRequestList: {
-            data: components["schemas"]["WriteRequest"][];
-            next?: string;
+            /** @description SHA-256 of the canonical request body, hex. */
+            bodyHash: string;
+            /** Format: date-time */
+            createdAt: string;
+            key: string;
+            operation: components["schemas"]["Operation"];
+            /** @description The problem type of a declined or failed write. */
+            problemType?: string;
+            requestId?: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+            responseStatus?: number;
+            status: components["schemas"]["RequestStatus"];
+            /** @description The transaction or hold minted for this write. */
+            targetId: components["schemas"]["Id"];
         };
         WriteRequestDetail: components["schemas"]["WriteRequest"] & {
             /** @description The canonical request body as stored. */
@@ -1233,114 +1241,9 @@ export interface components {
             /** @description The transfer IDs minted before the first submission, in chain order. */
             transferIds: components["schemas"]["Id"][];
         };
-        Rule: {
-            /**
-             * @example users:
-             * @example world
-             * @example *
-             */
-            pattern: string;
-            limit: components["schemas"]["BalanceLimit"];
-            history: boolean;
-            code: number;
-            /** @description A default that applies without being stored. */
-            builtIn: boolean;
-            /** @description Specificity; the most specific matching rule wins. */
-            segments: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        RuleList: {
-            data: components["schemas"]["Rule"][];
-        };
-        PutRuleRequest: {
-            limit: components["schemas"]["BalanceLimit"];
-            /** @default false */
-            history: boolean;
-            code: number;
-        };
-        RuleCandidate: {
-            rule: components["schemas"]["Rule"];
-            matches: boolean;
-        };
-        RuleMatch: {
-            address: components["schemas"]["Address"];
-            rule: components["schemas"]["Rule"];
-            candidates: components["schemas"]["RuleCandidate"][];
-            /** @description Assets this address already has accounts in; those keep their frozen flags. */
-            existing: components["schemas"]["Asset"][];
-        };
-        EventType: {
-            /** @example card.authorized */
-            name: string;
-            code: number;
-            builtIn: boolean;
-            /** Format: date-time */
-            createdAt?: string;
-            /**
-             * Format: int64
-             * @description Transactions and holds recorded with this event type.
-             */
-            transactions: number;
-        };
-        EventTypeList: {
-            data: components["schemas"]["EventType"][];
-        };
-        CreateEventTypeRequest: {
-            name: string;
-            code?: number;
-        };
-        SearchResults: {
-            query: string;
-            accounts: {
-                address: components["schemas"]["Address"];
-                assets: components["schemas"]["Asset"][];
-            }[];
-            transactions: {
-                id: components["schemas"]["Id"];
-                reference?: string;
-                /** Format: date-time */
-                committedAt: string;
-            }[];
-            holds: {
-                id: components["schemas"]["Id"];
-                status: components["schemas"]["HoldStatus"];
-            }[];
-            requests: {
-                key: string;
-                operation: components["schemas"]["Operation"];
-                status: components["schemas"]["RequestStatus"];
-            }[];
-        };
-        /** @description RFC 9457 problem details. */
-        Problem: {
-            /**
-             * Format: uri-reference
-             * @description A URI reference that identifies the problem type.
-             * @default about:blank
-             */
-            type: string;
-            /** @description A short, human-readable summary of the problem type. */
-            title: string;
-            /** @description The HTTP status code. */
-            status: number;
-            /** @description A human-readable explanation specific to this occurrence. */
-            detail?: string;
-            /** @description A URI reference that identifies the specific occurrence. */
-            instance?: string;
-            /** @description The request ID, also returned in the X-Request-Id header. */
-            requestId?: string;
-            /** @description The zero-based index of the posting that caused the problem. */
-            posting?: number;
-            /**
-             * @description The TigerBeetle result of every posting of a declined chain, in order, such as
-             *     `["linked_event_failed", "exceeds_credits"]`. Nothing was applied.
-             */
-            results?: string[];
-            /** @description The transaction or hold ID minted for a declined write. */
-            targetId?: components["schemas"]["Id"];
+        WriteRequestList: {
+            data: components["schemas"]["WriteRequest"][];
+            next?: string;
         };
     };
     responses: {
@@ -1354,99 +1257,77 @@ export interface components {
             };
         };
     };
-    parameters: {
-        /** @description The ledger name. */
-        LedgerName: components["schemas"]["LedgerName"];
-        /** @description The account address, such as `users:1234:wallet`. */
-        AccountAddress: components["schemas"]["Address"];
-        /** @description A 32-hex ID. */
-        ResourceId: components["schemas"]["Id"];
-        /**
-         * @description Identifies the write. Reusing it with the same body replays the stored outcome; with a
-         *     different body answers 422 `idempotency-key-reused`.
-         */
-        IdempotencyKey: string;
-        /** @description The opaque `next` cursor of the previous page. */
-        Cursor: string;
-        /** @description Page size. */
-        Limit: number;
-    };
+    parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;
 }
-export type Liveness = components['schemas']['Liveness'];
-export type DependencyStatus = components['schemas']['DependencyStatus'];
-export type DependencyCheck = components['schemas']['DependencyCheck'];
-export type Dependencies = components['schemas']['Dependencies'];
-export type Readiness = components['schemas']['Readiness'];
-export type Runtime = components['schemas']['Runtime'];
-export type Info = components['schemas']['Info'];
-export type ReconcilerStatus = components['schemas']['ReconcilerStatus'];
-export type StuckRequest = components['schemas']['StuckRequest'];
-export type LedgerName = components['schemas']['LedgerName'];
+export type Account = components['schemas']['Account'];
+export type AccountList = components['schemas']['AccountList'];
+export type AccountSummary = components['schemas']['AccountSummary'];
 export type Address = components['schemas']['Address'];
 export type AddressPrefix = components['schemas']['AddressPrefix'];
-export type Asset = components['schemas']['Asset'];
-export type Amount = components['schemas']['Amount'];
-export type SignedAmount = components['schemas']['SignedAmount'];
-export type Id = components['schemas']['Id'];
-export type TigerBeetleTimestamp = components['schemas']['TigerBeetleTimestamp'];
-export type Metadata = components['schemas']['Metadata'];
-export type AssetAmount = components['schemas']['AssetAmount'];
-export type Ledger = components['schemas']['Ledger'];
-export type LedgerList = components['schemas']['LedgerList'];
-export type CreateLedgerRequest = components['schemas']['CreateLedgerRequest'];
-export type LedgerStats = components['schemas']['LedgerStats'];
-export type HoldStats = components['schemas']['HoldStats'];
-export type DeclinedStats = components['schemas']['DeclinedStats'];
-export type AssetSummary = components['schemas']['AssetSummary'];
-export type AssetList = components['schemas']['AssetList'];
-export type BalanceLimit = components['schemas']['BalanceLimit'];
-export type AssetBalance = components['schemas']['AssetBalance'];
-export type AccountSummary = components['schemas']['AccountSummary'];
-export type AccountList = components['schemas']['AccountList'];
-export type Account = components['schemas']['Account'];
-export type BalancePoint = components['schemas']['BalancePoint'];
-export type BalanceHistory = components['schemas']['BalanceHistory'];
 export type AggregateBalance = components['schemas']['AggregateBalance'];
 export type AggregateBalances = components['schemas']['AggregateBalances'];
-export type Segment = components['schemas']['Segment'];
-export type SegmentList = components['schemas']['SegmentList'];
-export type Posting = components['schemas']['Posting'];
-export type PostingRecord = components['schemas']['PostingRecord'];
-export type EventTypeRef = components['schemas']['EventTypeRef'];
-export type Transaction = components['schemas']['Transaction'];
-export type TransactionList = components['schemas']['TransactionList'];
-export type CreateTransactionRequest = components['schemas']['CreateTransactionRequest'];
-export type RevertTransactionRequest = components['schemas']['RevertTransactionRequest'];
-export type HoldStatus = components['schemas']['HoldStatus'];
-export type Hold = components['schemas']['Hold'];
-export type HoldList = components['schemas']['HoldList'];
-export type CreateHoldRequest = components['schemas']['CreateHoldRequest'];
+export type Amount = components['schemas']['Amount'];
+export type Asset = components['schemas']['Asset'];
+export type AssetAmount = components['schemas']['AssetAmount'];
+export type AssetBalance = components['schemas']['AssetBalance'];
+export type AssetList = components['schemas']['AssetList'];
+export type AssetSummary = components['schemas']['AssetSummary'];
+export type BalanceHistory = components['schemas']['BalanceHistory'];
+export type BalanceLimit = components['schemas']['BalanceLimit'];
+export type BalancePoint = components['schemas']['BalancePoint'];
 export type CaptureHoldRequest = components['schemas']['CaptureHoldRequest'];
-export type Operation = components['schemas']['Operation'];
-export type RequestStatus = components['schemas']['RequestStatus'];
-export type WriteRequest = components['schemas']['WriteRequest'];
-export type WriteRequestList = components['schemas']['WriteRequestList'];
-export type WriteRequestDetail = components['schemas']['WriteRequestDetail'];
-export type Rule = components['schemas']['Rule'];
-export type RuleList = components['schemas']['RuleList'];
-export type PutRuleRequest = components['schemas']['PutRuleRequest'];
-export type RuleCandidate = components['schemas']['RuleCandidate'];
-export type RuleMatch = components['schemas']['RuleMatch'];
+export type CreateEventTypeRequest = components['schemas']['CreateEventTypeRequest'];
+export type CreateHoldRequest = components['schemas']['CreateHoldRequest'];
+export type CreateLedgerRequest = components['schemas']['CreateLedgerRequest'];
+export type CreateTransactionRequest = components['schemas']['CreateTransactionRequest'];
+export type DeclinedStats = components['schemas']['DeclinedStats'];
+export type Dependencies = components['schemas']['Dependencies'];
+export type DependencyCheck = components['schemas']['DependencyCheck'];
+export type DependencyStatus = components['schemas']['DependencyStatus'];
 export type EventType = components['schemas']['EventType'];
 export type EventTypeList = components['schemas']['EventTypeList'];
-export type CreateEventTypeRequest = components['schemas']['CreateEventTypeRequest'];
-export type SearchResults = components['schemas']['SearchResults'];
+export type EventTypeRef = components['schemas']['EventTypeRef'];
+export type Hold = components['schemas']['Hold'];
+export type HoldList = components['schemas']['HoldList'];
+export type HoldStats = components['schemas']['HoldStats'];
+export type HoldStatus = components['schemas']['HoldStatus'];
+export type Id = components['schemas']['Id'];
+export type Info = components['schemas']['Info'];
+export type Ledger = components['schemas']['Ledger'];
+export type LedgerList = components['schemas']['LedgerList'];
+export type LedgerName = components['schemas']['LedgerName'];
+export type LedgerStats = components['schemas']['LedgerStats'];
+export type Liveness = components['schemas']['Liveness'];
+export type Metadata = components['schemas']['Metadata'];
+export type Operation = components['schemas']['Operation'];
+export type Posting = components['schemas']['Posting'];
+export type PostingRecord = components['schemas']['PostingRecord'];
 export type Problem = components['schemas']['Problem'];
+export type PutRuleRequest = components['schemas']['PutRuleRequest'];
+export type Readiness = components['schemas']['Readiness'];
+export type ReconcilerStatus = components['schemas']['ReconcilerStatus'];
+export type RequestStatus = components['schemas']['RequestStatus'];
+export type RevertTransactionRequest = components['schemas']['RevertTransactionRequest'];
+export type Rule = components['schemas']['Rule'];
+export type RuleCandidate = components['schemas']['RuleCandidate'];
+export type RuleList = components['schemas']['RuleList'];
+export type RuleMatch = components['schemas']['RuleMatch'];
+export type Runtime = components['schemas']['Runtime'];
+export type SearchResults = components['schemas']['SearchResults'];
+export type Segment = components['schemas']['Segment'];
+export type SegmentList = components['schemas']['SegmentList'];
+export type SignedAmount = components['schemas']['SignedAmount'];
+export type StuckRequest = components['schemas']['StuckRequest'];
+export type TigerBeetleTimestamp = components['schemas']['TigerBeetleTimestamp'];
+export type Transaction = components['schemas']['Transaction'];
+export type TransactionList = components['schemas']['TransactionList'];
+export type WriteRequest = components['schemas']['WriteRequest'];
+export type WriteRequestDetail = components['schemas']['WriteRequestDetail'];
+export type WriteRequestList = components['schemas']['WriteRequestList'];
 export type ResponseProblem = components['responses']['Problem'];
-export type ParameterLedgerName = components['parameters']['LedgerName'];
-export type ParameterAccountAddress = components['parameters']['AccountAddress'];
-export type ParameterResourceId = components['parameters']['ResourceId'];
-export type ParameterIdempotencyKey = components['parameters']['IdempotencyKey'];
-export type ParameterCursor = components['parameters']['Cursor'];
-export type ParameterLimit = components['parameters']['Limit'];
 export type $defs = Record<string, never>;
 export interface operations {
     getLiveness: {
@@ -1546,9 +1427,9 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description The opaque `next` cursor of the previous page. */
-                cursor?: components["parameters"]["Cursor"];
+                cursor?: string;
                 /** @description Page size. */
-                limit?: components["parameters"]["Limit"];
+                limit?: number;
             };
             header?: never;
             path?: never;
@@ -1574,7 +1455,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -1598,7 +1479,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -1620,100 +1501,24 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
-    replaceLedgerMetadata: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Metadata"];
-            };
-        };
-        responses: {
-            /** @description The ledger with its new metadata. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Ledger"];
-                };
-            };
-            default: components["responses"]["Problem"];
-        };
-    };
-    getLedgerStats: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Overview figures. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LedgerStats"];
-                };
-            };
-            default: components["responses"]["Problem"];
-        };
-    };
-    listAssets: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The assets of the ledger. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AssetList"];
-                };
-            };
-            default: components["responses"]["Problem"];
-        };
-    };
     listAccounts: {
         parameters: {
             query?: {
+                /** @description The opaque `next` cursor of the previous page. */
+                cursor?: string;
                 /** @description Only addresses equal to or below this prefix, on whole segments. A trailing colon is optional. */
                 prefix?: components["schemas"]["AddressPrefix"];
                 /** @description Only addresses starting with this text, for autocompletion. */
                 search?: string;
                 /** @description Only accounts holding this asset. */
                 asset?: components["schemas"]["Asset"];
-                /** @description The opaque `next` cursor of the previous page. */
-                cursor?: components["parameters"]["Cursor"];
                 /** @description Page size. */
-                limit?: components["parameters"]["Limit"];
+                limit?: number;
             };
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -1736,10 +1541,10 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
                 /** @description The account address, such as `users:1234:wallet`. */
-                address: components["parameters"]["AccountAddress"];
+                address: components["schemas"]["Address"];
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -1757,15 +1562,44 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
+    getAccountHistory: {
+        parameters: {
+            query: {
+                asset: components["schemas"]["Asset"];
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The account address, such as `users:1234:wallet`. */
+                address: components["schemas"]["Address"];
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Balance history. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BalanceHistory"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
     replaceAccountMetadata: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
                 /** @description The account address, such as `users:1234:wallet`. */
-                address: components["parameters"]["AccountAddress"];
+                address: components["schemas"]["Address"];
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -1787,35 +1621,6 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
-    getAccountHistory: {
-        parameters: {
-            query: {
-                asset: components["schemas"]["Asset"];
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description The account address, such as `users:1234:wallet`. */
-                address: components["parameters"]["AccountAddress"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Balance history. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BalanceHistory"];
-                };
-            };
-            default: components["responses"]["Problem"];
-        };
-    };
     aggregateBalances: {
         parameters: {
             query: {
@@ -1825,7 +1630,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -1851,7 +1656,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -1869,165 +1674,77 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
-    listTransactions: {
+    listAssets: {
         parameters: {
-            query?: {
-                /** @description Only transactions with a posting from or to an account at or below this prefix. */
-                address?: components["schemas"]["AddressPrefix"];
-                asset?: components["schemas"]["Asset"];
-                reference?: string;
-                eventType?: string;
-                /** @description Committed at or after this time. */
-                after?: string;
-                /** @description Committed before this time. */
-                before?: string;
-                /** @description The opaque `next` cursor of the previous page. */
-                cursor?: components["parameters"]["Cursor"];
-                /** @description Page size. */
-                limit?: components["parameters"]["Limit"];
-            };
+            query?: never;
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description A page of transactions. */
+            /** @description The assets of the ledger. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TransactionList"];
+                    "application/json": components["schemas"]["AssetList"];
                 };
             };
             default: components["responses"]["Problem"];
         };
     };
-    createTransaction: {
-        parameters: {
-            query?: never;
-            header: {
-                /**
-                 * @description Identifies the write. Reusing it with the same body replays the stored outcome; with a
-                 *     different body answers 422 `idempotency-key-reused`.
-                 */
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTransactionRequest"];
-            };
-        };
-        responses: {
-            /** @description The transaction was committed. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Transaction"];
-                };
-            };
-            default: components["responses"]["Problem"];
-        };
-    };
-    getTransaction: {
+    listEventTypes: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description The transaction. */
+            /** @description The event types. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Transaction"];
+                    "application/json": components["schemas"]["EventTypeList"];
                 };
             };
             default: components["responses"]["Problem"];
         };
     };
-    replaceTransactionMetadata: {
+    createEventType: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Metadata"];
+                "application/json": components["schemas"]["CreateEventTypeRequest"];
             };
         };
         responses: {
-            /** @description The transaction with its new metadata. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Transaction"];
-                };
-            };
-            default: components["responses"]["Problem"];
-        };
-    };
-    revertTransaction: {
-        parameters: {
-            query?: never;
-            header: {
-                /**
-                 * @description Identifies the write. Reusing it with the same body replays the stored outcome; with a
-                 *     different body answers 422 `idempotency-key-reused`.
-                 */
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-                /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RevertTransactionRequest"];
-            };
-        };
-        responses: {
-            /** @description The reverting transaction was committed. */
+            /** @description The event type. */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Transaction"];
+                    "application/json": components["schemas"]["EventType"];
                 };
             };
             default: components["responses"]["Problem"];
@@ -2036,18 +1753,18 @@ export interface operations {
     listHolds: {
         parameters: {
             query?: {
+                /** @description The opaque `next` cursor of the previous page. */
+                cursor?: string;
                 status?: components["schemas"]["HoldStatus"];
                 /** @description Only holds from or to an account at or below this prefix. */
                 address?: components["schemas"]["AddressPrefix"];
-                /** @description The opaque `next` cursor of the previous page. */
-                cursor?: components["parameters"]["Cursor"];
                 /** @description Page size. */
-                limit?: components["parameters"]["Limit"];
+                limit?: number;
             };
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -2073,11 +1790,11 @@ export interface operations {
                  * @description Identifies the write. Reusing it with the same body replays the stored outcome; with a
                  *     different body answers 422 `idempotency-key-reused`.
                  */
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "Idempotency-Key": string;
             };
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -2105,9 +1822,9 @@ export interface operations {
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
                 /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
+                id: components["schemas"]["Id"];
             };
             cookie?: never;
         };
@@ -2133,13 +1850,13 @@ export interface operations {
                  * @description Identifies the write. Reusing it with the same body replays the stored outcome; with a
                  *     different body answers 422 `idempotency-key-reused`.
                  */
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "Idempotency-Key": string;
             };
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
                 /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
+                id: components["schemas"]["Id"];
             };
             cookie?: never;
         };
@@ -2169,13 +1886,13 @@ export interface operations {
                  * @description Identifies the write. Reusing it with the same body replays the stored outcome; with a
                  *     different body answers 422 `idempotency-key-reused`.
                  */
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "Idempotency-Key": string;
             };
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
                 /** @description A 32-hex ID. */
-                id: components["parameters"]["ResourceId"];
+                id: components["schemas"]["Id"];
             };
             cookie?: never;
         };
@@ -2193,22 +1910,50 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
+    replaceLedgerMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Metadata"];
+            };
+        };
+        responses: {
+            /** @description The ledger with its new metadata. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ledger"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
     listWriteRequests: {
         parameters: {
             query?: {
+                /** @description The opaque `next` cursor of the previous page. */
+                cursor?: string;
                 status?: components["schemas"]["RequestStatus"];
                 operation?: components["schemas"]["Operation"];
                 /** @description An Idempotency-Key, or the start of one, or a request ID. */
                 search?: string;
-                /** @description The opaque `next` cursor of the previous page. */
-                cursor?: components["parameters"]["Cursor"];
                 /** @description Page size. */
-                limit?: components["parameters"]["Limit"];
+                limit?: number;
             };
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -2232,7 +1977,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
                 /** @description The Idempotency-Key. */
                 key: string;
             };
@@ -2258,7 +2003,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -2284,7 +2029,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -2307,10 +2052,10 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
                 /** @description `*`, an address such as `world`, or a prefix ending with a colon such as `users:`. */
                 pattern: string;
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -2337,10 +2082,10 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
                 /** @description `*`, an address such as `world`, or a prefix ending with a colon such as `users:`. */
                 pattern: string;
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -2356,58 +2101,6 @@ export interface operations {
             default: components["responses"]["Problem"];
         };
     };
-    listEventTypes: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The event types. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventTypeList"];
-                };
-            };
-            default: components["responses"]["Problem"];
-        };
-    };
-    createEventType: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateEventTypeRequest"];
-            };
-        };
-        responses: {
-            /** @description The event type. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventType"];
-                };
-            };
-            default: components["responses"]["Problem"];
-        };
-    };
     search: {
         parameters: {
             query: {
@@ -2416,7 +2109,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description The ledger name. */
-                ledger: components["parameters"]["LedgerName"];
+                ledger: components["schemas"]["LedgerName"];
             };
             cookie?: never;
         };
@@ -2429,6 +2122,194 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchResults"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getLedgerStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Overview figures. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerStats"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listTransactions: {
+        parameters: {
+            query?: {
+                /** @description The opaque `next` cursor of the previous page. */
+                cursor?: string;
+                /** @description Only transactions with a posting from or to an account at or below this prefix. */
+                address?: components["schemas"]["AddressPrefix"];
+                asset?: components["schemas"]["Asset"];
+                reference?: string;
+                eventType?: string;
+                /** @description Committed at or after this time. */
+                after?: string;
+                /** @description Committed before this time. */
+                before?: string;
+                /** @description Page size. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of transactions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionList"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    createTransaction: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Identifies the write. Reusing it with the same body replays the stored outcome; with a
+                 *     different body answers 422 `idempotency-key-reused`.
+                 */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTransactionRequest"];
+            };
+        };
+        responses: {
+            /** @description The transaction was committed. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
+                /** @description A 32-hex ID. */
+                id: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The transaction. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    replaceTransactionMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
+                /** @description A 32-hex ID. */
+                id: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Metadata"];
+            };
+        };
+        responses: {
+            /** @description The transaction with its new metadata. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    revertTransaction: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Identifies the write. Reusing it with the same body replays the stored outcome; with a
+                 *     different body answers 422 `idempotency-key-reused`.
+                 */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description The ledger name. */
+                ledger: components["schemas"]["LedgerName"];
+                /** @description A 32-hex ID. */
+                id: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RevertTransactionRequest"];
+            };
+        };
+        responses: {
+            /** @description The reverting transaction was committed. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
                 };
             };
             default: components["responses"]["Problem"];

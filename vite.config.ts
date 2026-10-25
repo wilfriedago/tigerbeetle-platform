@@ -5,7 +5,8 @@ import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
   fmt: {
-    ignorePatterns: ['packages/api-client/src/schema.d.ts', 'apps/console/src/route-tree.gen.ts'],
+    // Generated files keep the bytes their generator writes, or just generate-check would fail.
+    ignorePatterns: ['packages/api-client/src/schema.d.ts', 'apps/console/src/route-tree.gen.ts', 'packages/openapi/openapi.yaml'],
     printWidth: 150,
     semi: false,
     singleQuote: true,
