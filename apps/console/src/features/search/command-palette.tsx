@@ -26,6 +26,7 @@ import { Spinner } from '~/components/ui/spinner'
 import { ledgerQueries } from '~/features/ledgers/api'
 
 import { shortId } from '~/lib/ids'
+import { KEY_GLYPHS } from '~/lib/key-glyphs'
 import { formatTimestamp } from '~/lib/time'
 
 // 14 Overlays, Command palette: one box for every identifier the ledger knows. A 32-hex ID opens a
@@ -63,7 +64,7 @@ export function CommandPalette({ ledger }: { ledger: string | undefined }) {
       >
         <SearchIcon aria-hidden="true" className="size-4 text-muted-foreground" />
         <span className="flex-1 truncate">Search ID, address, reference</span>
-        <Kbd>{IS_MAC ? '⌘K' : 'Ctrl K'}</Kbd>
+        <Kbd>{IS_MAC ? `${KEY_GLYPHS.command}K` : 'Ctrl K'}</Kbd>
       </button>
       <Button variant="ghost" size="icon-sm" className="md:hidden" aria-label="Search" onClick={() => setOpen(true)}>
         <SearchIcon />
@@ -237,11 +238,11 @@ function PaletteBody({ ledger, onClose }: { ledger: string | undefined; onClose:
       </CommandList>
       <CommandFooter>
         <span>
-          <Kbd>↑</Kbd>
-          <Kbd>↓</Kbd> move
+          <Kbd>{KEY_GLYPHS.up}</Kbd>
+          <Kbd>{KEY_GLYPHS.down}</Kbd> move
         </span>
         <span>
-          <Kbd>↵</Kbd> open
+          <Kbd>{KEY_GLYPHS.enter}</Kbd> open
         </span>
         <span>
           <Kbd>esc</Kbd> close

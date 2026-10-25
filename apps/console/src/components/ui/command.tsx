@@ -6,6 +6,7 @@ import { SearchIcon } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '~/components/ui/dialog'
 import { Kbd } from '~/components/ui/kbd'
 
+import { KEY_GLYPHS } from '~/lib/key-glyphs'
 import { cn } from '~/lib/utils'
 
 // 14 Overlays, Command palette: 640 px at level 2. A 48 px mono search row, grouped results with
@@ -119,7 +120,7 @@ function CommandShortcut({ className, children, ...props }: React.ComponentProps
       {...props}
     >
       {children}
-      <Kbd className="hidden group-data-selected/command-item:inline-flex">{'\u21B5'}</Kbd>
+      <Kbd className="hidden group-data-selected/command-item:inline-flex">{KEY_GLYPHS.enter}</Kbd>
     </span>
   )
 }
