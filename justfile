@@ -186,10 +186,11 @@ dev-ts:
 compose-up:
     {{ compose }} up --build --detach --wait
 
-# The stack plus RabbitMQ and NATS, with gRPC, AMQP RPC and NATS RPC turned on (ADR-0021).
+# The stack plus RabbitMQ, NATS, Kafka and the TigerBeetle CDC job, with gRPC, AMQP RPC, NATS RPC
+# and the Kafka relay turned on (ADR-0021, ADR-0022).
 [group('stack')]
 compose-up-brokers:
-    GRPC_ENABLED=true AMQP_RPC_ENABLED=true NATS_RPC_ENABLED=true {{ compose }} --profile brokers up --build --detach --wait
+    GRPC_ENABLED=true AMQP_RPC_ENABLED=true NATS_RPC_ENABLED=true KAFKA_EVENTS_ENABLED=true {{ compose }} --profile brokers up --build --detach --wait
 
 # Stop the local stack, keeping its data. The brokers profile is named so its services stop too.
 [group('stack')]

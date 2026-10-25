@@ -1,5 +1,6 @@
 # Local development stack: TigerBeetle, Postgres, the API and the console. The brokers profile
-# (`just compose-up-brokers`) adds RabbitMQ and NATS and turns the broker RPC transports on.
+# (`just compose-up-brokers`) adds RabbitMQ, NATS, Kafka and the TigerBeetle CDC job, and turns
+# the broker RPC transports and the Kafka relay on.
 # Run from the repository root with `just compose-up` (docker compose --project-directory . ...),
 # so variables come from the root .env (see .env.example) and build contexts resolve correctly.
 #
@@ -28,6 +29,10 @@ services:
 
   tigerbeetle:
     image: ghcr.io/tigerbeetle/tigerbeetle:0.17.9
+    # A fixed address, because the CDC job accepts IP addresses only (ADR-0022).
+    networks:
+      default:
+        ipv4_address: 172.30.231.10
     # --cache-grid keeps memory small in development without --development, which would also
     # shrink the batch size and change request limits compared with production.
     command: ['start', '--addresses=0.0.0.0:3000', '--cache-grid=256MiB', '/data/0_0.tigerbeetle']
@@ -87,14 +92,17 @@ services:
       TIGERBEETLE_TIMEOUT: ${TIGERBEETLE_TIMEOUT:-5s}
       RECONCILER_GRACE_PERIOD: ${RECONCILER_GRACE_PERIOD:-30s}
       RECONCILER_INTERVAL: ${RECONCILER_INTERVAL:-10s}
-      # gRPC and the broker RPC transports stay off unless asked for: development only until
-      # authentication is decided (ADR-0021).
+      # gRPC, the broker RPC transports and the Kafka relay stay off unless asked for:
+      # development only until authentication is decided (ADR-0021, ADR-0022).
       GRPC_ENABLED: ${GRPC_ENABLED:-false}
       GRPC_ADDR: ':9090'
       AMQP_RPC_ENABLED: ${AMQP_RPC_ENABLED:-false}
       AMQP_URL: amqp://guest:guest@rabbitmq:5672/
       NATS_RPC_ENABLED: ${NATS_RPC_ENABLED:-false}
       NATS_URL: nats://nats:4222
+      KAFKA_EVENTS_ENABLED: ${KAFKA_EVENTS_ENABLED:-false}
+      KAFKA_BROKERS: kafka:9092
+      CDC_AMQP_URL: amqp://guest:guest@rabbitmq:5672/
     ports:
       - '${API_PORT:-8080}:8080'
       - '${GRPC_PORT:-9090}:9090'
@@ -114,6 +122,9 @@ services:
       nats:
         condition: service_healthy
         required: false
+      kafka:
+        condition: service_healthy
+        required: false
     healthcheck:
       # The runtime image has no shell or curl; the binary probes itself.
       test: ['CMD', '/app/api', '-probe', 'http://127.0.0.1:8080/readyz']
@@ -125,6 +136,12 @@ services:
   rabbitmq:
     image: rabbitmq:4.4.0-management@sha256:c200fd496482cda18c412be4e6f244830e1e75949b8cf5f0e887cea9ea456109
     profiles: [brokers]
+    networks:
+      default:
+        ipv4_address: 172.30.231.11
+    volumes:
+      - ./deploy/compose/rabbitmq.conf:/etc/rabbitmq/conf.d/20-tbp.conf:ro
+      - ./deploy/compose/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
     ports:
       - '${RABBITMQ_PORT:-5672}:5672'
       # The management UI, guest/guest.
@@ -150,6 +167,60 @@ services:
       timeout: 2s
       retries: 15
 
+  # TigerBeetle change data capture (ADR-0022): the amqp subcommand of the server's own image, so it
+  # is never newer than the cluster. It reads committed transfers in timestamp order and publishes
+  # them to the tbp.cdc exchange; its progress lives in RabbitMQ, so a restart resumes. It takes IP
+  # addresses only, hence the fixed ones above.
+  tigerbeetle-cdc:
+    image: ghcr.io/tigerbeetle/tigerbeetle:0.17.9
+    profiles: [brokers]
+    command:
+      - amqp
+      - --cluster=0
+      - --addresses=172.30.231.10:3000
+      - --host=172.30.231.11:5672
+      - --vhost=/
+      - --user=guest
+      - --password=guest
+      - --publish-exchange=tbp.cdc
+    # io_uring, as for the server.
+    security_opt:
+      - seccomp=unconfined
+    restart: unless-stopped
+    depends_on:
+      tigerbeetle:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  kafka:
+    image: apache/kafka:4.3.2@sha256:852a0d49fc4e656b022e7f23785411802c9a088c78a7c5e39f33969de9c227a7
+    profiles: [brokers]
+    environment:
+      # One KRaft node that is both broker and controller. Containers reach it as kafka:9092, the
+      # host as localhost:${KAFKA_PORT}.
+      KAFKA_NODE_ID: '1'
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:${KAFKA_PORT:-9094}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: '1'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: '0'
+      KAFKA_NUM_PARTITIONS: '3'
+    ports:
+      - '${KAFKA_PORT:-9094}:9094'
+    healthcheck:
+      test: ['CMD-SHELL', '/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1']
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s
+
   console:
     build:
       context: .
@@ -168,6 +239,12 @@ services:
     depends_on:
       api:
         condition: service_started
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.30.231.0/24
 
 volumes:
   tigerbeetle-data:

@@ -1,6 +1,6 @@
 // Package devstack exposes the container images pinned in deploy/compose/compose.yaml, so the
-// integration tests and the local stack always run the same TigerBeetle, Postgres, RabbitMQ and
-// NATS versions.
+// integration tests and the local stack always run the same TigerBeetle, Postgres, RabbitMQ, NATS
+// and Kafka versions.
 package devstack
 
 import (
@@ -17,6 +17,7 @@ type Images struct {
 	Postgres    string
 	RabbitMQ    string
 	NATS        string
+	Kafka       string
 }
 
 var (
@@ -24,6 +25,7 @@ var (
 	postgresImage    = regexp.MustCompile(`(?m)^\s*image:\s*(postgres:\S+)`)
 	rabbitmqImage    = regexp.MustCompile(`(?m)^\s*image:\s*(rabbitmq:\S+)`)
 	natsImage        = regexp.MustCompile(`(?m)^\s*image:\s*(nats:\S+)`)
+	kafkaImage       = regexp.MustCompile(`(?m)^\s*image:\s*(apache/kafka:\S+)`)
 )
 
 // Load finds the repository root from the current directory and parses the compose file.
@@ -45,10 +47,13 @@ func Parse(path string) (Images, error) {
 	pg := postgresImage.FindSubmatch(data)
 	mq := rabbitmqImage.FindSubmatch(data)
 	nats := natsImage.FindSubmatch(data)
-	if tb == nil || pg == nil || mq == nil || nats == nil {
-		return Images{}, fmt.Errorf("devstack: %s does not pin the tigerbeetle, postgres, rabbitmq and nats images", path)
+	kafka := kafkaImage.FindSubmatch(data)
+	if tb == nil || pg == nil || mq == nil || nats == nil || kafka == nil {
+		return Images{}, fmt.Errorf("devstack: %s does not pin the tigerbeetle, postgres, rabbitmq, nats and kafka images", path)
 	}
-	return Images{TigerBeetle: string(tb[1]), Postgres: string(pg[1]), RabbitMQ: string(mq[1]), NATS: string(nats[1])}, nil
+	return Images{
+		TigerBeetle: string(tb[1]), Postgres: string(pg[1]), RabbitMQ: string(mq[1]), NATS: string(nats[1]), Kafka: string(kafka[1]),
+	}, nil
 }
 
 // repoRoot walks up from the working directory until it finds pnpm-workspace.yaml.
