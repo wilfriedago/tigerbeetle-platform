@@ -19,12 +19,19 @@ GOVULNCHECK_VERSION="v1.9.0"
 JUST_VERSION="1.59.0"
 # renovate: datasource=github-releases depName=oasdiff/oasdiff
 OASDIFF_VERSION="v1.34.1"
+# renovate: datasource=github-releases depName=bufbuild/buf
+BUF_VERSION="v1.75.0"
+# protoc-gen-go must equal the google.golang.org/protobuf version in apps/api/go.mod.
+# renovate: datasource=go depName=google.golang.org/protobuf
+PROTOC_GEN_GO_VERSION="v1.36.12"
+# renovate: datasource=go depName=google.golang.org/grpc/cmd/protoc-gen-go-grpc
+PROTOC_GEN_GO_GRPC_VERSION="v1.6.2"
 
 for tool in "$@"; do
   case "$tool" in
-    golangci-lint | sqlc | just | oasdiff | govulncheck) ;;
+    golangci-lint | sqlc | just | oasdiff | govulncheck | buf | protoc-gen-go | protoc-gen-go-grpc) ;;
     *)
-      echo "unknown tool: $tool (expected golangci-lint, sqlc, just, oasdiff or govulncheck)" >&2
+      echo "unknown tool: $tool (expected golangci-lint, sqlc, just, oasdiff, govulncheck, buf, protoc-gen-go or protoc-gen-go-grpc)" >&2
       exit 1
       ;;
   esac
@@ -168,6 +175,93 @@ if wanted oasdiff; then
     fi
     tar -xzf "${tmp}/${archive}" -C "$tmp" oasdiff
     install -m 0755 "${tmp}/oasdiff" "${bin_dir}/oasdiff"
+  fi
+fi
+
+if wanted buf; then
+  echo "==> buf ${BUF_VERSION}"
+  if [[ "$(installed_version buf --version)" == "${BUF_VERSION#v}" ]]; then
+    echo "    already installed"
+  else
+    # The release publishes sha256.txt; the digests are pinned here. Update them together with
+    # BUF_VERSION. Asset names use the uname spelling of the platform.
+    case "${os}_${arch}" in
+      darwin_amd64) buf_target="Darwin-x86_64" buf_sha256="d04292081e76c19c613d2411b2d0b3619d6d49d54ce6cbcf9e12f72edce0532b" ;;
+      darwin_arm64) buf_target="Darwin-arm64" buf_sha256="5478531c4645c5b80866e87d76d73f0e8bf5a35644b12c92cbdcc408e7c8b9d3" ;;
+      linux_amd64) buf_target="Linux-x86_64" buf_sha256="7168a06e29bd5eb8d1530848f242264f7a86b9b8af3b2e811570fbea0c929a30" ;;
+      linux_arm64) buf_target="Linux-aarch64" buf_sha256="0fe2cf43cff973e27a09219e611d98101cb22b0fee398f10f2be2256dd7f892e" ;;
+      *)
+        echo "no pinned buf checksum for ${os}_${arch}" >&2
+        exit 1
+        ;;
+    esac
+    archive="buf-${buf_target}.tar.gz"
+    curl -sSfL "https://github.com/bufbuild/buf/releases/download/${BUF_VERSION}/${archive}" -o "${tmp}/${archive}"
+    actual_sha256="$(sha256_of "${tmp}/${archive}")"
+    if [[ "$actual_sha256" != "$buf_sha256" ]]; then
+      echo "buf checksum mismatch for ${archive}: got ${actual_sha256}, want ${buf_sha256}" >&2
+      exit 1
+    fi
+    tar -xzf "${tmp}/${archive}" -C "$tmp" buf/bin/buf
+    install -m 0755 "${tmp}/buf/bin/buf" "${bin_dir}/buf"
+  fi
+fi
+
+if wanted protoc-gen-go; then
+  echo "==> protoc-gen-go ${PROTOC_GEN_GO_VERSION}"
+  if [[ "$(installed_version protoc-gen-go --version)" == "protoc-gen-go ${PROTOC_GEN_GO_VERSION}" ]]; then
+    echo "    already installed"
+  else
+    # The release assets have no checksum file; the digests are pinned here. Update them together
+    # with PROTOC_GEN_GO_VERSION (sha256sum of each protoc-gen-go.<ver>.<os>.<arch>.tar.gz).
+    case "${os}_${arch}" in
+      darwin_amd64) pgg_sha256="1df5af4a047a54fb15b1f9c4a174562a692f55cab13e94b8fbf274e766800314" ;;
+      darwin_arm64) pgg_sha256="951d1d2558bbbc8c6680dcb6d302263fa35302cb6e1fccad297a50d21d827f2b" ;;
+      linux_amd64) pgg_sha256="14abe70d1557026d3dce6676b7a44d3ada91d79902c71cb075fbb8d315943320" ;;
+      linux_arm64) pgg_sha256="bf385e22e18661b044f7b96ec28384f3f76aa6da10e956b450ffb949306768de" ;;
+      *)
+        echo "no pinned protoc-gen-go checksum for ${os}_${arch}" >&2
+        exit 1
+        ;;
+    esac
+    archive="protoc-gen-go.${PROTOC_GEN_GO_VERSION}.${os}.${arch}.tar.gz"
+    curl -sSfL "https://github.com/protocolbuffers/protobuf-go/releases/download/${PROTOC_GEN_GO_VERSION}/${archive}" -o "${tmp}/${archive}"
+    actual_sha256="$(sha256_of "${tmp}/${archive}")"
+    if [[ "$actual_sha256" != "$pgg_sha256" ]]; then
+      echo "protoc-gen-go checksum mismatch for ${archive}: got ${actual_sha256}, want ${pgg_sha256}" >&2
+      exit 1
+    fi
+    tar -xzf "${tmp}/${archive}" -C "$tmp" protoc-gen-go
+    install -m 0755 "${tmp}/protoc-gen-go" "${bin_dir}/protoc-gen-go"
+  fi
+fi
+
+if wanted protoc-gen-go-grpc; then
+  echo "==> protoc-gen-go-grpc ${PROTOC_GEN_GO_GRPC_VERSION}"
+  if [[ "$(installed_version protoc-gen-go-grpc --version)" == "protoc-gen-go-grpc ${PROTOC_GEN_GO_GRPC_VERSION#v}" ]]; then
+    echo "    already installed"
+  else
+    # Released under its own tag line, cmd/protoc-gen-go-grpc/<ver>, with no checksum file; the
+    # digests are pinned here. Update them together with PROTOC_GEN_GO_GRPC_VERSION.
+    case "${os}_${arch}" in
+      darwin_amd64) pggg_sha256="e891ebaf91f5ac959234cf9b323fecb14947f8b6f989989c50023da55bd55af3" ;;
+      darwin_arm64) pggg_sha256="eefe7ad5e1d578c5d1124a9084333cb938274b7a2eb54c006e7769530119cba3" ;;
+      linux_amd64) pggg_sha256="3d36f376624c73eb62c7a46e34c2b21a1e97684fb1812e882ba775ba05b7bfc9" ;;
+      linux_arm64) pggg_sha256="343307d42a93c0219692302296e5fa38b89a9563732511b18a93479be4b0f43d" ;;
+      *)
+        echo "no pinned protoc-gen-go-grpc checksum for ${os}_${arch}" >&2
+        exit 1
+        ;;
+    esac
+    archive="protoc-gen-go-grpc.${PROTOC_GEN_GO_GRPC_VERSION}.${os}.${arch}.tar.gz"
+    curl -sSfL "https://github.com/grpc/grpc-go/releases/download/cmd%2Fprotoc-gen-go-grpc%2F${PROTOC_GEN_GO_GRPC_VERSION}/${archive}" -o "${tmp}/${archive}"
+    actual_sha256="$(sha256_of "${tmp}/${archive}")"
+    if [[ "$actual_sha256" != "$pggg_sha256" ]]; then
+      echo "protoc-gen-go-grpc checksum mismatch for ${archive}: got ${actual_sha256}, want ${pggg_sha256}" >&2
+      exit 1
+    fi
+    tar -xzf "${tmp}/${archive}" -C "$tmp" ./protoc-gen-go-grpc
+    install -m 0755 "${tmp}/protoc-gen-go-grpc" "${bin_dir}/protoc-gen-go-grpc"
   fi
 fi
 

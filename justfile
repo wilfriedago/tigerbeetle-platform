@@ -173,7 +173,8 @@ compose-logs:
 compose-reset:
     {{ compose }} down --volumes
 
-# Install the pinned tools (golangci-lint, sqlc, govulncheck, just, oasdiff) into $(go env GOPATH)/bin.
+# Install the pinned tools (golangci-lint, sqlc, govulncheck, just, oasdiff, buf, protoc-gen-go,
+# protoc-gen-go-grpc) into $(go env GOPATH)/bin.
 [group('tools')]
 tools-install:
     scripts/install-tools.sh
