@@ -10,6 +10,8 @@ export interface ProblemView {
   type?: string
   detail?: string
   requestId?: string
+  /** Seconds the API asked to wait before a retry: the Retry-After of 409 request-in-flight and 503 write-pending. */
+  retryAfter?: number
   /** Problem extension members, such as the per-posting results of a declined transaction. */
   extensions: Record<string, unknown>
 }
@@ -31,6 +33,9 @@ export function toProblem(error: unknown): ProblemView {
     const requestId = error.problem.requestId ?? error.requestId
     if (requestId) {
       view.requestId = requestId
+    }
+    if (error.retryAfter !== undefined) {
+      view.retryAfter = error.retryAfter
     }
     return view
   }
