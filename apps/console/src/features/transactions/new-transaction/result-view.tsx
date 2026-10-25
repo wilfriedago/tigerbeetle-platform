@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 
-import { ApiError, type CreateTransactionRequest, type Problem, type Transaction } from '@tigerbeetle-platform/api-client'
+import { ApiError, type CreateTransactionRequest, type Transaction } from '@tigerbeetle-platform/api-client'
 import { ArrowDownToLineIcon, CheckIcon, InfoIcon, KeyRoundIcon, LoaderCircleIcon, LockOpenIcon, PencilIcon, XIcon } from 'lucide-react'
 
 import { Address } from '~/components/ledger/address'
@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 
 import { accountQueries } from '~/features/accounts/api'
 import { requestQueries } from '~/features/requests/api'
+import { storedProblem } from '~/features/requests/stored-problem'
 import { systemQueries } from '~/features/system/api'
 
 import { shortId } from '~/lib/ids'
@@ -231,11 +232,7 @@ function Pending({ ledger, submission, onResolved }: ResultViewProps) {
     if (settledTransaction) {
       onResolved({ kind: 'committed', transaction: settledTransaction })
     } else if (record && (record.status === 'declined' || record.status === 'failed')) {
-      const problem = record.response as Problem | undefined
-      onResolved({
-        error: problem?.type ? new ApiError(problem, record.requestId) : new Error(`The write ended ${record.status}.`),
-        kind: 'declined'
-      })
+      onResolved({ error: storedProblem(record) ?? new Error(`The write ended ${record.status}.`), kind: 'declined' })
     }
   }, [pending, settledTransaction, record, onResolved])
 

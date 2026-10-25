@@ -1,13 +1,23 @@
+import { useEffect } from 'react'
+
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 
 import { HealthDot } from '~/components/ledger/health'
 
 import { systemQueries } from './api'
+import { recordProbe } from './probe-history'
 
 /** "All systems up" in the top bar, fed by polling GET /v1/_info (docs/console.md, Top bar). */
 export function HealthIndicator() {
-  const { data, isError, isPending } = useQuery(systemQueries.info())
+  const { data, isError, isPending, dataUpdatedAt, errorUpdatedAt } = useQuery(systemQueries.info())
+  // Every answer, or failure, is a probe for the System health chart.
+  const probedAt = Math.max(dataUpdatedAt, errorUpdatedAt)
+  useEffect(() => {
+    if (probedAt > 0) {
+      recordProbe(probedAt, isError ? undefined : data)
+    }
+  }, [probedAt, isError, data])
   let up: boolean | undefined
   let label = 'Checking'
   if (isError) {
