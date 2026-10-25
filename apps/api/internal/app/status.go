@@ -25,16 +25,41 @@ type Report struct {
 // Ready is true only when every dependency is up.
 func (r Report) Ready() bool { return r.Postgres.Up() && r.TigerBeetle.Up() }
 
+// Prober answers a readiness probe. Both store adapters implement it.
+type Prober interface {
+	Ready(ctx context.Context) error
+}
+
+// DatabaseInfo reports the Postgres server and schema versions, for the System page.
+type DatabaseInfo interface {
+	ServerVersion(ctx context.Context) (string, error)
+	SchemaVersion(ctx context.Context) (int64, error)
+}
+
 // Status answers readiness and service-information requests by probing the stores.
 type Status struct {
-	ledgerStore   LedgerStore
-	metadataStore MetadataStore
+	ledgerStore   Prober
+	metadataStore Prober
 	timeout       time.Duration
 }
 
 // NewStatus builds the use case. timeout bounds each probe independently.
-func NewStatus(ledgerStore LedgerStore, metadataStore MetadataStore, timeout time.Duration) *Status {
+func NewStatus(ledgerStore, metadataStore Prober, timeout time.Duration) *Status {
 	return &Status{ledgerStore: ledgerStore, metadataStore: metadataStore, timeout: timeout}
+}
+
+// Database returns the Postgres server version and the last applied migration, or zero values
+// when the store cannot tell or does not answer within the probe timeout.
+func (s *Status) Database(ctx context.Context) (version string, schema int64) {
+	info, ok := s.metadataStore.(DatabaseInfo)
+	if !ok {
+		return "", 0
+	}
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	version, _ = info.ServerVersion(ctx)
+	schema, _ = info.SchemaVersion(ctx)
+	return version, schema
 }
 
 // Check probes both dependencies concurrently, each with its own timeout, so a slow dependency

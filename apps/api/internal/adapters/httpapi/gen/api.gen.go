@@ -9,9 +9,35 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"time"
+
+	"github.com/oapi-codegen/runtime"
 )
+
+// Defines values for BalanceLimit.
+const (
+	CreditsMustNotExceedDebits BalanceLimit = "credits_must_not_exceed_debits"
+	DebitsMustNotExceedCredits BalanceLimit = "debits_must_not_exceed_credits"
+	None                       BalanceLimit = "none"
+)
+
+// Valid indicates whether the value is a known member of the BalanceLimit enum.
+func (e BalanceLimit) Valid() bool {
+	switch e {
+	case CreditsMustNotExceedDebits:
+		return true
+	case DebitsMustNotExceedCredits:
+		return true
+	case None:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for DependencyStatus.
 const (
@@ -31,6 +57,30 @@ func (e DependencyStatus) Valid() bool {
 	}
 }
 
+// Defines values for HoldStatus.
+const (
+	Captured HoldStatus = "captured"
+	Expired  HoldStatus = "expired"
+	Open     HoldStatus = "open"
+	Voided   HoldStatus = "voided"
+)
+
+// Valid indicates whether the value is a known member of the HoldStatus enum.
+func (e HoldStatus) Valid() bool {
+	switch e {
+	case Captured:
+		return true
+	case Expired:
+		return true
+	case Open:
+		return true
+	case Voided:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for LivenessStatus.
 const (
 	Ok LivenessStatus = "ok"
@@ -40,6 +90,33 @@ const (
 func (e LivenessStatus) Valid() bool {
 	switch e {
 	case Ok:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Operation.
+const (
+	OperationCapture     Operation = "capture"
+	OperationHold        Operation = "hold"
+	OperationRevert      Operation = "revert"
+	OperationTransaction Operation = "transaction"
+	OperationVoid        Operation = "void"
+)
+
+// Valid indicates whether the value is a known member of the Operation enum.
+func (e Operation) Valid() bool {
+	switch e {
+	case OperationCapture:
+		return true
+	case OperationHold:
+		return true
+	case OperationRevert:
+		return true
+	case OperationTransaction:
+		return true
+	case OperationVoid:
 		return true
 	default:
 		return false
@@ -62,6 +139,343 @@ func (e ReadinessStatus) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Defines values for RequestStatus.
+const (
+	Committed RequestStatus = "committed"
+	Declined  RequestStatus = "declined"
+	Failed    RequestStatus = "failed"
+	Pending   RequestStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the RequestStatus enum.
+func (e RequestStatus) Valid() bool {
+	switch e {
+	case Committed:
+		return true
+	case Declined:
+		return true
+	case Failed:
+		return true
+	case Pending:
+		return true
+	default:
+		return false
+	}
+}
+
+// Account defines model for Account.
+type Account struct {
+	// Address Colon-separated segments of letters, digits, dash and underscore.
+	//
+	// Examples: users:1234:wallet
+	Address   Address        `json:"address"`
+	Balances  []AssetBalance `json:"balances"`
+	CreatedAt time.Time      `json:"createdAt"`
+
+	// Metadata Key/value pairs for your own systems, stored in Postgres. At most 64 entries.
+	Metadata Metadata `json:"metadata"`
+
+	// OpenHolds Open holds from this address.
+	OpenHolds int64 `json:"openHolds"`
+}
+
+// AccountList defines model for AccountList.
+type AccountList struct {
+	Data []AccountSummary `json:"data"`
+	Next *string          `json:"next,omitempty"`
+}
+
+// AccountSummary defines model for AccountSummary.
+type AccountSummary struct {
+	// Address Colon-separated segments of letters, digits, dash and underscore.
+	//
+	// Examples: users:1234:wallet
+	Address   Address        `json:"address"`
+	Balances  []AssetBalance `json:"balances"`
+	CreatedAt time.Time      `json:"createdAt"`
+
+	// Metadata Key/value pairs for your own systems, stored in Postgres. At most 64 entries.
+	Metadata Metadata `json:"metadata"`
+}
+
+// Address Colon-separated segments of letters, digits, dash and underscore.
+//
+// Examples: users:1234:wallet
+type Address = string
+
+// AddressPrefix An address prefix on whole segments, with an optional trailing colon.
+//
+// Examples: users:, users:1234
+type AddressPrefix = string
+
+// AggregateBalance defines model for AggregateBalance.
+type AggregateBalance struct {
+	Accounts int64 `json:"accounts"`
+
+	// Asset `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
+	//
+	// Examples: EUR/2, XOF/0
+	Asset Asset `json:"asset"`
+
+	// Available A signed integer in the asset's smallest unit, for balances.
+	//
+	// Examples: -481230000
+	Available SignedAmount `json:"available"`
+
+	// Balance A signed integer in the asset's smallest unit, for balances.
+	//
+	// Examples: -481230000
+	Balance SignedAmount `json:"balance"`
+
+	// Incoming An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+	//
+	// Examples: 125000
+	Incoming Amount `json:"incoming"`
+
+	// Reserved An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+	//
+	// Examples: 125000
+	Reserved Amount `json:"reserved"`
+}
+
+// AggregateBalances defines model for AggregateBalances.
+type AggregateBalances struct {
+	// Accounts Addresses summed.
+	Accounts int64 `json:"accounts"`
+
+	// AsOf When the last chunk was read.
+	AsOf   time.Time          `json:"asOf"`
+	Assets []AggregateBalance `json:"assets"`
+
+	// Chunks TigerBeetle lookups made. More than one means the sum is not one snapshot.
+	Chunks int    `json:"chunks"`
+	Prefix string `json:"prefix"`
+}
+
+// Amount An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+//
+// Examples: 125000
+type Amount = string
+
+// Asset `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
+//
+// Examples: EUR/2, XOF/0
+type Asset = string
+
+// AssetAmount defines model for AssetAmount.
+type AssetAmount struct {
+	// Amount An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+	//
+	// Examples: 125000
+	Amount Amount `json:"amount"`
+
+	// Asset `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
+	//
+	// Examples: EUR/2, XOF/0
+	Asset Asset `json:"asset"`
+}
+
+// AssetBalance One TigerBeetle account of an address, with its balances and frozen flags.
+type AssetBalance struct {
+	// AccountId A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+	//
+	// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+	AccountId Id `json:"accountId"`
+
+	// Asset `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
+	//
+	// Examples: EUR/2, XOF/0
+	Asset Asset `json:"asset"`
+
+	// Available Balance minus reserved.
+	//
+	// Examples: -481230000
+	Available SignedAmount `json:"available"`
+
+	// Balance Credits posted minus debits posted.
+	//
+	// Examples: -481230000
+	Balance SignedAmount `json:"balance"`
+
+	// Code The TigerBeetle account code.
+	Code      int       `json:"code"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Credits Total credits posted.
+	//
+	// Examples: 125000
+	Credits Amount `json:"credits"`
+
+	// Debits Total debits posted.
+	//
+	// Examples: 125000
+	Debits  Amount `json:"debits"`
+	History bool   `json:"history"`
+
+	// Incoming Pending credits. Not part of available.
+	//
+	// Examples: 125000
+	Incoming Amount `json:"incoming"`
+
+	// Limit The balance limit flag of TigerBeetle accounts created by a rule.
+	Limit BalanceLimit `json:"limit"`
+
+	// Reserved Pending debits, the amount held by open holds.
+	//
+	// Examples: 125000
+	Reserved Amount `json:"reserved"`
+
+	// Rule The pattern of the rule that created the account.
+	Rule     string `json:"rule"`
+	TbLedger int64  `json:"tbLedger"`
+}
+
+// AssetList defines model for AssetList.
+type AssetList struct {
+	Data []AssetSummary `json:"data"`
+}
+
+// AssetSummary defines model for AssetSummary.
+type AssetSummary struct {
+	Accounts int64 `json:"accounts"`
+
+	// Asset `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
+	//
+	// Examples: EUR/2, XOF/0
+	Asset Asset `json:"asset"`
+
+	// CreatedAt First use of the asset in the ledger.
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Issued Money issued, minus the balance of world, read from TigerBeetle.
+	//
+	// Examples: -481230000
+	Issued SignedAmount `json:"issued"`
+
+	// TbLedger The TigerBeetle ledger number of this (ledger, asset) pair.
+	TbLedger int64 `json:"tbLedger"`
+}
+
+// BalanceHistory defines model for BalanceHistory.
+type BalanceHistory struct {
+	// Address Colon-separated segments of letters, digits, dash and underscore.
+	//
+	// Examples: users:1234:wallet
+	Address Address `json:"address"`
+
+	// Asset `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
+	//
+	// Examples: EUR/2, XOF/0
+	Asset Asset          `json:"asset"`
+	Data  []BalancePoint `json:"data"`
+}
+
+// BalanceLimit The balance limit flag of TigerBeetle accounts created by a rule.
+type BalanceLimit string
+
+// BalancePoint defines model for BalancePoint.
+type BalancePoint struct {
+	At time.Time `json:"at"`
+
+	// Balance A signed integer in the asset's smallest unit, for balances.
+	//
+	// Examples: -481230000
+	Balance SignedAmount `json:"balance"`
+
+	// Credits An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+	//
+	// Examples: 125000
+	Credits Amount `json:"credits"`
+
+	// Debits An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+	//
+	// Examples: 125000
+	Debits Amount `json:"debits"`
+
+	// Reserved An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+	//
+	// Examples: 125000
+	Reserved Amount `json:"reserved"`
+
+	// Timestamp The TigerBeetle timestamp, nanoseconds since the Unix epoch, as a decimal string.
+	Timestamp TigerBeetleTimestamp `json:"timestamp"`
+}
+
+// CaptureHoldRequest defines model for CaptureHoldRequest.
+type CaptureHoldRequest struct {
+	// Amount The amount to capture; the full hold when absent. Must not be zero.
+	//
+	// Examples: 125000
+	Amount *Amount `json:"amount,omitempty"`
+}
+
+// CreateEventTypeRequest defines model for CreateEventTypeRequest.
+type CreateEventTypeRequest struct {
+	Code *int   `json:"code,omitempty"`
+	Name string `json:"name"`
+}
+
+// CreateHoldRequest defines model for CreateHoldRequest.
+type CreateHoldRequest struct {
+	// Amount An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+	//
+	// Examples: 125000
+	Amount Amount `json:"amount"`
+
+	// Asset `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
+	//
+	// Examples: EUR/2, XOF/0
+	Asset Asset `json:"asset"`
+
+	// Destination Colon-separated segments of letters, digits, dash and underscore.
+	//
+	// Examples: users:1234:wallet
+	Destination Address `json:"destination"`
+	EventType   *string `json:"eventType,omitempty"`
+
+	// Metadata Key/value pairs for your own systems, stored in Postgres. At most 64 entries.
+	Metadata  *Metadata `json:"metadata,omitempty"`
+	Reference *string   `json:"reference,omitempty"`
+
+	// Source Colon-separated segments of letters, digits, dash and underscore.
+	//
+	// Examples: users:1234:wallet
+	Source Address `json:"source"`
+
+	// TimeoutSeconds Releases the hold after this many seconds on the cluster clock; 0 or absent means never.
+	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty"`
+}
+
+// CreateLedgerRequest defines model for CreateLedgerRequest.
+type CreateLedgerRequest struct {
+	// Metadata Key/value pairs for your own systems, stored in Postgres. At most 64 entries.
+	Metadata *Metadata `json:"metadata,omitempty"`
+}
+
+// CreateTransactionRequest defines model for CreateTransactionRequest.
+type CreateTransactionRequest struct {
+	BusinessTime *time.Time `json:"businessTime,omitempty"`
+
+	// EventType An event type name of the ledger; the default event type when absent.
+	EventType *string `json:"eventType,omitempty"`
+
+	// Metadata Key/value pairs for your own systems, stored in Postgres. At most 64 entries.
+	Metadata  *Metadata `json:"metadata,omitempty"`
+	Postings  []Posting `json:"postings"`
+	Reference *string   `json:"reference,omitempty"`
+}
+
+// DeclinedStats Declined and failed writes in the last 24 hours.
+type DeclinedStats struct {
+	Reasons []struct {
+		Count int64 `json:"count"`
+
+		// Reason Examples: exceeds-credits
+		Reason string `json:"reason"`
+	} `json:"reasons"`
+	Total int64 `json:"total"`
 }
 
 // Dependencies defines model for Dependencies.
@@ -88,9 +502,127 @@ type DependencyCheck struct {
 // DependencyStatus Whether a dependency answered the readiness probe in time.
 type DependencyStatus string
 
+// EventType defines model for EventType.
+type EventType struct {
+	BuiltIn   bool       `json:"builtIn"`
+	Code      int        `json:"code"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// Name Examples: card.authorized
+	Name string `json:"name"`
+
+	// Transactions Transactions and holds recorded with this event type.
+	Transactions int64 `json:"transactions"`
+}
+
+// EventTypeList defines model for EventTypeList.
+type EventTypeList struct {
+	Data []EventType `json:"data"`
+}
+
+// EventTypeRef defines model for EventTypeRef.
+type EventTypeRef struct {
+	Code int    `json:"code"`
+	Name string `json:"name"`
+}
+
+// Hold defines model for Hold.
+type Hold struct {
+	// Amount An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+	//
+	// Examples: 125000
+	Amount Amount `json:"amount"`
+
+	// Asset `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
+	//
+	// Examples: EUR/2, XOF/0
+	Asset Asset `json:"asset"`
+
+	// CapturedAmount An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+	//
+	// Examples: 125000
+	CapturedAmount *Amount   `json:"capturedAmount,omitempty"`
+	CreatedAt      time.Time `json:"createdAt"`
+
+	// Destination Colon-separated segments of letters, digits, dash and underscore.
+	//
+	// Examples: users:1234:wallet
+	Destination Address      `json:"destination"`
+	EventType   EventTypeRef `json:"eventType"`
+	ExpiresAt   *time.Time   `json:"expiresAt,omitempty"`
+
+	// Id A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+	//
+	// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+	Id             Id     `json:"id"`
+	IdempotencyKey string `json:"idempotencyKey"`
+
+	// Ledger Lowercase letters, digits, dash and underscore, 1 to 63 characters, starting with a letter or digit.
+	//
+	// Examples: eu-payments
+	Ledger LedgerName `json:"ledger"`
+
+	// Metadata Key/value pairs for your own systems, stored in Postgres. At most 64 entries.
+	Metadata Metadata `json:"metadata"`
+
+	// PendingTransferId A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+	//
+	// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+	PendingTransferId Id      `json:"pendingTransferId"`
+	Reference         *string `json:"reference,omitempty"`
+
+	// ResolutionTransferId A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+	//
+	// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+	ResolutionTransferId *Id        `json:"resolutionTransferId,omitempty"`
+	ResolvedAt           *time.Time `json:"resolvedAt,omitempty"`
+
+	// Source Colon-separated segments of letters, digits, dash and underscore.
+	//
+	// Examples: users:1234:wallet
+	Source   Address    `json:"source"`
+	Status   HoldStatus `json:"status"`
+	TbLedger *int64     `json:"tbLedger,omitempty"`
+
+	// TimeoutSeconds Seconds on the cluster clock; 0 means no timeout.
+	TimeoutSeconds int64 `json:"timeoutSeconds"`
+
+	// Timestamp The TigerBeetle timestamp, nanoseconds since the Unix epoch, as a decimal string.
+	Timestamp TigerBeetleTimestamp `json:"timestamp"`
+}
+
+// HoldList defines model for HoldList.
+type HoldList struct {
+	Counts HoldStats `json:"counts"`
+	Data   []Hold    `json:"data"`
+	Next   *string   `json:"next,omitempty"`
+}
+
+// HoldStats defines model for HoldStats.
+type HoldStats struct {
+	Captured int64 `json:"captured"`
+	Expired  int64 `json:"expired"`
+	Open     int64 `json:"open"`
+
+	// Reserved The amount held by open holds, per asset.
+	Reserved []AssetAmount `json:"reserved"`
+	Voided   int64         `json:"voided"`
+}
+
+// HoldStatus defines model for HoldStatus.
+type HoldStatus string
+
+// Id A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+//
+// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+type Id = string
+
 // Info defines model for Info.
 type Info struct {
 	Dependencies Dependencies `json:"dependencies"`
+
+	// Runtime Versions and settings of the running service.
+	Runtime *Runtime `json:"runtime,omitempty"`
 
 	// Service Examples: tigerbeetle-platform-api
 	Service string `json:"service"`
@@ -101,6 +633,50 @@ type Info struct {
 	Version string `json:"version"`
 }
 
+// Ledger defines model for Ledger.
+type Ledger struct {
+	// Accounts The number of addresses in the ledger.
+	Accounts int64 `json:"accounts"`
+
+	// Assets The assets used so far, in canonical form.
+	Assets    []Asset   `json:"assets"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Metadata Key/value pairs for your own systems, stored in Postgres. At most 64 entries.
+	Metadata Metadata `json:"metadata"`
+
+	// Name Lowercase letters, digits, dash and underscore, 1 to 63 characters, starting with a letter or digit.
+	//
+	// Examples: eu-payments
+	Name LedgerName `json:"name"`
+}
+
+// LedgerList defines model for LedgerList.
+type LedgerList struct {
+	Data []Ledger `json:"data"`
+
+	// Next The cursor of the next page; absent on the last page.
+	Next *string `json:"next,omitempty"`
+}
+
+// LedgerName Lowercase letters, digits, dash and underscore, 1 to 63 characters, starting with a letter or digit.
+//
+// Examples: eu-payments
+type LedgerName = string
+
+// LedgerStats defines model for LedgerStats.
+type LedgerStats struct {
+	Accounts int64 `json:"accounts"`
+
+	// AccountsToday Accounts created since midnight UTC.
+	AccountsToday int64          `json:"accountsToday"`
+	Assets        []AssetSummary `json:"assets"`
+
+	// Declined Declined and failed writes in the last 24 hours.
+	Declined DeclinedStats `json:"declined"`
+	Holds    HoldStats     `json:"holds"`
+}
+
 // Liveness defines model for Liveness.
 type Liveness struct {
 	Status LivenessStatus `json:"status"`
@@ -108,6 +684,64 @@ type Liveness struct {
 
 // LivenessStatus defines model for Liveness.Status.
 type LivenessStatus string
+
+// Metadata Key/value pairs for your own systems, stored in Postgres. At most 64 entries.
+type Metadata map[string]string
+
+// Operation defines model for Operation.
+type Operation string
+
+// Posting defines model for Posting.
+type Posting struct {
+	// Amount An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+	//
+	// Examples: 125000
+	Amount Amount `json:"amount"`
+
+	// Asset `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
+	//
+	// Examples: EUR/2, XOF/0
+	Asset Asset `json:"asset"`
+
+	// Destination The credited account.
+	//
+	// Examples: users:1234:wallet
+	Destination Address `json:"destination"`
+
+	// Source The debited account.
+	//
+	// Examples: users:1234:wallet
+	Source Address `json:"source"`
+}
+
+// PostingRecord defines model for PostingRecord.
+type PostingRecord struct {
+	// Amount An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+	//
+	// Examples: 125000
+	Amount Amount `json:"amount"`
+
+	// Asset `CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).
+	//
+	// Examples: EUR/2, XOF/0
+	Asset Asset `json:"asset"`
+
+	// Destination The credited account.
+	//
+	// Examples: users:1234:wallet
+	Destination Address `json:"destination"`
+
+	// Source The debited account.
+	//
+	// Examples: users:1234:wallet
+	Source   Address `json:"source"`
+	TbLedger int64   `json:"tbLedger"`
+
+	// TransferId A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+	//
+	// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+	TransferId Id `json:"transferId"`
+}
 
 // Problem RFC 9457 problem details.
 type Problem struct {
@@ -117,17 +751,38 @@ type Problem struct {
 	// Instance A URI reference that identifies the specific occurrence.
 	Instance *string `json:"instance,omitempty"`
 
+	// Posting The zero-based index of the posting that caused the problem.
+	Posting *int `json:"posting,omitempty"`
+
 	// RequestId The request ID, also returned in the X-Request-Id header.
 	RequestId *string `json:"requestId,omitempty"`
 
+	// Results The TigerBeetle result of every posting of a declined chain, in order, such as
+	// `["linked_event_failed", "exceeds_credits"]`. Nothing was applied.
+	Results *[]string `json:"results,omitempty"`
+
 	// Status The HTTP status code.
 	Status int `json:"status"`
+
+	// TargetId The transaction or hold ID minted for a declined write.
+	//
+	// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+	TargetId *Id `json:"targetId,omitempty"`
 
 	// Title A short, human-readable summary of the problem type.
 	Title string `json:"title"`
 
 	// Type A URI reference that identifies the problem type.
 	Type string `json:"type"`
+}
+
+// PutRuleRequest defines model for PutRuleRequest.
+type PutRuleRequest struct {
+	Code    int   `json:"code"`
+	History *bool `json:"history,omitempty"`
+
+	// Limit The balance limit flag of TigerBeetle accounts created by a rule.
+	Limit BalanceLimit `json:"limit"`
 }
 
 // Readiness defines model for Readiness.
@@ -138,6 +793,474 @@ type Readiness struct {
 
 // ReadinessStatus defines model for Readiness.Status.
 type ReadinessStatus string
+
+// ReconcilerStatus defines model for ReconcilerStatus.
+type ReconcilerStatus struct {
+	// GracePeriodSeconds A pending record younger than this is a write in progress, not a crash.
+	GracePeriodSeconds int        `json:"gracePeriodSeconds"`
+	IntervalSeconds    int        `json:"intervalSeconds"`
+	LastRunAt          *time.Time `json:"lastRunAt,omitempty"`
+
+	// LastSettled Records settled by the last run.
+	LastSettled *int `json:"lastSettled,omitempty"`
+
+	// Pending Pending records, across all ledgers.
+	Pending int64 `json:"pending"`
+	Running bool  `json:"running"`
+
+	// Stuck Pending records older than the grace period that the reconciler could not settle.
+	Stuck         int64           `json:"stuck"`
+	StuckRequests *[]StuckRequest `json:"stuckRequests,omitempty"`
+}
+
+// RequestStatus defines model for RequestStatus.
+type RequestStatus string
+
+// RevertTransactionRequest defines model for RevertTransactionRequest.
+type RevertTransactionRequest struct {
+	// Metadata Key/value pairs for your own systems, stored in Postgres. At most 64 entries.
+	Metadata  *Metadata `json:"metadata,omitempty"`
+	Reference *string   `json:"reference,omitempty"`
+}
+
+// Rule defines model for Rule.
+type Rule struct {
+	// BuiltIn A default that applies without being stored.
+	BuiltIn   bool       `json:"builtIn"`
+	Code      int        `json:"code"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	History   bool       `json:"history"`
+
+	// Limit The balance limit flag of TigerBeetle accounts created by a rule.
+	Limit BalanceLimit `json:"limit"`
+
+	// Pattern Examples: users:, world, *
+	Pattern string `json:"pattern"`
+
+	// Segments Specificity; the most specific matching rule wins.
+	Segments  int        `json:"segments"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
+// RuleCandidate defines model for RuleCandidate.
+type RuleCandidate struct {
+	Matches bool `json:"matches"`
+	Rule    Rule `json:"rule"`
+}
+
+// RuleList defines model for RuleList.
+type RuleList struct {
+	Data []Rule `json:"data"`
+}
+
+// RuleMatch defines model for RuleMatch.
+type RuleMatch struct {
+	// Address Colon-separated segments of letters, digits, dash and underscore.
+	//
+	// Examples: users:1234:wallet
+	Address    Address         `json:"address"`
+	Candidates []RuleCandidate `json:"candidates"`
+
+	// Existing Assets this address already has accounts in; those keep their frozen flags.
+	Existing []Asset `json:"existing"`
+	Rule     Rule    `json:"rule"`
+}
+
+// Runtime Versions and settings of the running service.
+type Runtime struct {
+	// GoVersion Examples: go1.27.3
+	GoVersion string `json:"goVersion"`
+
+	// PostgresVersion The server version reported by Postgres, when reachable.
+	PostgresVersion *string `json:"postgresVersion,omitempty"`
+
+	// SchemaVersion The last applied migration, when reachable.
+	SchemaVersion *int64    `json:"schemaVersion,omitempty"`
+	StartedAt     time.Time `json:"startedAt"`
+
+	// TigerbeetleClientVersion Examples: v0.17.10
+	TigerbeetleClientVersion string `json:"tigerbeetleClientVersion"`
+
+	// TigerbeetleClusterId The cluster ID, a u128 in decimal.
+	TigerbeetleClusterId string `json:"tigerbeetleClusterId"`
+}
+
+// SearchResults defines model for SearchResults.
+type SearchResults struct {
+	Accounts []struct {
+		// Address Colon-separated segments of letters, digits, dash and underscore.
+		//
+		// Examples: users:1234:wallet
+		Address Address `json:"address"`
+		Assets  []Asset `json:"assets"`
+	} `json:"accounts"`
+	Holds []struct {
+		// Id A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+		//
+		// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+		Id     Id         `json:"id"`
+		Status HoldStatus `json:"status"`
+	} `json:"holds"`
+	Query    string `json:"query"`
+	Requests []struct {
+		Key       string        `json:"key"`
+		Operation Operation     `json:"operation"`
+		Status    RequestStatus `json:"status"`
+	} `json:"requests"`
+	Transactions []struct {
+		CommittedAt time.Time `json:"committedAt"`
+
+		// Id A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+		//
+		// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+		Id        Id      `json:"id"`
+		Reference *string `json:"reference,omitempty"`
+	} `json:"transactions"`
+}
+
+// Segment defines model for Segment.
+type Segment struct {
+	// Accounts Addresses at or below the segment.
+	Accounts    int64   `json:"accounts"`
+	Assets      []Asset `json:"assets"`
+	HasChildren bool    `json:"hasChildren"`
+
+	// IsAccount The prefix is itself an address.
+	IsAccount bool `json:"isAccount"`
+
+	// Prefix The full path of the segment.
+	//
+	// Examples: users:1234
+	Prefix string `json:"prefix"`
+
+	// Segment Examples: 1234
+	Segment string `json:"segment"`
+}
+
+// SegmentList defines model for SegmentList.
+type SegmentList struct {
+	Data   []Segment `json:"data"`
+	Prefix *string   `json:"prefix,omitempty"`
+}
+
+// SignedAmount A signed integer in the asset's smallest unit, for balances.
+//
+// Examples: -481230000
+type SignedAmount = string
+
+// StuckRequest defines model for StuckRequest.
+type StuckRequest struct {
+	Attempts  int       `json:"attempts"`
+	CreatedAt time.Time `json:"createdAt"`
+	Key       string    `json:"key"`
+
+	// Ledger Lowercase letters, digits, dash and underscore, 1 to 63 characters, starting with a letter or digit.
+	//
+	// Examples: eu-payments
+	Ledger    LedgerName `json:"ledger"`
+	Note      *string    `json:"note,omitempty"`
+	Operation Operation  `json:"operation"`
+}
+
+// TigerBeetleTimestamp The TigerBeetle timestamp, nanoseconds since the Unix epoch, as a decimal string.
+type TigerBeetleTimestamp = string
+
+// Transaction defines model for Transaction.
+type Transaction struct {
+	// BusinessTime The client's business time, stored in `user_data_64`. Not the committed time.
+	BusinessTime *time.Time `json:"businessTime,omitempty"`
+
+	// CommittedAt The TigerBeetle timestamp of the chain, the only time the ledger knows.
+	CommittedAt time.Time    `json:"committedAt"`
+	EventType   EventTypeRef `json:"eventType"`
+
+	// Id A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+	//
+	// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+	Id             Id     `json:"id"`
+	IdempotencyKey string `json:"idempotencyKey"`
+
+	// Ledger Lowercase letters, digits, dash and underscore, 1 to 63 characters, starting with a letter or digit.
+	//
+	// Examples: eu-payments
+	Ledger LedgerName `json:"ledger"`
+
+	// Metadata Key/value pairs for your own systems, stored in Postgres. At most 64 entries.
+	Metadata  Metadata        `json:"metadata"`
+	Postings  []PostingRecord `json:"postings"`
+	Reference *string         `json:"reference,omitempty"`
+	RequestId *string         `json:"requestId,omitempty"`
+
+	// RevertedBy The transaction that reverted this one.
+	//
+	// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+	RevertedBy *Id `json:"revertedBy,omitempty"`
+
+	// Reverts The transaction this one reverts.
+	//
+	// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+	Reverts *Id `json:"reverts,omitempty"`
+
+	// Timestamp The TigerBeetle timestamp, nanoseconds since the Unix epoch, as a decimal string.
+	Timestamp TigerBeetleTimestamp `json:"timestamp"`
+}
+
+// TransactionList defines model for TransactionList.
+type TransactionList struct {
+	Data []Transaction `json:"data"`
+	Next *string       `json:"next,omitempty"`
+}
+
+// WriteRequest defines model for WriteRequest.
+type WriteRequest struct {
+	// Attempts TigerBeetle submissions, including reconciler retries.
+	Attempts int `json:"attempts"`
+
+	// BodyHash SHA-256 of the canonical request body, hex.
+	BodyHash  string    `json:"bodyHash"`
+	CreatedAt time.Time `json:"createdAt"`
+	Key       string    `json:"key"`
+	Operation Operation `json:"operation"`
+
+	// ProblemType The problem type of a declined or failed write.
+	ProblemType    *string       `json:"problemType,omitempty"`
+	RequestId      *string       `json:"requestId,omitempty"`
+	ResolvedAt     *time.Time    `json:"resolvedAt,omitempty"`
+	ResponseStatus *int          `json:"responseStatus,omitempty"`
+	Status         RequestStatus `json:"status"`
+
+	// TargetId The transaction or hold minted for this write.
+	//
+	// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+	TargetId Id `json:"targetId"`
+}
+
+// WriteRequestDetail defines model for WriteRequestDetail.
+type WriteRequestDetail struct {
+	// Attempts TigerBeetle submissions, including reconciler retries.
+	Attempts int `json:"attempts"`
+
+	// BodyHash SHA-256 of the canonical request body, hex.
+	BodyHash  string    `json:"bodyHash"`
+	CreatedAt time.Time `json:"createdAt"`
+	Key       string    `json:"key"`
+	Operation Operation `json:"operation"`
+
+	// ProblemType The problem type of a declined or failed write.
+	ProblemType *string `json:"problemType,omitempty"`
+
+	// Request The canonical request body as stored.
+	Request    map[string]interface{} `json:"request"`
+	RequestId  *string                `json:"requestId,omitempty"`
+	ResolvedAt *time.Time             `json:"resolvedAt,omitempty"`
+
+	// Response The stored response or problem body.
+	Response       *map[string]interface{} `json:"response,omitempty"`
+	ResponseStatus *int                    `json:"responseStatus,omitempty"`
+	Status         RequestStatus           `json:"status"`
+
+	// TargetId The transaction or hold minted for this write.
+	//
+	// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+	TargetId Id `json:"targetId"`
+
+	// TransferIds The transfer IDs minted before the first submission, in chain order.
+	TransferIds []Id `json:"transferIds"`
+}
+
+// WriteRequestList defines model for WriteRequestList.
+type WriteRequestList struct {
+	Data []WriteRequest `json:"data"`
+	Next *string        `json:"next,omitempty"`
+}
+
+// AccountAddress Colon-separated segments of letters, digits, dash and underscore.
+//
+// Examples: users:1234:wallet
+type AccountAddress = Address
+
+// Cursor defines model for Cursor.
+type Cursor = string
+
+// IdempotencyKey defines model for IdempotencyKey.
+type IdempotencyKey = string
+
+// Limit defines model for Limit.
+type Limit = int
+
+// ResourceId A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+//
+// Examples: 0192f3a1b7c94e2a8d5f6c0b1e2d7c2e
+type ResourceId = Id
+
+// ListLedgersParams defines parameters for ListLedgers.
+type ListLedgersParams struct {
+	// Cursor The opaque `next` cursor of the previous page.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListAccountsParams defines parameters for ListAccounts.
+type ListAccountsParams struct {
+	// Prefix Only addresses equal to or below this prefix, on whole segments. A trailing colon is optional.
+	Prefix *AddressPrefix `form:"prefix,omitempty" json:"prefix,omitempty"`
+
+	// Search Only addresses starting with this text, for autocompletion.
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
+
+	// Asset Only accounts holding this asset.
+	Asset *Asset `form:"asset,omitempty" json:"asset,omitempty"`
+
+	// Cursor The opaque `next` cursor of the previous page.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetAccountHistoryParams defines parameters for GetAccountHistory.
+type GetAccountHistoryParams struct {
+	Asset Asset `form:"asset" json:"asset"`
+	Limit *int  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// AggregateBalancesParams defines parameters for AggregateBalances.
+type AggregateBalancesParams struct {
+	// Address The prefix, on whole segments. A trailing colon is optional.
+	Address AddressPrefix `form:"address" json:"address"`
+}
+
+// ListSegmentsParams defines parameters for ListSegments.
+type ListSegmentsParams struct {
+	Prefix *AddressPrefix `form:"prefix,omitempty" json:"prefix,omitempty"`
+}
+
+// ListHoldsParams defines parameters for ListHolds.
+type ListHoldsParams struct {
+	Status *HoldStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// Address Only holds from or to an account at or below this prefix.
+	Address *AddressPrefix `form:"address,omitempty" json:"address,omitempty"`
+
+	// Cursor The opaque `next` cursor of the previous page.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CreateHoldParams defines parameters for CreateHold.
+type CreateHoldParams struct {
+	// IdempotencyKey Identifies the write. Reusing it with the same body replays the stored outcome; with a
+	// different body answers 422 `idempotency-key-reused`.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// CaptureHoldParams defines parameters for CaptureHold.
+type CaptureHoldParams struct {
+	// IdempotencyKey Identifies the write. Reusing it with the same body replays the stored outcome; with a
+	// different body answers 422 `idempotency-key-reused`.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// VoidHoldParams defines parameters for VoidHold.
+type VoidHoldParams struct {
+	// IdempotencyKey Identifies the write. Reusing it with the same body replays the stored outcome; with a
+	// different body answers 422 `idempotency-key-reused`.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// ListWriteRequestsParams defines parameters for ListWriteRequests.
+type ListWriteRequestsParams struct {
+	Status    *RequestStatus `form:"status,omitempty" json:"status,omitempty"`
+	Operation *Operation     `form:"operation,omitempty" json:"operation,omitempty"`
+
+	// Search An Idempotency-Key, or the start of one, or a request ID.
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
+
+	// Cursor The opaque `next` cursor of the previous page.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// MatchRuleParams defines parameters for MatchRule.
+type MatchRuleParams struct {
+	Address Address `form:"address" json:"address"`
+}
+
+// SearchParams defines parameters for Search.
+type SearchParams struct {
+	Q string `form:"q" json:"q"`
+}
+
+// ListTransactionsParams defines parameters for ListTransactions.
+type ListTransactionsParams struct {
+	// Address Only transactions with a posting from or to an account at or below this prefix.
+	Address   *AddressPrefix `form:"address,omitempty" json:"address,omitempty"`
+	Asset     *Asset         `form:"asset,omitempty" json:"asset,omitempty"`
+	Reference *string        `form:"reference,omitempty" json:"reference,omitempty"`
+	EventType *string        `form:"eventType,omitempty" json:"eventType,omitempty"`
+
+	// After Committed at or after this time.
+	After *time.Time `form:"after,omitempty" json:"after,omitempty"`
+
+	// Before Committed before this time.
+	Before *time.Time `form:"before,omitempty" json:"before,omitempty"`
+
+	// Cursor The opaque `next` cursor of the previous page.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CreateTransactionParams defines parameters for CreateTransaction.
+type CreateTransactionParams struct {
+	// IdempotencyKey Identifies the write. Reusing it with the same body replays the stored outcome; with a
+	// different body answers 422 `idempotency-key-reused`.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// RevertTransactionParams defines parameters for RevertTransaction.
+type RevertTransactionParams struct {
+	// IdempotencyKey Identifies the write. Reusing it with the same body replays the stored outcome; with a
+	// different body answers 422 `idempotency-key-reused`.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// CreateLedgerJSONRequestBody defines body for CreateLedger for application/json ContentType.
+type CreateLedgerJSONRequestBody = CreateLedgerRequest
+
+// ReplaceAccountMetadataJSONRequestBody defines body for ReplaceAccountMetadata for application/json ContentType.
+type ReplaceAccountMetadataJSONRequestBody = Metadata
+
+// CreateEventTypeJSONRequestBody defines body for CreateEventType for application/json ContentType.
+type CreateEventTypeJSONRequestBody = CreateEventTypeRequest
+
+// CreateHoldJSONRequestBody defines body for CreateHold for application/json ContentType.
+type CreateHoldJSONRequestBody = CreateHoldRequest
+
+// CaptureHoldJSONRequestBody defines body for CaptureHold for application/json ContentType.
+type CaptureHoldJSONRequestBody = CaptureHoldRequest
+
+// ReplaceLedgerMetadataJSONRequestBody defines body for ReplaceLedgerMetadata for application/json ContentType.
+type ReplaceLedgerMetadataJSONRequestBody = Metadata
+
+// PutRuleJSONRequestBody defines body for PutRule for application/json ContentType.
+type PutRuleJSONRequestBody = PutRuleRequest
+
+// CreateTransactionJSONRequestBody defines body for CreateTransaction for application/json ContentType.
+type CreateTransactionJSONRequestBody = CreateTransactionRequest
+
+// ReplaceTransactionMetadataJSONRequestBody defines body for ReplaceTransactionMetadata for application/json ContentType.
+type ReplaceTransactionMetadataJSONRequestBody = Metadata
+
+// RevertTransactionJSONRequestBody defines body for RevertTransaction for application/json ContentType.
+type RevertTransactionJSONRequestBody = RevertTransactionRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -150,6 +1273,102 @@ type ServerInterface interface {
 	// GetInfo Service information
 	// (GET /v1/_info)
 	GetInfo(w http.ResponseWriter, r *http.Request)
+	// GetReconcilerStatus Reconciler status
+	// (GET /v1/_reconciler)
+	GetReconcilerStatus(w http.ResponseWriter, r *http.Request)
+	// ListLedgers List ledgers
+	// (GET /v1/ledgers)
+	ListLedgers(w http.ResponseWriter, r *http.Request, params ListLedgersParams)
+	// GetLedger Get a ledger
+	// (GET /v1/ledgers/{ledger})
+	GetLedger(w http.ResponseWriter, r *http.Request, ledger LedgerName)
+	// CreateLedger Create a ledger
+	// (POST /v1/ledgers/{ledger})
+	CreateLedger(w http.ResponseWriter, r *http.Request, ledger LedgerName)
+	// ListAccounts List accounts
+	// (GET /v1/ledgers/{ledger}/accounts)
+	ListAccounts(w http.ResponseWriter, r *http.Request, ledger LedgerName, params ListAccountsParams)
+	// GetAccount Get an account
+	// (GET /v1/ledgers/{ledger}/accounts/{address})
+	GetAccount(w http.ResponseWriter, r *http.Request, ledger LedgerName, address AccountAddress)
+	// GetAccountHistory Balance history
+	// (GET /v1/ledgers/{ledger}/accounts/{address}/history)
+	GetAccountHistory(w http.ResponseWriter, r *http.Request, ledger LedgerName, address AccountAddress, params GetAccountHistoryParams)
+	// ReplaceAccountMetadata Replace account metadata
+	// (PUT /v1/ledgers/{ledger}/accounts/{address}/metadata)
+	ReplaceAccountMetadata(w http.ResponseWriter, r *http.Request, ledger LedgerName, address AccountAddress)
+	// AggregateBalances Sum balances under a prefix
+	// (GET /v1/ledgers/{ledger}/aggregate/balances)
+	AggregateBalances(w http.ResponseWriter, r *http.Request, ledger LedgerName, params AggregateBalancesParams)
+	// ListSegments Address segments under a prefix
+	// (GET /v1/ledgers/{ledger}/aggregate/segments)
+	ListSegments(w http.ResponseWriter, r *http.Request, ledger LedgerName, params ListSegmentsParams)
+	// ListAssets List assets
+	// (GET /v1/ledgers/{ledger}/assets)
+	ListAssets(w http.ResponseWriter, r *http.Request, ledger LedgerName)
+	// ListEventTypes List event types
+	// (GET /v1/ledgers/{ledger}/event-types)
+	ListEventTypes(w http.ResponseWriter, r *http.Request, ledger LedgerName)
+	// CreateEventType Create an event type
+	// (POST /v1/ledgers/{ledger}/event-types)
+	CreateEventType(w http.ResponseWriter, r *http.Request, ledger LedgerName)
+	// ListHolds List holds
+	// (GET /v1/ledgers/{ledger}/holds)
+	ListHolds(w http.ResponseWriter, r *http.Request, ledger LedgerName, params ListHoldsParams)
+	// CreateHold Create a hold
+	// (POST /v1/ledgers/{ledger}/holds)
+	CreateHold(w http.ResponseWriter, r *http.Request, ledger LedgerName, params CreateHoldParams)
+	// GetHold Get a hold
+	// (GET /v1/ledgers/{ledger}/holds/{id})
+	GetHold(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId)
+	// CaptureHold Capture a hold
+	// (POST /v1/ledgers/{ledger}/holds/{id}/capture)
+	CaptureHold(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId, params CaptureHoldParams)
+	// VoidHold Void a hold
+	// (POST /v1/ledgers/{ledger}/holds/{id}/void)
+	VoidHold(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId, params VoidHoldParams)
+	// ReplaceLedgerMetadata Replace ledger metadata
+	// (PUT /v1/ledgers/{ledger}/metadata)
+	ReplaceLedgerMetadata(w http.ResponseWriter, r *http.Request, ledger LedgerName)
+	// ListWriteRequests List write requests
+	// (GET /v1/ledgers/{ledger}/requests)
+	ListWriteRequests(w http.ResponseWriter, r *http.Request, ledger LedgerName, params ListWriteRequestsParams)
+	// GetWriteRequest Get a write request
+	// (GET /v1/ledgers/{ledger}/requests/{key})
+	GetWriteRequest(w http.ResponseWriter, r *http.Request, ledger LedgerName, key string)
+	// ListRules List account rules
+	// (GET /v1/ledgers/{ledger}/rules)
+	ListRules(w http.ResponseWriter, r *http.Request, ledger LedgerName)
+	// MatchRule Which rule wins for an address
+	// (GET /v1/ledgers/{ledger}/rules/match)
+	MatchRule(w http.ResponseWriter, r *http.Request, ledger LedgerName, params MatchRuleParams)
+	// DeleteRule Delete a rule
+	// (DELETE /v1/ledgers/{ledger}/rules/{pattern})
+	DeleteRule(w http.ResponseWriter, r *http.Request, ledger LedgerName, pattern string)
+	// PutRule Create or replace a rule
+	// (PUT /v1/ledgers/{ledger}/rules/{pattern})
+	PutRule(w http.ResponseWriter, r *http.Request, ledger LedgerName, pattern string)
+	// Search Search the ledger
+	// (GET /v1/ledgers/{ledger}/search)
+	Search(w http.ResponseWriter, r *http.Request, ledger LedgerName, params SearchParams)
+	// GetLedgerStats Ledger overview figures
+	// (GET /v1/ledgers/{ledger}/stats)
+	GetLedgerStats(w http.ResponseWriter, r *http.Request, ledger LedgerName)
+	// ListTransactions List transactions
+	// (GET /v1/ledgers/{ledger}/transactions)
+	ListTransactions(w http.ResponseWriter, r *http.Request, ledger LedgerName, params ListTransactionsParams)
+	// CreateTransaction Create a transaction
+	// (POST /v1/ledgers/{ledger}/transactions)
+	CreateTransaction(w http.ResponseWriter, r *http.Request, ledger LedgerName, params CreateTransactionParams)
+	// GetTransaction Get a transaction
+	// (GET /v1/ledgers/{ledger}/transactions/{id})
+	GetTransaction(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId)
+	// ReplaceTransactionMetadata Replace transaction metadata
+	// (PUT /v1/ledgers/{ledger}/transactions/{id}/metadata)
+	ReplaceTransactionMetadata(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId)
+	// RevertTransaction Revert a transaction
+	// (POST /v1/ledgers/{ledger}/transactions/{id}/revert)
+	RevertTransaction(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId, params RevertTransactionParams)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -194,6 +1413,1485 @@ func (siw *ServerInterfaceWrapper) GetInfo(w http.ResponseWriter, r *http.Reques
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetInfo(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetReconcilerStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetReconcilerStatus(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetReconcilerStatus(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListLedgers operation middleware
+func (siw *ServerInterfaceWrapper) ListLedgers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListLedgersParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListLedgers(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetLedger operation middleware
+func (siw *ServerInterfaceWrapper) GetLedger(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLedger(w, r, ledger)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateLedger operation middleware
+func (siw *ServerInterfaceWrapper) CreateLedger(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateLedger(w, r, ledger)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAccounts operation middleware
+func (siw *ServerInterfaceWrapper) ListAccounts(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAccountsParams
+
+	// ------------- Optional query parameter "prefix" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "prefix", r.URL.Query(), &params.Prefix, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "prefix"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "prefix", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "search" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "search", r.URL.Query(), &params.Search, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "search"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "asset" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "asset", r.URL.Query(), &params.Asset, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "asset"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "asset", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAccounts(w, r, ledger, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAccount operation middleware
+func (siw *ServerInterfaceWrapper) GetAccount(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "address" -------------
+	var address AccountAddress
+
+	err = runtime.BindStyledParameterWithOptions("simple", "address", r.PathValue("address"), &address, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "address", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAccount(w, r, ledger, address)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAccountHistory operation middleware
+func (siw *ServerInterfaceWrapper) GetAccountHistory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "address" -------------
+	var address AccountAddress
+
+	err = runtime.BindStyledParameterWithOptions("simple", "address", r.PathValue("address"), &address, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "address", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetAccountHistoryParams
+
+	// ------------- Required query parameter "asset" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "asset", r.URL.Query(), &params.Asset, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "asset"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "asset", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAccountHistory(w, r, ledger, address, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReplaceAccountMetadata operation middleware
+func (siw *ServerInterfaceWrapper) ReplaceAccountMetadata(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "address" -------------
+	var address AccountAddress
+
+	err = runtime.BindStyledParameterWithOptions("simple", "address", r.PathValue("address"), &address, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "address", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReplaceAccountMetadata(w, r, ledger, address)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AggregateBalances operation middleware
+func (siw *ServerInterfaceWrapper) AggregateBalances(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AggregateBalancesParams
+
+	// ------------- Required query parameter "address" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "address", r.URL.Query(), &params.Address, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "address"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "address", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AggregateBalances(w, r, ledger, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSegments operation middleware
+func (siw *ServerInterfaceWrapper) ListSegments(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSegmentsParams
+
+	// ------------- Optional query parameter "prefix" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "prefix", r.URL.Query(), &params.Prefix, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "prefix"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "prefix", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSegments(w, r, ledger, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAssets operation middleware
+func (siw *ServerInterfaceWrapper) ListAssets(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAssets(w, r, ledger)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListEventTypes operation middleware
+func (siw *ServerInterfaceWrapper) ListEventTypes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListEventTypes(w, r, ledger)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateEventType operation middleware
+func (siw *ServerInterfaceWrapper) CreateEventType(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateEventType(w, r, ledger)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListHolds operation middleware
+func (siw *ServerInterfaceWrapper) ListHolds(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListHoldsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "address" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "address", r.URL.Query(), &params.Address, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "address"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "address", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListHolds(w, r, ledger, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateHold operation middleware
+func (siw *ServerInterfaceWrapper) CreateHold(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateHoldParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateHold(w, r, ledger, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetHold operation middleware
+func (siw *ServerInterfaceWrapper) GetHold(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHold(w, r, ledger, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CaptureHold operation middleware
+func (siw *ServerInterfaceWrapper) CaptureHold(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CaptureHoldParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CaptureHold(w, r, ledger, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// VoidHold operation middleware
+func (siw *ServerInterfaceWrapper) VoidHold(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params VoidHoldParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.VoidHold(w, r, ledger, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReplaceLedgerMetadata operation middleware
+func (siw *ServerInterfaceWrapper) ReplaceLedgerMetadata(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReplaceLedgerMetadata(w, r, ledger)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListWriteRequests operation middleware
+func (siw *ServerInterfaceWrapper) ListWriteRequests(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListWriteRequestsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "operation" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "operation", r.URL.Query(), &params.Operation, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "operation"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "operation", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "search" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "search", r.URL.Query(), &params.Search, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "search"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWriteRequests(w, r, ledger, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetWriteRequest operation middleware
+func (siw *ServerInterfaceWrapper) GetWriteRequest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "key" -------------
+	var key string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "key", r.PathValue("key"), &key, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWriteRequest(w, r, ledger, key)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListRules operation middleware
+func (siw *ServerInterfaceWrapper) ListRules(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRules(w, r, ledger)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MatchRule operation middleware
+func (siw *ServerInterfaceWrapper) MatchRule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params MatchRuleParams
+
+	// ------------- Required query parameter "address" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "address", r.URL.Query(), &params.Address, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "address"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "address", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MatchRule(w, r, ledger, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteRule operation middleware
+func (siw *ServerInterfaceWrapper) DeleteRule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "pattern" -------------
+	var pattern string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pattern", r.PathValue("pattern"), &pattern, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pattern", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteRule(w, r, ledger, pattern)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutRule operation middleware
+func (siw *ServerInterfaceWrapper) PutRule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "pattern" -------------
+	var pattern string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pattern", r.PathValue("pattern"), &pattern, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pattern", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutRule(w, r, ledger, pattern)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// Search operation middleware
+func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchParams
+
+	// ------------- Required query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Search(w, r, ledger, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetLedgerStats operation middleware
+func (siw *ServerInterfaceWrapper) GetLedgerStats(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLedgerStats(w, r, ledger)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTransactions operation middleware
+func (siw *ServerInterfaceWrapper) ListTransactions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTransactionsParams
+
+	// ------------- Optional query parameter "address" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "address", r.URL.Query(), &params.Address, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "address"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "address", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "asset" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "asset", r.URL.Query(), &params.Asset, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "asset"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "asset", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "reference" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "reference", r.URL.Query(), &params.Reference, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "reference"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reference", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "eventType" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "eventType", r.URL.Query(), &params.EventType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "eventType"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventType", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "after" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "after", r.URL.Query(), &params.After, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "after"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "after", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTransactions(w, r, ledger, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTransaction operation middleware
+func (siw *ServerInterfaceWrapper) CreateTransaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateTransactionParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTransaction(w, r, ledger, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTransaction operation middleware
+func (siw *ServerInterfaceWrapper) GetTransaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTransaction(w, r, ledger, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReplaceTransactionMetadata operation middleware
+func (siw *ServerInterfaceWrapper) ReplaceTransactionMetadata(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReplaceTransactionMetadata(w, r, ledger, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevertTransaction operation middleware
+func (siw *ServerInterfaceWrapper) RevertTransaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ledger" -------------
+	var ledger LedgerName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ledger", r.PathValue("ledger"), &ledger, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ledger", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RevertTransactionParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevertTransaction(w, r, ledger, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -326,6 +3024,38 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/healthz", wrapper.GetLiveness)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/readyz", wrapper.GetReadiness)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/_info", wrapper.GetInfo)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/_reconciler", wrapper.GetReconcilerStatus)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers", wrapper.ListLedgers)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}", wrapper.GetLedger)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/ledgers/{ledger}", wrapper.CreateLedger)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/ledgers/{ledger}/metadata", wrapper.ReplaceLedgerMetadata)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/stats", wrapper.GetLedgerStats)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/assets", wrapper.ListAssets)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/accounts", wrapper.ListAccounts)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/accounts/{address}", wrapper.GetAccount)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/ledgers/{ledger}/accounts/{address}/metadata", wrapper.ReplaceAccountMetadata)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/accounts/{address}/history", wrapper.GetAccountHistory)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/aggregate/balances", wrapper.AggregateBalances)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/aggregate/segments", wrapper.ListSegments)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/transactions", wrapper.ListTransactions)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/ledgers/{ledger}/transactions", wrapper.CreateTransaction)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/transactions/{id}", wrapper.GetTransaction)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/ledgers/{ledger}/transactions/{id}/metadata", wrapper.ReplaceTransactionMetadata)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/ledgers/{ledger}/transactions/{id}/revert", wrapper.RevertTransaction)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/holds", wrapper.ListHolds)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/ledgers/{ledger}/holds", wrapper.CreateHold)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/holds/{id}", wrapper.GetHold)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/ledgers/{ledger}/holds/{id}/capture", wrapper.CaptureHold)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/ledgers/{ledger}/holds/{id}/void", wrapper.VoidHold)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/requests", wrapper.ListWriteRequests)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/requests/{key}", wrapper.GetWriteRequest)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/rules", wrapper.ListRules)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/rules/match", wrapper.MatchRule)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/ledgers/{ledger}/rules/{pattern}", wrapper.DeleteRule)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/ledgers/{ledger}/rules/{pattern}", wrapper.PutRule)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/event-types", wrapper.ListEventTypes)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/ledgers/{ledger}/event-types", wrapper.CreateEventType)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/ledgers/{ledger}/search", wrapper.Search)
 
 	return m
 }
@@ -460,6 +3190,1283 @@ func (response GetInfodefaultApplicationProblemPlusJSONResponse) VisitGetInfoRes
 	return err
 }
 
+type GetReconcilerStatusRequestObject struct {
+}
+
+type GetReconcilerStatusResponseObject interface {
+	VisitGetReconcilerStatusResponse(w http.ResponseWriter) error
+}
+
+type GetReconcilerStatus200JSONResponse ReconcilerStatus
+
+func (response GetReconcilerStatus200JSONResponse) VisitGetReconcilerStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReconcilerStatusdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetReconcilerStatusdefaultApplicationProblemPlusJSONResponse) VisitGetReconcilerStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListLedgersRequestObject struct {
+	Params ListLedgersParams
+}
+
+type ListLedgersResponseObject interface {
+	VisitListLedgersResponse(w http.ResponseWriter) error
+}
+
+type ListLedgers200JSONResponse LedgerList
+
+func (response ListLedgers200JSONResponse) VisitListLedgersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListLedgersdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListLedgersdefaultApplicationProblemPlusJSONResponse) VisitListLedgersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLedgerRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+}
+
+type GetLedgerResponseObject interface {
+	VisitGetLedgerResponse(w http.ResponseWriter) error
+}
+
+type GetLedger200JSONResponse Ledger
+
+func (response GetLedger200JSONResponse) VisitGetLedgerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLedgerdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetLedgerdefaultApplicationProblemPlusJSONResponse) VisitGetLedgerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateLedgerRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Body   *CreateLedgerJSONRequestBody
+}
+
+type CreateLedgerResponseObject interface {
+	VisitCreateLedgerResponse(w http.ResponseWriter) error
+}
+
+type CreateLedger201JSONResponse Ledger
+
+func (response CreateLedger201JSONResponse) VisitCreateLedgerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateLedgerdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreateLedgerdefaultApplicationProblemPlusJSONResponse) VisitCreateLedgerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAccountsRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Params ListAccountsParams
+}
+
+type ListAccountsResponseObject interface {
+	VisitListAccountsResponse(w http.ResponseWriter) error
+}
+
+type ListAccounts200JSONResponse AccountList
+
+func (response ListAccounts200JSONResponse) VisitListAccountsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAccountsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListAccountsdefaultApplicationProblemPlusJSONResponse) VisitListAccountsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAccountRequestObject struct {
+	Ledger  LedgerName     `json:"ledger"`
+	Address AccountAddress `json:"address"`
+}
+
+type GetAccountResponseObject interface {
+	VisitGetAccountResponse(w http.ResponseWriter) error
+}
+
+type GetAccount200JSONResponse Account
+
+func (response GetAccount200JSONResponse) VisitGetAccountResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAccountdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetAccountdefaultApplicationProblemPlusJSONResponse) VisitGetAccountResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAccountHistoryRequestObject struct {
+	Ledger  LedgerName     `json:"ledger"`
+	Address AccountAddress `json:"address"`
+	Params  GetAccountHistoryParams
+}
+
+type GetAccountHistoryResponseObject interface {
+	VisitGetAccountHistoryResponse(w http.ResponseWriter) error
+}
+
+type GetAccountHistory200JSONResponse BalanceHistory
+
+func (response GetAccountHistory200JSONResponse) VisitGetAccountHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAccountHistorydefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetAccountHistorydefaultApplicationProblemPlusJSONResponse) VisitGetAccountHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceAccountMetadataRequestObject struct {
+	Ledger  LedgerName     `json:"ledger"`
+	Address AccountAddress `json:"address"`
+	Body    *ReplaceAccountMetadataJSONRequestBody
+}
+
+type ReplaceAccountMetadataResponseObject interface {
+	VisitReplaceAccountMetadataResponse(w http.ResponseWriter) error
+}
+
+type ReplaceAccountMetadata200JSONResponse Account
+
+func (response ReplaceAccountMetadata200JSONResponse) VisitReplaceAccountMetadataResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceAccountMetadatadefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ReplaceAccountMetadatadefaultApplicationProblemPlusJSONResponse) VisitReplaceAccountMetadataResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AggregateBalancesRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Params AggregateBalancesParams
+}
+
+type AggregateBalancesResponseObject interface {
+	VisitAggregateBalancesResponse(w http.ResponseWriter) error
+}
+
+type AggregateBalances200JSONResponse AggregateBalances
+
+func (response AggregateBalances200JSONResponse) VisitAggregateBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AggregateBalancesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response AggregateBalancesdefaultApplicationProblemPlusJSONResponse) VisitAggregateBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSegmentsRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Params ListSegmentsParams
+}
+
+type ListSegmentsResponseObject interface {
+	VisitListSegmentsResponse(w http.ResponseWriter) error
+}
+
+type ListSegments200JSONResponse SegmentList
+
+func (response ListSegments200JSONResponse) VisitListSegmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSegmentsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListSegmentsdefaultApplicationProblemPlusJSONResponse) VisitListSegmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAssetsRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+}
+
+type ListAssetsResponseObject interface {
+	VisitListAssetsResponse(w http.ResponseWriter) error
+}
+
+type ListAssets200JSONResponse AssetList
+
+func (response ListAssets200JSONResponse) VisitListAssetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAssetsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListAssetsdefaultApplicationProblemPlusJSONResponse) VisitListAssetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEventTypesRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+}
+
+type ListEventTypesResponseObject interface {
+	VisitListEventTypesResponse(w http.ResponseWriter) error
+}
+
+type ListEventTypes200JSONResponse EventTypeList
+
+func (response ListEventTypes200JSONResponse) VisitListEventTypesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEventTypesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListEventTypesdefaultApplicationProblemPlusJSONResponse) VisitListEventTypesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEventTypeRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Body   *CreateEventTypeJSONRequestBody
+}
+
+type CreateEventTypeResponseObject interface {
+	VisitCreateEventTypeResponse(w http.ResponseWriter) error
+}
+
+type CreateEventType201JSONResponse EventType
+
+func (response CreateEventType201JSONResponse) VisitCreateEventTypeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEventTypedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreateEventTypedefaultApplicationProblemPlusJSONResponse) VisitCreateEventTypeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHoldsRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Params ListHoldsParams
+}
+
+type ListHoldsResponseObject interface {
+	VisitListHoldsResponse(w http.ResponseWriter) error
+}
+
+type ListHolds200JSONResponse HoldList
+
+func (response ListHolds200JSONResponse) VisitListHoldsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHoldsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListHoldsdefaultApplicationProblemPlusJSONResponse) VisitListHoldsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHoldRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Params CreateHoldParams
+	Body   *CreateHoldJSONRequestBody
+}
+
+type CreateHoldResponseObject interface {
+	VisitCreateHoldResponse(w http.ResponseWriter) error
+}
+
+type CreateHold201JSONResponse Hold
+
+func (response CreateHold201JSONResponse) VisitCreateHoldResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHolddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreateHolddefaultApplicationProblemPlusJSONResponse) VisitCreateHoldResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetHoldRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Id     ResourceId `json:"id"`
+}
+
+type GetHoldResponseObject interface {
+	VisitGetHoldResponse(w http.ResponseWriter) error
+}
+
+type GetHold200JSONResponse Hold
+
+func (response GetHold200JSONResponse) VisitGetHoldResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetHolddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetHolddefaultApplicationProblemPlusJSONResponse) VisitGetHoldResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CaptureHoldRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Id     ResourceId `json:"id"`
+	Params CaptureHoldParams
+	Body   *CaptureHoldJSONRequestBody
+}
+
+type CaptureHoldResponseObject interface {
+	VisitCaptureHoldResponse(w http.ResponseWriter) error
+}
+
+type CaptureHold200JSONResponse Hold
+
+func (response CaptureHold200JSONResponse) VisitCaptureHoldResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CaptureHolddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CaptureHolddefaultApplicationProblemPlusJSONResponse) VisitCaptureHoldResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VoidHoldRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Id     ResourceId `json:"id"`
+	Params VoidHoldParams
+}
+
+type VoidHoldResponseObject interface {
+	VisitVoidHoldResponse(w http.ResponseWriter) error
+}
+
+type VoidHold200JSONResponse Hold
+
+func (response VoidHold200JSONResponse) VisitVoidHoldResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VoidHolddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response VoidHolddefaultApplicationProblemPlusJSONResponse) VisitVoidHoldResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceLedgerMetadataRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Body   *ReplaceLedgerMetadataJSONRequestBody
+}
+
+type ReplaceLedgerMetadataResponseObject interface {
+	VisitReplaceLedgerMetadataResponse(w http.ResponseWriter) error
+}
+
+type ReplaceLedgerMetadata200JSONResponse Ledger
+
+func (response ReplaceLedgerMetadata200JSONResponse) VisitReplaceLedgerMetadataResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceLedgerMetadatadefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ReplaceLedgerMetadatadefaultApplicationProblemPlusJSONResponse) VisitReplaceLedgerMetadataResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListWriteRequestsRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Params ListWriteRequestsParams
+}
+
+type ListWriteRequestsResponseObject interface {
+	VisitListWriteRequestsResponse(w http.ResponseWriter) error
+}
+
+type ListWriteRequests200JSONResponse WriteRequestList
+
+func (response ListWriteRequests200JSONResponse) VisitListWriteRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListWriteRequestsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListWriteRequestsdefaultApplicationProblemPlusJSONResponse) VisitListWriteRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWriteRequestRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Key    string     `json:"key"`
+}
+
+type GetWriteRequestResponseObject interface {
+	VisitGetWriteRequestResponse(w http.ResponseWriter) error
+}
+
+type GetWriteRequest200JSONResponse WriteRequestDetail
+
+func (response GetWriteRequest200JSONResponse) VisitGetWriteRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWriteRequestdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetWriteRequestdefaultApplicationProblemPlusJSONResponse) VisitGetWriteRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRulesRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+}
+
+type ListRulesResponseObject interface {
+	VisitListRulesResponse(w http.ResponseWriter) error
+}
+
+type ListRules200JSONResponse RuleList
+
+func (response ListRules200JSONResponse) VisitListRulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRulesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListRulesdefaultApplicationProblemPlusJSONResponse) VisitListRulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MatchRuleRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Params MatchRuleParams
+}
+
+type MatchRuleResponseObject interface {
+	VisitMatchRuleResponse(w http.ResponseWriter) error
+}
+
+type MatchRule200JSONResponse RuleMatch
+
+func (response MatchRule200JSONResponse) VisitMatchRuleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MatchRuledefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response MatchRuledefaultApplicationProblemPlusJSONResponse) VisitMatchRuleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteRuleRequestObject struct {
+	Ledger  LedgerName `json:"ledger"`
+	Pattern string     `json:"pattern"`
+}
+
+type DeleteRuleResponseObject interface {
+	VisitDeleteRuleResponse(w http.ResponseWriter) error
+}
+
+type DeleteRule204Response struct {
+}
+
+func (response DeleteRule204Response) VisitDeleteRuleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteRuledefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DeleteRuledefaultApplicationProblemPlusJSONResponse) VisitDeleteRuleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRuleRequestObject struct {
+	Ledger  LedgerName `json:"ledger"`
+	Pattern string     `json:"pattern"`
+	Body    *PutRuleJSONRequestBody
+}
+
+type PutRuleResponseObject interface {
+	VisitPutRuleResponse(w http.ResponseWriter) error
+}
+
+type PutRule200JSONResponse Rule
+
+func (response PutRule200JSONResponse) VisitPutRuleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRuledefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response PutRuledefaultApplicationProblemPlusJSONResponse) VisitPutRuleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Params SearchParams
+}
+
+type SearchResponseObject interface {
+	VisitSearchResponse(w http.ResponseWriter) error
+}
+
+type Search200JSONResponse SearchResults
+
+func (response Search200JSONResponse) VisitSearchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response SearchdefaultApplicationProblemPlusJSONResponse) VisitSearchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLedgerStatsRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+}
+
+type GetLedgerStatsResponseObject interface {
+	VisitGetLedgerStatsResponse(w http.ResponseWriter) error
+}
+
+type GetLedgerStats200JSONResponse LedgerStats
+
+func (response GetLedgerStats200JSONResponse) VisitGetLedgerStatsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLedgerStatsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetLedgerStatsdefaultApplicationProblemPlusJSONResponse) VisitGetLedgerStatsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTransactionsRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Params ListTransactionsParams
+}
+
+type ListTransactionsResponseObject interface {
+	VisitListTransactionsResponse(w http.ResponseWriter) error
+}
+
+type ListTransactions200JSONResponse TransactionList
+
+func (response ListTransactions200JSONResponse) VisitListTransactionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTransactionsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListTransactionsdefaultApplicationProblemPlusJSONResponse) VisitListTransactionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransactionRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Params CreateTransactionParams
+	Body   *CreateTransactionJSONRequestBody
+}
+
+type CreateTransactionResponseObject interface {
+	VisitCreateTransactionResponse(w http.ResponseWriter) error
+}
+
+type CreateTransaction201JSONResponse Transaction
+
+func (response CreateTransaction201JSONResponse) VisitCreateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransactiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreateTransactiondefaultApplicationProblemPlusJSONResponse) VisitCreateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTransactionRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Id     ResourceId `json:"id"`
+}
+
+type GetTransactionResponseObject interface {
+	VisitGetTransactionResponse(w http.ResponseWriter) error
+}
+
+type GetTransaction200JSONResponse Transaction
+
+func (response GetTransaction200JSONResponse) VisitGetTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTransactiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetTransactiondefaultApplicationProblemPlusJSONResponse) VisitGetTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceTransactionMetadataRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Id     ResourceId `json:"id"`
+	Body   *ReplaceTransactionMetadataJSONRequestBody
+}
+
+type ReplaceTransactionMetadataResponseObject interface {
+	VisitReplaceTransactionMetadataResponse(w http.ResponseWriter) error
+}
+
+type ReplaceTransactionMetadata200JSONResponse Transaction
+
+func (response ReplaceTransactionMetadata200JSONResponse) VisitReplaceTransactionMetadataResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceTransactionMetadatadefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ReplaceTransactionMetadatadefaultApplicationProblemPlusJSONResponse) VisitReplaceTransactionMetadataResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevertTransactionRequestObject struct {
+	Ledger LedgerName `json:"ledger"`
+	Id     ResourceId `json:"id"`
+	Params RevertTransactionParams
+	Body   *RevertTransactionJSONRequestBody
+}
+
+type RevertTransactionResponseObject interface {
+	VisitRevertTransactionResponse(w http.ResponseWriter) error
+}
+
+type RevertTransaction201JSONResponse Transaction
+
+func (response RevertTransaction201JSONResponse) VisitRevertTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevertTransactiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response RevertTransactiondefaultApplicationProblemPlusJSONResponse) VisitRevertTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// GetLiveness Liveness probe
@@ -471,6 +4478,102 @@ type StrictServerInterface interface {
 	// GetInfo Service information
 	// (GET /v1/_info)
 	GetInfo(ctx context.Context, request GetInfoRequestObject) (GetInfoResponseObject, error)
+	// GetReconcilerStatus Reconciler status
+	// (GET /v1/_reconciler)
+	GetReconcilerStatus(ctx context.Context, request GetReconcilerStatusRequestObject) (GetReconcilerStatusResponseObject, error)
+	// ListLedgers List ledgers
+	// (GET /v1/ledgers)
+	ListLedgers(ctx context.Context, request ListLedgersRequestObject) (ListLedgersResponseObject, error)
+	// GetLedger Get a ledger
+	// (GET /v1/ledgers/{ledger})
+	GetLedger(ctx context.Context, request GetLedgerRequestObject) (GetLedgerResponseObject, error)
+	// CreateLedger Create a ledger
+	// (POST /v1/ledgers/{ledger})
+	CreateLedger(ctx context.Context, request CreateLedgerRequestObject) (CreateLedgerResponseObject, error)
+	// ListAccounts List accounts
+	// (GET /v1/ledgers/{ledger}/accounts)
+	ListAccounts(ctx context.Context, request ListAccountsRequestObject) (ListAccountsResponseObject, error)
+	// GetAccount Get an account
+	// (GET /v1/ledgers/{ledger}/accounts/{address})
+	GetAccount(ctx context.Context, request GetAccountRequestObject) (GetAccountResponseObject, error)
+	// GetAccountHistory Balance history
+	// (GET /v1/ledgers/{ledger}/accounts/{address}/history)
+	GetAccountHistory(ctx context.Context, request GetAccountHistoryRequestObject) (GetAccountHistoryResponseObject, error)
+	// ReplaceAccountMetadata Replace account metadata
+	// (PUT /v1/ledgers/{ledger}/accounts/{address}/metadata)
+	ReplaceAccountMetadata(ctx context.Context, request ReplaceAccountMetadataRequestObject) (ReplaceAccountMetadataResponseObject, error)
+	// AggregateBalances Sum balances under a prefix
+	// (GET /v1/ledgers/{ledger}/aggregate/balances)
+	AggregateBalances(ctx context.Context, request AggregateBalancesRequestObject) (AggregateBalancesResponseObject, error)
+	// ListSegments Address segments under a prefix
+	// (GET /v1/ledgers/{ledger}/aggregate/segments)
+	ListSegments(ctx context.Context, request ListSegmentsRequestObject) (ListSegmentsResponseObject, error)
+	// ListAssets List assets
+	// (GET /v1/ledgers/{ledger}/assets)
+	ListAssets(ctx context.Context, request ListAssetsRequestObject) (ListAssetsResponseObject, error)
+	// ListEventTypes List event types
+	// (GET /v1/ledgers/{ledger}/event-types)
+	ListEventTypes(ctx context.Context, request ListEventTypesRequestObject) (ListEventTypesResponseObject, error)
+	// CreateEventType Create an event type
+	// (POST /v1/ledgers/{ledger}/event-types)
+	CreateEventType(ctx context.Context, request CreateEventTypeRequestObject) (CreateEventTypeResponseObject, error)
+	// ListHolds List holds
+	// (GET /v1/ledgers/{ledger}/holds)
+	ListHolds(ctx context.Context, request ListHoldsRequestObject) (ListHoldsResponseObject, error)
+	// CreateHold Create a hold
+	// (POST /v1/ledgers/{ledger}/holds)
+	CreateHold(ctx context.Context, request CreateHoldRequestObject) (CreateHoldResponseObject, error)
+	// GetHold Get a hold
+	// (GET /v1/ledgers/{ledger}/holds/{id})
+	GetHold(ctx context.Context, request GetHoldRequestObject) (GetHoldResponseObject, error)
+	// CaptureHold Capture a hold
+	// (POST /v1/ledgers/{ledger}/holds/{id}/capture)
+	CaptureHold(ctx context.Context, request CaptureHoldRequestObject) (CaptureHoldResponseObject, error)
+	// VoidHold Void a hold
+	// (POST /v1/ledgers/{ledger}/holds/{id}/void)
+	VoidHold(ctx context.Context, request VoidHoldRequestObject) (VoidHoldResponseObject, error)
+	// ReplaceLedgerMetadata Replace ledger metadata
+	// (PUT /v1/ledgers/{ledger}/metadata)
+	ReplaceLedgerMetadata(ctx context.Context, request ReplaceLedgerMetadataRequestObject) (ReplaceLedgerMetadataResponseObject, error)
+	// ListWriteRequests List write requests
+	// (GET /v1/ledgers/{ledger}/requests)
+	ListWriteRequests(ctx context.Context, request ListWriteRequestsRequestObject) (ListWriteRequestsResponseObject, error)
+	// GetWriteRequest Get a write request
+	// (GET /v1/ledgers/{ledger}/requests/{key})
+	GetWriteRequest(ctx context.Context, request GetWriteRequestRequestObject) (GetWriteRequestResponseObject, error)
+	// ListRules List account rules
+	// (GET /v1/ledgers/{ledger}/rules)
+	ListRules(ctx context.Context, request ListRulesRequestObject) (ListRulesResponseObject, error)
+	// MatchRule Which rule wins for an address
+	// (GET /v1/ledgers/{ledger}/rules/match)
+	MatchRule(ctx context.Context, request MatchRuleRequestObject) (MatchRuleResponseObject, error)
+	// DeleteRule Delete a rule
+	// (DELETE /v1/ledgers/{ledger}/rules/{pattern})
+	DeleteRule(ctx context.Context, request DeleteRuleRequestObject) (DeleteRuleResponseObject, error)
+	// PutRule Create or replace a rule
+	// (PUT /v1/ledgers/{ledger}/rules/{pattern})
+	PutRule(ctx context.Context, request PutRuleRequestObject) (PutRuleResponseObject, error)
+	// Search Search the ledger
+	// (GET /v1/ledgers/{ledger}/search)
+	Search(ctx context.Context, request SearchRequestObject) (SearchResponseObject, error)
+	// GetLedgerStats Ledger overview figures
+	// (GET /v1/ledgers/{ledger}/stats)
+	GetLedgerStats(ctx context.Context, request GetLedgerStatsRequestObject) (GetLedgerStatsResponseObject, error)
+	// ListTransactions List transactions
+	// (GET /v1/ledgers/{ledger}/transactions)
+	ListTransactions(ctx context.Context, request ListTransactionsRequestObject) (ListTransactionsResponseObject, error)
+	// CreateTransaction Create a transaction
+	// (POST /v1/ledgers/{ledger}/transactions)
+	CreateTransaction(ctx context.Context, request CreateTransactionRequestObject) (CreateTransactionResponseObject, error)
+	// GetTransaction Get a transaction
+	// (GET /v1/ledgers/{ledger}/transactions/{id})
+	GetTransaction(ctx context.Context, request GetTransactionRequestObject) (GetTransactionResponseObject, error)
+	// ReplaceTransactionMetadata Replace transaction metadata
+	// (PUT /v1/ledgers/{ledger}/transactions/{id}/metadata)
+	ReplaceTransactionMetadata(ctx context.Context, request ReplaceTransactionMetadataRequestObject) (ReplaceTransactionMetadataResponseObject, error)
+	// RevertTransaction Revert a transaction
+	// (POST /v1/ledgers/{ledger}/transactions/{id}/revert)
+	RevertTransaction(ctx context.Context, request RevertTransactionRequestObject) (RevertTransactionResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -577,6 +4680,938 @@ func (sh *strictHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetInfoResponseObject); ok {
 		if err := validResponse.VisitGetInfoResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetReconcilerStatus operation middleware
+func (sh *strictHandler) GetReconcilerStatus(w http.ResponseWriter, r *http.Request) {
+	var request GetReconcilerStatusRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetReconcilerStatus(ctx, request.(GetReconcilerStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetReconcilerStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetReconcilerStatusResponseObject); ok {
+		if err := validResponse.VisitGetReconcilerStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListLedgers operation middleware
+func (sh *strictHandler) ListLedgers(w http.ResponseWriter, r *http.Request, params ListLedgersParams) {
+	var request ListLedgersRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListLedgers(ctx, request.(ListLedgersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListLedgers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListLedgersResponseObject); ok {
+		if err := validResponse.VisitListLedgersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetLedger operation middleware
+func (sh *strictHandler) GetLedger(w http.ResponseWriter, r *http.Request, ledger LedgerName) {
+	var request GetLedgerRequestObject
+
+	request.Ledger = ledger
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLedger(ctx, request.(GetLedgerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLedger")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetLedgerResponseObject); ok {
+		if err := validResponse.VisitGetLedgerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateLedger operation middleware
+func (sh *strictHandler) CreateLedger(w http.ResponseWriter, r *http.Request, ledger LedgerName) {
+	var request CreateLedgerRequestObject
+
+	request.Ledger = ledger
+
+	var body CreateLedgerJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateLedger(ctx, request.(CreateLedgerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateLedger")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateLedgerResponseObject); ok {
+		if err := validResponse.VisitCreateLedgerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListAccounts operation middleware
+func (sh *strictHandler) ListAccounts(w http.ResponseWriter, r *http.Request, ledger LedgerName, params ListAccountsParams) {
+	var request ListAccountsRequestObject
+
+	request.Ledger = ledger
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAccounts(ctx, request.(ListAccountsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAccounts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAccountsResponseObject); ok {
+		if err := validResponse.VisitListAccountsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAccount operation middleware
+func (sh *strictHandler) GetAccount(w http.ResponseWriter, r *http.Request, ledger LedgerName, address AccountAddress) {
+	var request GetAccountRequestObject
+
+	request.Ledger = ledger
+	request.Address = address
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAccount(ctx, request.(GetAccountRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAccount")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAccountResponseObject); ok {
+		if err := validResponse.VisitGetAccountResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAccountHistory operation middleware
+func (sh *strictHandler) GetAccountHistory(w http.ResponseWriter, r *http.Request, ledger LedgerName, address AccountAddress, params GetAccountHistoryParams) {
+	var request GetAccountHistoryRequestObject
+
+	request.Ledger = ledger
+	request.Address = address
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAccountHistory(ctx, request.(GetAccountHistoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAccountHistory")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAccountHistoryResponseObject); ok {
+		if err := validResponse.VisitGetAccountHistoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReplaceAccountMetadata operation middleware
+func (sh *strictHandler) ReplaceAccountMetadata(w http.ResponseWriter, r *http.Request, ledger LedgerName, address AccountAddress) {
+	var request ReplaceAccountMetadataRequestObject
+
+	request.Ledger = ledger
+	request.Address = address
+
+	var body ReplaceAccountMetadataJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReplaceAccountMetadata(ctx, request.(ReplaceAccountMetadataRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReplaceAccountMetadata")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReplaceAccountMetadataResponseObject); ok {
+		if err := validResponse.VisitReplaceAccountMetadataResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AggregateBalances operation middleware
+func (sh *strictHandler) AggregateBalances(w http.ResponseWriter, r *http.Request, ledger LedgerName, params AggregateBalancesParams) {
+	var request AggregateBalancesRequestObject
+
+	request.Ledger = ledger
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AggregateBalances(ctx, request.(AggregateBalancesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AggregateBalances")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AggregateBalancesResponseObject); ok {
+		if err := validResponse.VisitAggregateBalancesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListSegments operation middleware
+func (sh *strictHandler) ListSegments(w http.ResponseWriter, r *http.Request, ledger LedgerName, params ListSegmentsParams) {
+	var request ListSegmentsRequestObject
+
+	request.Ledger = ledger
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSegments(ctx, request.(ListSegmentsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSegments")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListSegmentsResponseObject); ok {
+		if err := validResponse.VisitListSegmentsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListAssets operation middleware
+func (sh *strictHandler) ListAssets(w http.ResponseWriter, r *http.Request, ledger LedgerName) {
+	var request ListAssetsRequestObject
+
+	request.Ledger = ledger
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAssets(ctx, request.(ListAssetsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAssets")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAssetsResponseObject); ok {
+		if err := validResponse.VisitListAssetsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListEventTypes operation middleware
+func (sh *strictHandler) ListEventTypes(w http.ResponseWriter, r *http.Request, ledger LedgerName) {
+	var request ListEventTypesRequestObject
+
+	request.Ledger = ledger
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListEventTypes(ctx, request.(ListEventTypesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListEventTypes")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListEventTypesResponseObject); ok {
+		if err := validResponse.VisitListEventTypesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateEventType operation middleware
+func (sh *strictHandler) CreateEventType(w http.ResponseWriter, r *http.Request, ledger LedgerName) {
+	var request CreateEventTypeRequestObject
+
+	request.Ledger = ledger
+
+	var body CreateEventTypeJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateEventType(ctx, request.(CreateEventTypeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateEventType")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateEventTypeResponseObject); ok {
+		if err := validResponse.VisitCreateEventTypeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListHolds operation middleware
+func (sh *strictHandler) ListHolds(w http.ResponseWriter, r *http.Request, ledger LedgerName, params ListHoldsParams) {
+	var request ListHoldsRequestObject
+
+	request.Ledger = ledger
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListHolds(ctx, request.(ListHoldsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListHolds")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListHoldsResponseObject); ok {
+		if err := validResponse.VisitListHoldsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateHold operation middleware
+func (sh *strictHandler) CreateHold(w http.ResponseWriter, r *http.Request, ledger LedgerName, params CreateHoldParams) {
+	var request CreateHoldRequestObject
+
+	request.Ledger = ledger
+	request.Params = params
+
+	var body CreateHoldJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateHold(ctx, request.(CreateHoldRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateHold")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateHoldResponseObject); ok {
+		if err := validResponse.VisitCreateHoldResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetHold operation middleware
+func (sh *strictHandler) GetHold(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId) {
+	var request GetHoldRequestObject
+
+	request.Ledger = ledger
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetHold(ctx, request.(GetHoldRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetHold")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetHoldResponseObject); ok {
+		if err := validResponse.VisitGetHoldResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CaptureHold operation middleware
+func (sh *strictHandler) CaptureHold(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId, params CaptureHoldParams) {
+	var request CaptureHoldRequestObject
+
+	request.Ledger = ledger
+	request.Id = id
+	request.Params = params
+
+	var body CaptureHoldJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CaptureHold(ctx, request.(CaptureHoldRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CaptureHold")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CaptureHoldResponseObject); ok {
+		if err := validResponse.VisitCaptureHoldResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// VoidHold operation middleware
+func (sh *strictHandler) VoidHold(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId, params VoidHoldParams) {
+	var request VoidHoldRequestObject
+
+	request.Ledger = ledger
+	request.Id = id
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.VoidHold(ctx, request.(VoidHoldRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VoidHold")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(VoidHoldResponseObject); ok {
+		if err := validResponse.VisitVoidHoldResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReplaceLedgerMetadata operation middleware
+func (sh *strictHandler) ReplaceLedgerMetadata(w http.ResponseWriter, r *http.Request, ledger LedgerName) {
+	var request ReplaceLedgerMetadataRequestObject
+
+	request.Ledger = ledger
+
+	var body ReplaceLedgerMetadataJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReplaceLedgerMetadata(ctx, request.(ReplaceLedgerMetadataRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReplaceLedgerMetadata")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReplaceLedgerMetadataResponseObject); ok {
+		if err := validResponse.VisitReplaceLedgerMetadataResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListWriteRequests operation middleware
+func (sh *strictHandler) ListWriteRequests(w http.ResponseWriter, r *http.Request, ledger LedgerName, params ListWriteRequestsParams) {
+	var request ListWriteRequestsRequestObject
+
+	request.Ledger = ledger
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListWriteRequests(ctx, request.(ListWriteRequestsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListWriteRequests")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListWriteRequestsResponseObject); ok {
+		if err := validResponse.VisitListWriteRequestsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetWriteRequest operation middleware
+func (sh *strictHandler) GetWriteRequest(w http.ResponseWriter, r *http.Request, ledger LedgerName, key string) {
+	var request GetWriteRequestRequestObject
+
+	request.Ledger = ledger
+	request.Key = key
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWriteRequest(ctx, request.(GetWriteRequestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWriteRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetWriteRequestResponseObject); ok {
+		if err := validResponse.VisitGetWriteRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListRules operation middleware
+func (sh *strictHandler) ListRules(w http.ResponseWriter, r *http.Request, ledger LedgerName) {
+	var request ListRulesRequestObject
+
+	request.Ledger = ledger
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRules(ctx, request.(ListRulesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRules")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListRulesResponseObject); ok {
+		if err := validResponse.VisitListRulesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MatchRule operation middleware
+func (sh *strictHandler) MatchRule(w http.ResponseWriter, r *http.Request, ledger LedgerName, params MatchRuleParams) {
+	var request MatchRuleRequestObject
+
+	request.Ledger = ledger
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MatchRule(ctx, request.(MatchRuleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MatchRule")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MatchRuleResponseObject); ok {
+		if err := validResponse.VisitMatchRuleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteRule operation middleware
+func (sh *strictHandler) DeleteRule(w http.ResponseWriter, r *http.Request, ledger LedgerName, pattern string) {
+	var request DeleteRuleRequestObject
+
+	request.Ledger = ledger
+	request.Pattern = pattern
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteRule(ctx, request.(DeleteRuleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteRule")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteRuleResponseObject); ok {
+		if err := validResponse.VisitDeleteRuleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutRule operation middleware
+func (sh *strictHandler) PutRule(w http.ResponseWriter, r *http.Request, ledger LedgerName, pattern string) {
+	var request PutRuleRequestObject
+
+	request.Ledger = ledger
+	request.Pattern = pattern
+
+	var body PutRuleJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PutRule(ctx, request.(PutRuleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutRule")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PutRuleResponseObject); ok {
+		if err := validResponse.VisitPutRuleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// Search operation middleware
+func (sh *strictHandler) Search(w http.ResponseWriter, r *http.Request, ledger LedgerName, params SearchParams) {
+	var request SearchRequestObject
+
+	request.Ledger = ledger
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Search(ctx, request.(SearchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Search")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SearchResponseObject); ok {
+		if err := validResponse.VisitSearchResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetLedgerStats operation middleware
+func (sh *strictHandler) GetLedgerStats(w http.ResponseWriter, r *http.Request, ledger LedgerName) {
+	var request GetLedgerStatsRequestObject
+
+	request.Ledger = ledger
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLedgerStats(ctx, request.(GetLedgerStatsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLedgerStats")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetLedgerStatsResponseObject); ok {
+		if err := validResponse.VisitGetLedgerStatsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTransactions operation middleware
+func (sh *strictHandler) ListTransactions(w http.ResponseWriter, r *http.Request, ledger LedgerName, params ListTransactionsParams) {
+	var request ListTransactionsRequestObject
+
+	request.Ledger = ledger
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTransactions(ctx, request.(ListTransactionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTransactions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTransactionsResponseObject); ok {
+		if err := validResponse.VisitListTransactionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateTransaction operation middleware
+func (sh *strictHandler) CreateTransaction(w http.ResponseWriter, r *http.Request, ledger LedgerName, params CreateTransactionParams) {
+	var request CreateTransactionRequestObject
+
+	request.Ledger = ledger
+	request.Params = params
+
+	var body CreateTransactionJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTransaction(ctx, request.(CreateTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTransactionResponseObject); ok {
+		if err := validResponse.VisitCreateTransactionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTransaction operation middleware
+func (sh *strictHandler) GetTransaction(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId) {
+	var request GetTransactionRequestObject
+
+	request.Ledger = ledger
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTransaction(ctx, request.(GetTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTransactionResponseObject); ok {
+		if err := validResponse.VisitGetTransactionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReplaceTransactionMetadata operation middleware
+func (sh *strictHandler) ReplaceTransactionMetadata(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId) {
+	var request ReplaceTransactionMetadataRequestObject
+
+	request.Ledger = ledger
+	request.Id = id
+
+	var body ReplaceTransactionMetadataJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReplaceTransactionMetadata(ctx, request.(ReplaceTransactionMetadataRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReplaceTransactionMetadata")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReplaceTransactionMetadataResponseObject); ok {
+		if err := validResponse.VisitReplaceTransactionMetadataResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevertTransaction operation middleware
+func (sh *strictHandler) RevertTransaction(w http.ResponseWriter, r *http.Request, ledger LedgerName, id ResourceId, params RevertTransactionParams) {
+	var request RevertTransactionRequestObject
+
+	request.Ledger = ledger
+	request.Id = id
+	request.Params = params
+
+	var body RevertTransactionJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevertTransaction(ctx, request.(RevertTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevertTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevertTransactionResponseObject); ok {
+		if err := validResponse.VisitRevertTransactionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

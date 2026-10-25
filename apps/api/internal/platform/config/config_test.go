@@ -24,13 +24,16 @@ func TestParse(t *testing.T) {
 			name:    "defaults",
 			environ: required,
 			want: Config{
-				Addr:                 ":8080",
-				LogLevel:             "info",
-				PostgresURL:          "postgres://u:p@localhost:5432/db",
-				TigerBeetleClusterID: 0,
-				TigerBeetleAddresses: []string{"localhost:3000", "localhost:3001"},
-				ShutdownTimeout:      10 * time.Second,
-				ReadinessTimeout:     2 * time.Second,
+				Addr:                  ":8080",
+				LogLevel:              "info",
+				PostgresURL:           "postgres://u:p@localhost:5432/db",
+				TigerBeetleClusterID:  0,
+				TigerBeetleAddresses:  []string{"localhost:3000", "localhost:3001"},
+				ShutdownTimeout:       10 * time.Second,
+				ReadinessTimeout:      2 * time.Second,
+				TigerBeetleTimeout:    5 * time.Second,
+				ReconcilerGracePeriod: 30 * time.Second,
+				ReconcilerInterval:    10 * time.Second,
 			},
 		},
 		{
@@ -43,6 +46,7 @@ func TestParse(t *testing.T) {
 				Addr: ":9000", LogLevel: "debug", PostgresURL: "postgres://u:p@localhost:5432/db",
 				TigerBeetleClusterID: 7, TigerBeetleAddresses: []string{"localhost:3000", "localhost:3001"},
 				MigrateOnStart: true, ShutdownTimeout: time.Second, ReadinessTimeout: 500 * time.Millisecond,
+				TigerBeetleTimeout: 5 * time.Second, ReconcilerGracePeriod: 30 * time.Second, ReconcilerInterval: 10 * time.Second,
 			},
 		},
 		{name: "missing postgres url", environ: map[string]string{"TIGERBEETLE_ADDRESSES": "localhost:3000"}, wantErr: true},
@@ -50,6 +54,7 @@ func TestParse(t *testing.T) {
 		{name: "bad log level", environ: merge(required, map[string]string{"LOG_LEVEL": "loud"}), wantErr: true},
 		{name: "bad duration", environ: merge(required, map[string]string{"SHUTDOWN_TIMEOUT": "soon"}), wantErr: true},
 		{name: "zero timeout", environ: merge(required, map[string]string{"READINESS_TIMEOUT": "0s"}), wantErr: true},
+		{name: "grace shorter than timeout", environ: merge(required, map[string]string{"RECONCILER_GRACE_PERIOD": "2s"}), wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

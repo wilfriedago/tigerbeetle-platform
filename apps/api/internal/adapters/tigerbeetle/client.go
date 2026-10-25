@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	tb "github.com/tigerbeetle/tigerbeetle-go"
 
@@ -18,6 +19,8 @@ import (
 // every goroutine and keeps a single connection per replica.
 type Client struct {
 	tb tb.Client
+	// timeout bounds each request made for an API call; zero means only the caller's context.
+	timeout time.Duration
 
 	// The TigerBeetle client has no per-call cancellation and retries an unreachable cluster
 	// indefinitely. Ready therefore runs at most one probe at a time and lets concurrent callers
@@ -33,14 +36,26 @@ type probe struct {
 	err  error
 }
 
+// Option configures a Client.
+type Option func(*Client)
+
+// WithRequestTimeout bounds every request with the given duration, on top of the caller's context.
+func WithRequestTimeout(d time.Duration) Option {
+	return func(c *Client) { c.timeout = d }
+}
+
 // New creates a client for the cluster. It does not fail when the cluster is unreachable; the
 // connection is established in the background and Ready reports the state.
-func New(clusterID uint64, addresses []string) (*Client, error) {
+func New(clusterID uint64, addresses []string, opts ...Option) (*Client, error) {
 	client, err := tb.NewClient(tb.ToUint128(clusterID), addresses)
 	if err != nil {
 		return nil, fmt.Errorf("tigerbeetle: new client: %w", mapClientError(err))
 	}
-	return &Client{tb: client}, nil
+	c := &Client{tb: client}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c, nil
 }
 
 // Close releases the client. Requests in flight fail with ErrClientClosed.

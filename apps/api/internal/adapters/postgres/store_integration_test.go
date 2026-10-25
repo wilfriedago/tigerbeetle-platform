@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/devstack"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/domain/ledger"
@@ -19,30 +18,7 @@ import (
 
 func startPostgres(t *testing.T) *Store {
 	t.Helper()
-	ctx := context.Background()
-	images, err := devstack.Load()
-	if err != nil {
-		t.Fatal(err)
-	}
-	container, err := tcpostgres.Run(ctx, images.Postgres,
-		tcpostgres.WithDatabase("ledger"),
-		tcpostgres.WithUsername("ledger"),
-		tcpostgres.WithPassword("ledger"),
-		tcpostgres.BasicWaitStrategies(),
-	)
-	if err != nil {
-		t.Fatalf("start postgres %s: %v", images.Postgres, err)
-	}
-	t.Cleanup(func() {
-		if err := container.Terminate(context.Background()); err != nil {
-			t.Logf("terminate postgres: %v", err)
-		}
-	})
-	url, err := container.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		t.Fatal(err)
-	}
-	store, err := New(ctx, url)
+	store, err := New(context.Background(), devstack.StartPostgres(t))
 	if err != nil {
 		t.Fatal(err)
 	}

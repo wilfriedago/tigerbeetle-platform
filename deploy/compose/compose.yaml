@@ -83,6 +83,9 @@ services:
       MIGRATE_ON_START: 'true'
       SHUTDOWN_TIMEOUT: ${SHUTDOWN_TIMEOUT:-10s}
       READINESS_TIMEOUT: ${READINESS_TIMEOUT:-2s}
+      TIGERBEETLE_TIMEOUT: ${TIGERBEETLE_TIMEOUT:-5s}
+      RECONCILER_GRACE_PERIOD: ${RECONCILER_GRACE_PERIOD:-30s}
+      RECONCILER_INTERVAL: ${RECONCILER_INTERVAL:-10s}
     ports:
       - '${API_PORT:-8080}:8080'
     # The TigerBeetle Go client embeds the same io_uring-based I/O as the server, so the api

@@ -4,6 +4,7 @@
 package httpapi
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -13,16 +14,36 @@ import (
 
 // Deps is everything the handler needs. main.go wires it.
 type Deps struct {
-	Logger  *slog.Logger
-	Status  *app.Status
-	Service string
-	Version string
+	Logger       *slog.Logger
+	Status       *app.Status
+	Ledgers      *app.Ledgers
+	Settings     *app.Settings
+	Accounts     *app.Accounts
+	Transactions *app.Transactions
+	Holds        *app.Holds
+	Overview     *app.Overview
+	Reconciler   *app.Reconciler
+	Service      string
+	Version      string
+	Runtime      Runtime
 }
 
 // NewHandler builds the HTTP handler: generated routes on a ServeMux, wrapped so that every error
 // path (binding errors, handler errors, unknown routes, panics) answers with problem+json.
 func NewHandler(deps Deps) http.Handler {
-	srv := &server{status: deps.Status, service: deps.Service, version: deps.Version}
+	srv := &server{
+		status:       deps.Status,
+		ledgers:      deps.Ledgers,
+		settings:     deps.Settings,
+		accounts:     deps.Accounts,
+		transactions: deps.Transactions,
+		holds:        deps.Holds,
+		overview:     deps.Overview,
+		reconciler:   deps.Reconciler,
+		service:      deps.Service,
+		version:      deps.Version,
+		runtime:      deps.Runtime,
+	}
 
 	strict := gen.NewStrictHandlerWithOptions(srv, nil, gen.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
@@ -33,10 +54,8 @@ func NewHandler(deps Deps) http.Handler {
 
 	mux := http.NewServeMux()
 	gen.HandlerWithOptions(strict, gen.StdHTTPServerOptions{
-		BaseRouter: mux,
-		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-			writeProblem(w, r, newProblem(http.StatusBadRequest, problemTypeInvalid, "Invalid request", err.Error()))
-		},
+		BaseRouter:       mux,
+		ErrorHandlerFunc: bindingProblem,
 	})
 
 	h := unknownRoutes(mux)
@@ -44,6 +63,18 @@ func NewHandler(deps Deps) http.Handler {
 	h = accessLog(h)
 	h = requestID(deps.Logger)(h)
 	return h
+}
+
+// bindingProblem answers parameter binding errors. A missing Idempotency-Key gets its own problem
+// type, because clients must learn to send one with every write that moves money (ADR-0007).
+func bindingProblem(w http.ResponseWriter, r *http.Request, err error) {
+	var missing *gen.RequiredHeaderError
+	if errors.As(err, &missing) && missing.ParamName == "Idempotency-Key" {
+		writeProblem(w, r, newProblem(http.StatusBadRequest, "/problems/missing-idempotency-key", titleFor("missing-idempotency-key"),
+			"every write that moves money requires an Idempotency-Key header; reuse it to retry safely"))
+		return
+	}
+	writeProblem(w, r, newProblem(http.StatusBadRequest, problemTypeInvalid, "Invalid request", err.Error()))
 }
 
 // unknownRoutes converts the ServeMux's plain-text 404 and 405 answers into problems. The mux

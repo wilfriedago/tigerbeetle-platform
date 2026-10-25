@@ -30,6 +30,13 @@ type Config struct {
 	ShutdownTimeout time.Duration `env:"SHUTDOWN_TIMEOUT" envDefault:"10s"`
 	// ReadinessTimeout bounds each dependency probe.
 	ReadinessTimeout time.Duration `env:"READINESS_TIMEOUT" envDefault:"2s"`
+	// TigerBeetleTimeout bounds every TigerBeetle request made for an API call. A write that runs
+	// out of time stays pending and the reconciler settles it (ADR-0007).
+	TigerBeetleTimeout time.Duration `env:"TIGERBEETLE_TIMEOUT" envDefault:"5s"`
+	// ReconcilerGracePeriod is the age after which a pending write is treated as interrupted.
+	ReconcilerGracePeriod time.Duration `env:"RECONCILER_GRACE_PERIOD" envDefault:"30s"`
+	// ReconcilerInterval is how often the reconciler looks for interrupted writes.
+	ReconcilerInterval time.Duration `env:"RECONCILER_INTERVAL" envDefault:"10s"`
 }
 
 // Load reads the process environment.
@@ -61,8 +68,11 @@ func (c *Config) validate() error {
 	if _, err := c.Level(); err != nil {
 		return err
 	}
-	if c.ShutdownTimeout <= 0 || c.ReadinessTimeout <= 0 {
-		return fmt.Errorf("config: SHUTDOWN_TIMEOUT and READINESS_TIMEOUT must be positive")
+	if c.ShutdownTimeout <= 0 || c.ReadinessTimeout <= 0 || c.TigerBeetleTimeout <= 0 {
+		return fmt.Errorf("config: SHUTDOWN_TIMEOUT, READINESS_TIMEOUT and TIGERBEETLE_TIMEOUT must be positive")
+	}
+	if c.ReconcilerGracePeriod <= c.TigerBeetleTimeout || c.ReconcilerInterval <= 0 {
+		return fmt.Errorf("config: RECONCILER_GRACE_PERIOD must exceed TIGERBEETLE_TIMEOUT and RECONCILER_INTERVAL must be positive")
 	}
 	for i, addr := range c.TigerBeetleAddresses {
 		addr = strings.TrimSpace(addr)

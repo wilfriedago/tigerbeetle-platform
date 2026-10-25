@@ -40,6 +40,9 @@
         "MIGRATE_ON_START",
         "SHUTDOWN_TIMEOUT",
         "READINESS_TIMEOUT",
+        "TIGERBEETLE_TIMEOUT",
+        "RECONCILER_GRACE_PERIOD",
+        "RECONCILER_INTERVAL",
         "API_PROXY_TARGET",
         "VITE_*"
       ]

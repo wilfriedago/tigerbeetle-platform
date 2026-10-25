@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -46,6 +47,39 @@ func (f *fakeStore) GetLedger(_ context.Context, name string) (ledger.Ledger, er
 		return ledger.Ledger{}, ledger.ErrNotFound
 	}
 	return l, nil
+}
+
+func (f *fakeStore) LedgerSummary(ctx context.Context, name string) (LedgerSummary, error) {
+	l, err := f.GetLedger(ctx, name)
+	if err != nil {
+		return LedgerSummary{}, err
+	}
+	return LedgerSummary{Ledger: l, Assets: []string{}}, nil
+}
+
+func (f *fakeStore) ListLedgers(_ context.Context, after string, limit int) ([]LedgerSummary, error) {
+	names := make([]string, 0, len(f.ledgers))
+	for name := range f.ledgers {
+		if name > after {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+	out := []LedgerSummary{}
+	for _, name := range names[:min(limit, len(names))] {
+		out = append(out, LedgerSummary{Ledger: f.ledgers[name], Assets: []string{}})
+	}
+	return out, nil
+}
+
+func (f *fakeStore) ReplaceLedgerMetadata(_ context.Context, name string, metadata map[string]string) error {
+	l, ok := f.ledgers[name]
+	if !ok {
+		return ledger.ErrNotFound
+	}
+	l.Metadata = metadata
+	f.ledgers[name] = l
+	return nil
 }
 
 func TestStatusCheck(t *testing.T) {
@@ -109,7 +143,7 @@ func TestLedgers(t *testing.T) {
 			t.Fatalf("Create: %v", err)
 		}
 		want := ledger.Ledger{Name: "main", Metadata: map[string]string{}, CreatedAt: now}
-		if diff := cmp.Diff(want, created); diff != "" {
+		if diff := cmp.Diff(want, created.Ledger); diff != "" {
 			t.Fatalf("Create mismatch (-want +got):\n%s", diff)
 		}
 		got, err := u.Get(context.Background(), "main")
@@ -133,6 +167,10 @@ func TestLedgers(t *testing.T) {
 			{name: "duplicate", call: func() error { _, err := u.Create(context.Background(), "taken", nil); return err }, want: ledger.ErrAlreadyExists},
 			{name: "missing", call: func() error { _, err := u.Get(context.Background(), "missing"); return err }, want: ledger.ErrNotFound},
 			{name: "invalid get", call: func() error { _, err := u.Get(context.Background(), ""); return err }, want: ledger.ErrInvalid},
+			{name: "invalid metadata", call: func() error {
+				_, err := u.Create(context.Background(), "fine", map[string]string{"bad key": "x"})
+				return err
+			}, want: ledger.ErrInvalid},
 		}
 		for _, tt := range tests {
 			if err := tt.call(); !errors.Is(err, tt.want) {
@@ -140,4 +178,32 @@ func TestLedgers(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestLedgerPages(t *testing.T) {
+	t.Parallel()
+	store := &fakeStore{}
+	u := NewLedgers(store, ClockFunc(time.Now))
+	for _, name := range []string{"c", "a", "b"} {
+		if _, err := u.Create(context.Background(), name, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	page, next, err := u.List(context.Background(), "", 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page) != 2 || page[0].Name != "a" || page[1].Name != "b" || next == "" {
+		t.Fatalf("first page = %v next %q", page, next)
+	}
+	page, next, err = u.List(context.Background(), next, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page) != 1 || page[0].Name != "c" || next != "" {
+		t.Fatalf("second page = %v next %q", page, next)
+	}
+	if _, _, err := u.List(context.Background(), "not a cursor!", 2); !errors.Is(err, ledger.ErrInvalid) {
+		t.Fatalf("bad cursor error = %v", err)
+	}
 }

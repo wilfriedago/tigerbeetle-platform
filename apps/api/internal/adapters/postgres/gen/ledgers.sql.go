@@ -42,3 +42,106 @@ func (q *Queries) GetLedger(ctx context.Context, name string) (Ledger, error) {
 	err := row.Scan(&i.Name, &i.Metadata, &i.CreatedAt)
 	return i, err
 }
+
+const getLedgerSummary = `-- name: GetLedgerSummary :one
+SELECT
+    l.name,
+    l.metadata,
+    l.created_at,
+    COALESCE((SELECT array_agg(la.asset ORDER BY la.asset) FROM ledger_assets la WHERE la.ledger = l.name), '{}')::text[] AS assets,
+    (SELECT count(*) FROM addresses a WHERE a.ledger = l.name)::bigint AS accounts
+FROM ledgers l
+WHERE l.name = $1
+`
+
+type GetLedgerSummaryRow struct {
+	Name      string
+	Metadata  []byte
+	CreatedAt pgtype.Timestamptz
+	Assets    []string
+	Accounts  int64
+}
+
+func (q *Queries) GetLedgerSummary(ctx context.Context, name string) (GetLedgerSummaryRow, error) {
+	row := q.db.QueryRow(ctx, getLedgerSummary, name)
+	var i GetLedgerSummaryRow
+	err := row.Scan(
+		&i.Name,
+		&i.Metadata,
+		&i.CreatedAt,
+		&i.Assets,
+		&i.Accounts,
+	)
+	return i, err
+}
+
+const listLedgers = `-- name: ListLedgers :many
+SELECT
+    l.name,
+    l.metadata,
+    l.created_at,
+    COALESCE((SELECT array_agg(la.asset ORDER BY la.asset) FROM ledger_assets la WHERE la.ledger = l.name), '{}')::text[] AS assets,
+    (SELECT count(*) FROM addresses a WHERE a.ledger = l.name)::bigint AS accounts
+FROM ledgers l
+WHERE l.name > $1::text
+ORDER BY l.name
+LIMIT $2
+`
+
+type ListLedgersParams struct {
+	After    string
+	PageSize int32
+}
+
+type ListLedgersRow struct {
+	Name      string
+	Metadata  []byte
+	CreatedAt pgtype.Timestamptz
+	Assets    []string
+	Accounts  int64
+}
+
+func (q *Queries) ListLedgers(ctx context.Context, arg ListLedgersParams) ([]ListLedgersRow, error) {
+	rows, err := q.db.Query(ctx, listLedgers, arg.After, arg.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListLedgersRow{}
+	for rows.Next() {
+		var i ListLedgersRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.Metadata,
+			&i.CreatedAt,
+			&i.Assets,
+			&i.Accounts,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const replaceLedgerMetadata = `-- name: ReplaceLedgerMetadata :execrows
+UPDATE ledgers
+SET metadata = $2
+WHERE name = $1
+`
+
+type ReplaceLedgerMetadataParams struct {
+	Name     string
+	Metadata []byte
+}
+
+func (q *Queries) ReplaceLedgerMetadata(ctx context.Context, arg ReplaceLedgerMetadataParams) (int64, error) {
+	result, err := q.db.Exec(ctx, replaceLedgerMetadata, arg.Name, arg.Metadata)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}

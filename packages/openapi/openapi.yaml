@@ -1,13 +1,27 @@
 openapi: 3.1.0
 info:
   title: TigerBeetle Platform API
-  version: 0.0.1
+  version: 0.1.0
   summary: A ledger API that makes TigerBeetle easier to work with.
   description: |
     The contract for the TigerBeetle Platform API. The Go server interfaces and the TypeScript
     client are generated from this file. Edit the spec first, then run `pnpm generate`.
 
-    Errors use RFC 9457 problem details with the `application/problem+json` media type.
+    TigerBeetle is the only source of truth for money: every balance, amount and committed time in
+    a response is read from the cluster. Postgres holds names and context only (ADR-0002).
+
+    Amounts are strings holding an integer in the asset's smallest unit (`"1250"` with `EUR/2` is
+    12.50). Balances may be negative and use the signed form. IDs are 32 lowercase hexadecimal
+    characters, time ordered (ADR-0004).
+
+    Writes that move money (transactions, reverts, holds, captures, voids) require an
+    `Idempotency-Key` header. A key maps to exactly one outcome: retrying with the same key and
+    body replays the stored answer, a key reused with a different body answers 422, and a key still
+    in flight answers 409 with `Retry-After`. A declined write stays declined under its key; retry
+    with a new key (ADR-0007).
+
+    Errors use RFC 9457 problem details with the `application/problem+json` media type. The
+    `type` is a stable URI such as `/problems/exceeds-credits`.
   license:
     name: Apache-2.0
     identifier: Apache-2.0
@@ -19,7 +33,17 @@ servers:
 security: []
 tags:
   - name: operations
-    description: Liveness, readiness and service information.
+    description: Liveness, readiness, service information and the reconciler.
+  - name: ledgers
+    description: Ledgers are namespaces. Money never crosses ledgers.
+  - name: accounts
+    description: Accounts are addresses such as `users:1234:wallet`, created by their first posting.
+  - name: transactions
+    description: A transaction is one linked chain of TigerBeetle transfers; all postings apply or none.
+  - name: holds
+    description: Holds are TigerBeetle two-phase transfers, captured, voided or expired exactly once.
+  - name: settings
+    description: Account rules and event types of a ledger.
 
 paths:
   /healthz:
@@ -66,7 +90,7 @@ paths:
     get:
       operationId: getInfo
       summary: Service information
-      description: Service name and version plus the reachability of Postgres and TigerBeetle.
+      description: Service name and version, runtime versions, and the reachability of Postgres and TigerBeetle.
       tags: [operations]
       responses:
         '200':
@@ -78,7 +102,874 @@ paths:
         default:
           $ref: '#/components/responses/Problem'
 
+  /v1/_reconciler:
+    get:
+      operationId: getReconcilerStatus
+      summary: Reconciler status
+      description: |
+        The background loop that settles write records left pending by a crash between Postgres
+        and TigerBeetle (ADR-0007): its last run and the records it is waiting on.
+      tags: [operations]
+      responses:
+        '200':
+          description: Reconciler status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconcilerStatus'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers:
+    get:
+      operationId: listLedgers
+      summary: List ledgers
+      description: Every ledger in name order, with its assets and account count.
+      tags: [ledgers]
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A page of ledgers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerList'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: getLedger
+      summary: Get a ledger
+      description: The ledger with its metadata, assets and account count.
+      tags: [ledgers]
+      responses:
+        '200':
+          description: The ledger.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ledger'
+        default:
+          $ref: '#/components/responses/Problem'
+    post:
+      operationId: createLedger
+      summary: Create a ledger
+      description: |
+        Creates a ledger. The name is permanent and appears in every API path. A ledger cannot be
+        deleted, because TigerBeetle accounts and transfers are permanent. Answers 409 when the
+        name is taken.
+      tags: [ledgers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLedgerRequest'
+      responses:
+        '201':
+          description: The ledger was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ledger'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/metadata:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    put:
+      operationId: replaceLedgerMetadata
+      summary: Replace ledger metadata
+      description: Replaces the metadata of the ledger with the given key/value pairs.
+      tags: [ledgers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metadata'
+      responses:
+        '200':
+          description: The ledger with its new metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ledger'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/stats:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: getLedgerStats
+      summary: Ledger overview figures
+      description: |
+        The figures of the ledger overview: money issued per asset (minus the balance of `world`,
+        read from TigerBeetle), account and hold counts, reserved amounts, and the declined writes
+        of the last 24 hours with their reasons.
+      tags: [ledgers]
+      responses:
+        '200':
+          description: Overview figures.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerStats'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/assets:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: listAssets
+      summary: List assets
+      description: |
+        The assets used in the ledger, each with its TigerBeetle ledger number (ADR-0005), its
+        account count and the money issued. A scale never changes: a new scale is a new asset.
+      tags: [ledgers]
+      responses:
+        '200':
+          description: The assets of the ledger.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetList'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/accounts:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: listAccounts
+      summary: List accounts
+      description: |
+        Accounts in address order with their balance per asset, read from TigerBeetle in one batch
+        for the page. `prefix` matches whole segments (`users:1` does not match `users:12:wallet`);
+        `search` matches the start of the address as typed, for pickers. Lists cannot be sorted or
+        filtered by balance: Postgres holds no balances (ADR-0002).
+      tags: [accounts]
+      parameters:
+        - name: prefix
+          in: query
+          description: Only addresses equal to or below this prefix, on whole segments. A trailing colon is optional.
+          schema:
+            $ref: '#/components/schemas/AddressPrefix'
+        - name: search
+          in: query
+          description: Only addresses starting with this text, for autocompletion.
+          schema:
+            type: string
+            maxLength: 255
+        - name: asset
+          in: query
+          description: Only accounts holding this asset.
+          schema:
+            $ref: '#/components/schemas/Asset'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A page of accounts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountList'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/accounts/{address}:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+      - $ref: '#/components/parameters/AccountAddress'
+    get:
+      operationId: getAccount
+      summary: Get an account
+      description: |
+        The account with one entry per asset: the TigerBeetle account ID, balance, reserved,
+        available, incoming and volumes read from TigerBeetle, and the flags frozen at creation.
+      tags: [accounts]
+      responses:
+        '200':
+          description: The account.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/accounts/{address}/metadata:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+      - $ref: '#/components/parameters/AccountAddress'
+    put:
+      operationId: replaceAccountMetadata
+      summary: Replace account metadata
+      description: Replaces the metadata of an existing account.
+      tags: [accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metadata'
+      responses:
+        '200':
+          description: The account with its new metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/accounts/{address}/history:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+      - $ref: '#/components/parameters/AccountAddress'
+    get:
+      operationId: getAccountHistory
+      summary: Balance history
+      description: |
+        Point-in-time balances from TigerBeetle `get_account_balances`, newest first. Only accounts
+        created with the `history` flag keep them; the flag cannot be added later, so it is a
+        property of the account rule (ADR-0006). Answers 422 `history-not-enabled` otherwise.
+      tags: [accounts]
+      parameters:
+        - name: asset
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Asset'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Balance history.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceHistory'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/aggregate/balances:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: aggregateBalances
+      summary: Sum balances under a prefix
+      description: |
+        Sums the balances of every account under an address prefix, per asset. TigerBeetle has no
+        prefix queries: Postgres resolves the prefix to account IDs and the service reads them in
+        chunks of up to 8189, so the total is not one consistent snapshot across chunks. A prefix
+        covering more accounts than the cap answers 422 `prefix-too-broad`.
+      tags: [accounts]
+      parameters:
+        - name: address
+          in: query
+          required: true
+          description: The prefix, on whole segments. A trailing colon is optional.
+          schema:
+            $ref: '#/components/schemas/AddressPrefix'
+      responses:
+        '200':
+          description: Per-asset sums.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AggregateBalances'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/aggregate/segments:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: listSegments
+      summary: Address segments under a prefix
+      description: |
+        The next address segment under a prefix, with the number of accounts below each one: the
+        chart of accounts by segment. Without a prefix, the top-level segments.
+      tags: [accounts]
+      parameters:
+        - name: prefix
+          in: query
+          schema:
+            $ref: '#/components/schemas/AddressPrefix'
+      responses:
+        '200':
+          description: Child segments.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SegmentList'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/transactions:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: listTransactions
+      summary: List transactions
+      description: |
+        Committed transactions, newest first, with their postings read from TigerBeetle. Declined
+        writes are not transactions in TigerBeetle; they are listed under write requests. There is
+        no sort or filter by amount (ADR-0004).
+      tags: [transactions]
+      parameters:
+        - name: address
+          in: query
+          description: Only transactions with a posting from or to an account at or below this prefix.
+          schema:
+            $ref: '#/components/schemas/AddressPrefix'
+        - name: asset
+          in: query
+          schema:
+            $ref: '#/components/schemas/Asset'
+        - name: reference
+          in: query
+          schema:
+            type: string
+            maxLength: 255
+        - name: eventType
+          in: query
+          schema:
+            type: string
+            maxLength: 63
+        - name: after
+          in: query
+          description: Committed at or after this time.
+          schema:
+            type: string
+            format: date-time
+        - name: before
+          in: query
+          description: Committed before this time.
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A page of transactions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionList'
+        default:
+          $ref: '#/components/responses/Problem'
+    post:
+      operationId: createTransaction
+      summary: Create a transaction
+      description: |
+        Applies the postings as one linked chain of TigerBeetle transfers: all of them or none.
+        Accounts are created by their first posting with the flags of the matching account rule
+        (ADR-0006). A decline, such as `exceeds_credits`, answers 422 with the result of every
+        posting in `results`; nothing was applied.
+      tags: [transactions]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: The transaction was committed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/transactions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+      - $ref: '#/components/parameters/ResourceId'
+    get:
+      operationId: getTransaction
+      summary: Get a transaction
+      description: The transaction with its postings and the TigerBeetle transfer behind each one.
+      tags: [transactions]
+      responses:
+        '200':
+          description: The transaction.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/transactions/{id}/metadata:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+      - $ref: '#/components/parameters/ResourceId'
+    put:
+      operationId: replaceTransactionMetadata
+      summary: Replace transaction metadata
+      description: Replaces the metadata stored in Postgres with the transaction. The postings never change.
+      tags: [transactions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metadata'
+      responses:
+        '200':
+          description: The transaction with its new metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/transactions/{id}/revert:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+      - $ref: '#/components/parameters/ResourceId'
+    post:
+      operationId: revertTransaction
+      summary: Revert a transaction
+      description: |
+        Creates a new transaction with every posting reversed. It is a normal linked chain and can
+        be declined, for example when a destination has already spent the funds; there is no
+        force option, because TigerBeetle flags and balance limits are immutable (ADR-0004). A
+        transaction is reverted at most once (409 `already-reverted`).
+      tags: [transactions]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevertTransactionRequest'
+      responses:
+        '201':
+          description: The reverting transaction was committed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/holds:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: listHolds
+      summary: List holds
+      description: Holds newest first. `expired` is derived from the cluster clock and the hold timeout.
+      tags: [holds]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/HoldStatus'
+        - name: address
+          in: query
+          description: Only holds from or to an account at or below this prefix.
+          schema:
+            $ref: '#/components/schemas/AddressPrefix'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A page of holds.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HoldList'
+        default:
+          $ref: '#/components/responses/Problem'
+    post:
+      operationId: createHold
+      summary: Create a hold
+      description: |
+        Reserves an amount with a TigerBeetle pending transfer (ADR-0010). The source's available
+        balance drops by the amount at once; nothing moves until the hold is captured.
+      tags: [holds]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHoldRequest'
+      responses:
+        '201':
+          description: The hold is open.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hold'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/holds/{id}:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+      - $ref: '#/components/parameters/ResourceId'
+    get:
+      operationId: getHold
+      summary: Get a hold
+      description: The hold, its pending transfer and, once resolved, the transfer that resolved it.
+      tags: [holds]
+      responses:
+        '200':
+          description: The hold.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hold'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/holds/{id}/capture:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+      - $ref: '#/components/parameters/ResourceId'
+    post:
+      operationId: captureHold
+      summary: Capture a hold
+      description: |
+        Posts the pending transfer. Without an amount the full hold is captured; a smaller amount
+        captures that much and releases the rest. A hold is captured once (409
+        `hold-already-resolved`) and not after it expired (409 `hold-expired`).
+      tags: [holds]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaptureHoldRequest'
+      responses:
+        '200':
+          description: The hold is captured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hold'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/holds/{id}/void:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+      - $ref: '#/components/parameters/ResourceId'
+    post:
+      operationId: voidHold
+      summary: Void a hold
+      description: Voids the pending transfer and releases the whole amount to the source.
+      tags: [holds]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: The hold is voided.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hold'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/requests:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: listWriteRequests
+      summary: List write requests
+      description: |
+        The idempotency records of the ledger, newest first: every write with its key, operation
+        and outcome. This is the only place where declined and in-flight writes are visible.
+      tags: [transactions]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/RequestStatus'
+        - name: operation
+          in: query
+          schema:
+            $ref: '#/components/schemas/Operation'
+        - name: search
+          in: query
+          description: An Idempotency-Key, or the start of one, or a request ID.
+          schema:
+            type: string
+            maxLength: 255
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A page of write requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WriteRequestList'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/requests/{key}:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+      - name: key
+        in: path
+        required: true
+        description: The Idempotency-Key.
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
+    get:
+      operationId: getWriteRequest
+      summary: Get a write request
+      description: The record with the stored request, the stored outcome and the minted IDs.
+      tags: [transactions]
+      responses:
+        '200':
+          description: The write request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WriteRequestDetail'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/rules:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: listRules
+      summary: List account rules
+      description: |
+        The rules that decide the flags of new accounts, most specific first, including the built-in
+        `*` and `world` defaults. A rule change applies to accounts created afterwards; existing
+        accounts keep the flags stored on their row (ADR-0006).
+      tags: [settings]
+      responses:
+        '200':
+          description: The rules.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleList'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/rules/match:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: matchRule
+      summary: Which rule wins for an address
+      description: The rule that would create the account for an address, and every rule considered.
+      tags: [settings]
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Address'
+      responses:
+        '200':
+          description: The winning rule.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleMatch'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/rules/{pattern}:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+      - name: pattern
+        in: path
+        required: true
+        description: '`*`, an address such as `world`, or a prefix ending with a colon such as `users:`.'
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 256
+    put:
+      operationId: putRule
+      summary: Create or replace a rule
+      description: Creates or replaces the rule for a pattern. Putting `*` or `world` replaces the built-in default.
+      tags: [settings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutRuleRequest'
+      responses:
+        '200':
+          description: The rule.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+        default:
+          $ref: '#/components/responses/Problem'
+    delete:
+      operationId: deleteRule
+      summary: Delete a rule
+      description: Deletes a stored rule. Deleting a stored `*` or `world` restores the built-in default.
+      tags: [settings]
+      responses:
+        '204':
+          description: The rule was deleted.
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/event-types:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: listEventTypes
+      summary: List event types
+      description: The event types of the ledger with their TigerBeetle `code` and usage.
+      tags: [settings]
+      responses:
+        '200':
+          description: The event types.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeList'
+        default:
+          $ref: '#/components/responses/Problem'
+    post:
+      operationId: createEventType
+      summary: Create an event type
+      description: |
+        Registers an event type. Event types are append-only: a code never changes meaning, so
+        there is no edit or delete (ADR-0007). Without a code, the next free one is assigned.
+      tags: [settings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventTypeRequest'
+      responses:
+        '201':
+          description: The event type.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventType'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/ledgers/{ledger}/search:
+    parameters:
+      - $ref: '#/components/parameters/LedgerName'
+    get:
+      operationId: search
+      summary: Search the ledger
+      description: |
+        Finds what a query names: a 32-hex ID opens a transaction or hold, an address or prefix
+        finds accounts, a reference finds transactions, an Idempotency-Key finds a write request.
+      tags: [ledgers]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 255
+      responses:
+        '200':
+          description: Matches by kind.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResults'
+        default:
+          $ref: '#/components/responses/Problem'
+
 components:
+  parameters:
+    LedgerName:
+      name: ledger
+      in: path
+      required: true
+      description: The ledger name.
+      schema:
+        $ref: '#/components/schemas/LedgerName'
+    AccountAddress:
+      name: address
+      in: path
+      required: true
+      description: The account address, such as `users:1234:wallet`.
+      schema:
+        $ref: '#/components/schemas/Address'
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      description: A 32-hex ID.
+      schema:
+        $ref: '#/components/schemas/Id'
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Identifies the write. Reusing it with the same body replays the stored outcome; with a
+        different body answers 422 `idempotency-key-reused`.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+    Cursor:
+      name: cursor
+      in: query
+      description: The opaque `next` cursor of the previous page.
+      schema:
+        type: string
+        maxLength: 512
+    Limit:
+      name: limit
+      in: query
+      description: Page size.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+
   responses:
     Problem:
       description: An error described as RFC 9457 problem details.
@@ -136,6 +1027,31 @@ components:
         dependencies:
           $ref: '#/components/schemas/Dependencies'
 
+    Runtime:
+      type: object
+      description: Versions and settings of the running service.
+      required: [startedAt, goVersion, tigerbeetleClientVersion, tigerbeetleClusterId]
+      properties:
+        startedAt:
+          type: string
+          format: date-time
+        goVersion:
+          type: string
+          examples: [go1.27.3]
+        tigerbeetleClientVersion:
+          type: string
+          examples: [v0.17.10]
+        tigerbeetleClusterId:
+          type: string
+          description: The cluster ID, a u128 in decimal.
+        postgresVersion:
+          type: string
+          description: The server version reported by Postgres, when reachable.
+        schemaVersion:
+          type: integer
+          format: int64
+          description: The last applied migration, when reachable.
+
     Info:
       type: object
       required: [service, version, dependencies]
@@ -149,6 +1065,930 @@ components:
           examples: [0.0.1]
         dependencies:
           $ref: '#/components/schemas/Dependencies'
+        runtime:
+          $ref: '#/components/schemas/Runtime'
+
+    ReconcilerStatus:
+      type: object
+      required: [running, gracePeriodSeconds, intervalSeconds, pending, stuck]
+      properties:
+        running:
+          type: boolean
+        gracePeriodSeconds:
+          type: integer
+          description: A pending record younger than this is a write in progress, not a crash.
+        intervalSeconds:
+          type: integer
+        lastRunAt:
+          type: string
+          format: date-time
+        lastSettled:
+          type: integer
+          description: Records settled by the last run.
+        pending:
+          type: integer
+          format: int64
+          description: Pending records, across all ledgers.
+        stuck:
+          type: integer
+          format: int64
+          description: Pending records older than the grace period that the reconciler could not settle.
+        stuckRequests:
+          type: array
+          items:
+            $ref: '#/components/schemas/StuckRequest'
+
+    StuckRequest:
+      type: object
+      required: [ledger, key, operation, createdAt, attempts]
+      properties:
+        ledger:
+          $ref: '#/components/schemas/LedgerName'
+        key:
+          type: string
+        operation:
+          $ref: '#/components/schemas/Operation'
+        createdAt:
+          type: string
+          format: date-time
+        attempts:
+          type: integer
+        note:
+          type: string
+
+    LedgerName:
+      type: string
+      description: Lowercase letters, digits, dash and underscore, 1 to 63 characters, starting with a letter or digit.
+      pattern: '^[a-z0-9][a-z0-9_-]{0,62}$'
+      examples: [eu-payments]
+
+    Address:
+      type: string
+      description: Colon-separated segments of letters, digits, dash and underscore.
+      maxLength: 255
+      pattern: '^[a-zA-Z0-9_-]+(:[a-zA-Z0-9_-]+)*$'
+      examples: ['users:1234:wallet']
+
+    AddressPrefix:
+      type: string
+      description: An address prefix on whole segments, with an optional trailing colon.
+      maxLength: 256
+      pattern: '^[a-zA-Z0-9_-]+(:[a-zA-Z0-9_-]+)*:?$'
+      examples: ['users:', 'users:1234']
+
+    Asset:
+      type: string
+      description: '`CODE/SCALE`. A missing scale means zero: `EUR` is `EUR/0`, not `EUR/2` (ADR-0005).'
+      pattern: '^[A-Z][A-Z0-9]{1,15}(/[0-9]{1,2})?$'
+      examples: [EUR/2, XOF/0]
+
+    Amount:
+      type: string
+      description: An unsigned integer in the asset's smallest unit, up to 2^128 - 1.
+      pattern: '^(0|[1-9][0-9]{0,38})$'
+      examples: ['125000']
+
+    SignedAmount:
+      type: string
+      description: A signed integer in the asset's smallest unit, for balances.
+      pattern: '^-?(0|[1-9][0-9]{0,39})$'
+      examples: ['-481230000']
+
+    Id:
+      type: string
+      description: A 128-bit time-ordered ID as 32 lowercase hexadecimal characters.
+      pattern: '^[0-9a-f]{32}$'
+      examples: [0192f3a1b7c94e2a8d5f6c0b1e2d7c2e]
+
+    TigerBeetleTimestamp:
+      type: string
+      description: The TigerBeetle timestamp, nanoseconds since the Unix epoch, as a decimal string.
+      pattern: '^[0-9]+$'
+
+    Metadata:
+      type: object
+      description: Key/value pairs for your own systems, stored in Postgres. At most 64 entries.
+      maxProperties: 64
+      propertyNames:
+        pattern: '^[A-Za-z0-9_.:-]{1,64}$'
+      additionalProperties:
+        type: string
+        maxLength: 512
+
+    AssetAmount:
+      type: object
+      required: [asset, amount]
+      properties:
+        asset:
+          $ref: '#/components/schemas/Asset'
+        amount:
+          $ref: '#/components/schemas/Amount'
+
+    Ledger:
+      type: object
+      required: [name, metadata, createdAt, assets, accounts]
+      properties:
+        name:
+          $ref: '#/components/schemas/LedgerName'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        createdAt:
+          type: string
+          format: date-time
+        assets:
+          type: array
+          description: The assets used so far, in canonical form.
+          items:
+            $ref: '#/components/schemas/Asset'
+        accounts:
+          type: integer
+          format: int64
+          description: The number of addresses in the ledger.
+
+    LedgerList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ledger'
+        next:
+          type: string
+          description: The cursor of the next page; absent on the last page.
+
+    CreateLedgerRequest:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+
+    LedgerStats:
+      type: object
+      required: [accounts, accountsToday, assets, holds, declined]
+      properties:
+        accounts:
+          type: integer
+          format: int64
+        accountsToday:
+          type: integer
+          format: int64
+          description: Accounts created since midnight UTC.
+        assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetSummary'
+        holds:
+          $ref: '#/components/schemas/HoldStats'
+        declined:
+          $ref: '#/components/schemas/DeclinedStats'
+
+    HoldStats:
+      type: object
+      required: [open, captured, voided, expired, reserved]
+      properties:
+        open:
+          type: integer
+          format: int64
+        captured:
+          type: integer
+          format: int64
+        voided:
+          type: integer
+          format: int64
+        expired:
+          type: integer
+          format: int64
+        reserved:
+          type: array
+          description: The amount held by open holds, per asset.
+          items:
+            $ref: '#/components/schemas/AssetAmount'
+
+    DeclinedStats:
+      type: object
+      description: Declined and failed writes in the last 24 hours.
+      required: [total, reasons]
+      properties:
+        total:
+          type: integer
+          format: int64
+        reasons:
+          type: array
+          items:
+            type: object
+            required: [reason, count]
+            properties:
+              reason:
+                type: string
+                examples: [exceeds-credits]
+              count:
+                type: integer
+                format: int64
+
+    AssetSummary:
+      type: object
+      required: [asset, tbLedger, createdAt, accounts, issued]
+      properties:
+        asset:
+          $ref: '#/components/schemas/Asset'
+        tbLedger:
+          type: integer
+          format: int64
+          description: The TigerBeetle ledger number of this (ledger, asset) pair.
+        createdAt:
+          type: string
+          format: date-time
+          description: First use of the asset in the ledger.
+        accounts:
+          type: integer
+          format: int64
+        issued:
+          $ref: '#/components/schemas/SignedAmount'
+          description: Money issued, minus the balance of world, read from TigerBeetle.
+
+    AssetList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetSummary'
+
+    BalanceLimit:
+      type: string
+      enum: [none, debits_must_not_exceed_credits, credits_must_not_exceed_debits]
+      description: The balance limit flag of TigerBeetle accounts created by a rule.
+
+    AssetBalance:
+      type: object
+      description: One TigerBeetle account of an address, with its balances and frozen flags.
+      required: [asset, accountId, tbLedger, balance, available, reserved, incoming, credits, debits, limit, history, code, rule, createdAt]
+      properties:
+        asset:
+          $ref: '#/components/schemas/Asset'
+        accountId:
+          $ref: '#/components/schemas/Id'
+        tbLedger:
+          type: integer
+          format: int64
+        balance:
+          $ref: '#/components/schemas/SignedAmount'
+          description: Credits posted minus debits posted.
+        available:
+          $ref: '#/components/schemas/SignedAmount'
+          description: Balance minus reserved.
+        reserved:
+          $ref: '#/components/schemas/Amount'
+          description: Pending debits, the amount held by open holds.
+        incoming:
+          $ref: '#/components/schemas/Amount'
+          description: Pending credits. Not part of available.
+        credits:
+          $ref: '#/components/schemas/Amount'
+          description: Total credits posted.
+        debits:
+          $ref: '#/components/schemas/Amount'
+          description: Total debits posted.
+        limit:
+          $ref: '#/components/schemas/BalanceLimit'
+        history:
+          type: boolean
+        code:
+          type: integer
+          description: The TigerBeetle account code.
+        rule:
+          type: string
+          description: The pattern of the rule that created the account.
+        createdAt:
+          type: string
+          format: date-time
+
+    AccountSummary:
+      type: object
+      required: [address, createdAt, metadata, balances]
+      properties:
+        address:
+          $ref: '#/components/schemas/Address'
+        createdAt:
+          type: string
+          format: date-time
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        balances:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetBalance'
+
+    AccountList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountSummary'
+        next:
+          type: string
+
+    Account:
+      allOf:
+        - $ref: '#/components/schemas/AccountSummary'
+        - type: object
+          required: [openHolds]
+          properties:
+            openHolds:
+              type: integer
+              format: int64
+              description: Open holds from this address.
+
+    BalancePoint:
+      type: object
+      required: [timestamp, at, balance, reserved, credits, debits]
+      properties:
+        timestamp:
+          $ref: '#/components/schemas/TigerBeetleTimestamp'
+        at:
+          type: string
+          format: date-time
+        balance:
+          $ref: '#/components/schemas/SignedAmount'
+        reserved:
+          $ref: '#/components/schemas/Amount'
+        credits:
+          $ref: '#/components/schemas/Amount'
+        debits:
+          $ref: '#/components/schemas/Amount'
+
+    BalanceHistory:
+      type: object
+      required: [address, asset, data]
+      properties:
+        address:
+          $ref: '#/components/schemas/Address'
+        asset:
+          $ref: '#/components/schemas/Asset'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BalancePoint'
+
+    AggregateBalance:
+      type: object
+      required: [asset, accounts, balance, available, reserved, incoming]
+      properties:
+        asset:
+          $ref: '#/components/schemas/Asset'
+        accounts:
+          type: integer
+          format: int64
+        balance:
+          $ref: '#/components/schemas/SignedAmount'
+        available:
+          $ref: '#/components/schemas/SignedAmount'
+        reserved:
+          $ref: '#/components/schemas/Amount'
+        incoming:
+          $ref: '#/components/schemas/Amount'
+
+    AggregateBalances:
+      type: object
+      required: [prefix, asOf, accounts, chunks, assets]
+      properties:
+        prefix:
+          type: string
+        asOf:
+          type: string
+          format: date-time
+          description: When the last chunk was read.
+        accounts:
+          type: integer
+          format: int64
+          description: Addresses summed.
+        chunks:
+          type: integer
+          description: TigerBeetle lookups made. More than one means the sum is not one snapshot.
+        assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/AggregateBalance'
+
+    Segment:
+      type: object
+      required: [segment, prefix, accounts, assets, isAccount, hasChildren]
+      properties:
+        segment:
+          type: string
+          examples: ['1234']
+        prefix:
+          type: string
+          description: The full path of the segment.
+          examples: ['users:1234']
+        accounts:
+          type: integer
+          format: int64
+          description: Addresses at or below the segment.
+        assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Asset'
+        isAccount:
+          type: boolean
+          description: The prefix is itself an address.
+        hasChildren:
+          type: boolean
+
+    SegmentList:
+      type: object
+      required: [data]
+      properties:
+        prefix:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Segment'
+
+    Posting:
+      type: object
+      required: [source, destination, asset, amount]
+      properties:
+        source:
+          $ref: '#/components/schemas/Address'
+          description: The debited account.
+        destination:
+          $ref: '#/components/schemas/Address'
+          description: The credited account.
+        asset:
+          $ref: '#/components/schemas/Asset'
+        amount:
+          $ref: '#/components/schemas/Amount'
+
+    PostingRecord:
+      allOf:
+        - $ref: '#/components/schemas/Posting'
+        - type: object
+          required: [transferId, tbLedger]
+          properties:
+            transferId:
+              $ref: '#/components/schemas/Id'
+            tbLedger:
+              type: integer
+              format: int64
+
+    EventTypeRef:
+      type: object
+      required: [name, code]
+      properties:
+        name:
+          type: string
+        code:
+          type: integer
+
+    Transaction:
+      type: object
+      required: [id, ledger, postings, eventType, metadata, committedAt, timestamp, idempotencyKey]
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        ledger:
+          $ref: '#/components/schemas/LedgerName'
+        postings:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostingRecord'
+        reference:
+          type: string
+        eventType:
+          $ref: '#/components/schemas/EventTypeRef'
+        businessTime:
+          type: string
+          format: date-time
+          description: The client's business time, stored in `user_data_64`. Not the committed time.
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        committedAt:
+          type: string
+          format: date-time
+          description: The TigerBeetle timestamp of the chain, the only time the ledger knows.
+        timestamp:
+          $ref: '#/components/schemas/TigerBeetleTimestamp'
+        reverts:
+          $ref: '#/components/schemas/Id'
+          description: The transaction this one reverts.
+        revertedBy:
+          $ref: '#/components/schemas/Id'
+          description: The transaction that reverted this one.
+        idempotencyKey:
+          type: string
+        requestId:
+          type: string
+
+    TransactionList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        next:
+          type: string
+
+    CreateTransactionRequest:
+      type: object
+      required: [postings]
+      properties:
+        postings:
+          type: array
+          minItems: 1
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/Posting'
+        reference:
+          type: string
+          maxLength: 255
+        eventType:
+          type: string
+          maxLength: 63
+          description: An event type name of the ledger; the default event type when absent.
+        businessTime:
+          type: string
+          format: date-time
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+
+    RevertTransactionRequest:
+      type: object
+      properties:
+        reference:
+          type: string
+          maxLength: 255
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+
+    HoldStatus:
+      type: string
+      enum: [open, captured, voided, expired]
+
+    Hold:
+      type: object
+      required:
+        [
+          id,
+          ledger,
+          source,
+          destination,
+          asset,
+          amount,
+          status,
+          timeoutSeconds,
+          createdAt,
+          timestamp,
+          eventType,
+          metadata,
+          idempotencyKey,
+          pendingTransferId
+        ]
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        ledger:
+          $ref: '#/components/schemas/LedgerName'
+        source:
+          $ref: '#/components/schemas/Address'
+        destination:
+          $ref: '#/components/schemas/Address'
+        asset:
+          $ref: '#/components/schemas/Asset'
+        amount:
+          $ref: '#/components/schemas/Amount'
+        capturedAmount:
+          $ref: '#/components/schemas/Amount'
+        status:
+          $ref: '#/components/schemas/HoldStatus'
+        timeoutSeconds:
+          type: integer
+          format: int64
+          description: Seconds on the cluster clock; 0 means no timeout.
+        createdAt:
+          type: string
+          format: date-time
+        timestamp:
+          $ref: '#/components/schemas/TigerBeetleTimestamp'
+        expiresAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+        reference:
+          type: string
+        eventType:
+          $ref: '#/components/schemas/EventTypeRef'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        idempotencyKey:
+          type: string
+        pendingTransferId:
+          $ref: '#/components/schemas/Id'
+        resolutionTransferId:
+          $ref: '#/components/schemas/Id'
+        tbLedger:
+          type: integer
+          format: int64
+
+    HoldList:
+      type: object
+      required: [data, counts]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Hold'
+        next:
+          type: string
+        counts:
+          $ref: '#/components/schemas/HoldStats'
+
+    CreateHoldRequest:
+      type: object
+      required: [source, destination, asset, amount]
+      properties:
+        source:
+          $ref: '#/components/schemas/Address'
+        destination:
+          $ref: '#/components/schemas/Address'
+        asset:
+          $ref: '#/components/schemas/Asset'
+        amount:
+          $ref: '#/components/schemas/Amount'
+        timeoutSeconds:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 4294967295
+          description: Releases the hold after this many seconds on the cluster clock; 0 or absent means never.
+        reference:
+          type: string
+          maxLength: 255
+        eventType:
+          type: string
+          maxLength: 63
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+
+    CaptureHoldRequest:
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Amount'
+          description: The amount to capture; the full hold when absent. Must not be zero.
+
+    Operation:
+      type: string
+      enum: [transaction, revert, hold, capture, void]
+
+    RequestStatus:
+      type: string
+      enum: [pending, committed, declined, failed]
+
+    WriteRequest:
+      type: object
+      required: [key, operation, status, createdAt, targetId, bodyHash, attempts]
+      properties:
+        key:
+          type: string
+        operation:
+          $ref: '#/components/schemas/Operation'
+        status:
+          $ref: '#/components/schemas/RequestStatus'
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+        targetId:
+          $ref: '#/components/schemas/Id'
+          description: The transaction or hold minted for this write.
+        problemType:
+          type: string
+          description: The problem type of a declined or failed write.
+        responseStatus:
+          type: integer
+        requestId:
+          type: string
+        bodyHash:
+          type: string
+          description: SHA-256 of the canonical request body, hex.
+        attempts:
+          type: integer
+          description: TigerBeetle submissions, including reconciler retries.
+
+    WriteRequestList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WriteRequest'
+        next:
+          type: string
+
+    WriteRequestDetail:
+      allOf:
+        - $ref: '#/components/schemas/WriteRequest'
+        - type: object
+          required: [request, transferIds]
+          properties:
+            request:
+              type: object
+              description: The canonical request body as stored.
+              additionalProperties: true
+            response:
+              type: object
+              description: The stored response or problem body.
+              additionalProperties: true
+            transferIds:
+              type: array
+              description: The transfer IDs minted before the first submission, in chain order.
+              items:
+                $ref: '#/components/schemas/Id'
+
+    Rule:
+      type: object
+      required: [pattern, limit, history, code, builtIn, segments]
+      properties:
+        pattern:
+          type: string
+          examples: ['users:', world, '*']
+        limit:
+          $ref: '#/components/schemas/BalanceLimit'
+        history:
+          type: boolean
+        code:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        builtIn:
+          type: boolean
+          description: A default that applies without being stored.
+        segments:
+          type: integer
+          description: Specificity; the most specific matching rule wins.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RuleList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rule'
+
+    PutRuleRequest:
+      type: object
+      required: [limit, code]
+      properties:
+        limit:
+          $ref: '#/components/schemas/BalanceLimit'
+        history:
+          type: boolean
+          default: false
+        code:
+          type: integer
+          minimum: 1
+          maximum: 65535
+
+    RuleCandidate:
+      type: object
+      required: [rule, matches]
+      properties:
+        rule:
+          $ref: '#/components/schemas/Rule'
+        matches:
+          type: boolean
+
+    RuleMatch:
+      type: object
+      required: [address, rule, candidates, existing]
+      properties:
+        address:
+          $ref: '#/components/schemas/Address'
+        rule:
+          $ref: '#/components/schemas/Rule'
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleCandidate'
+        existing:
+          type: array
+          description: Assets this address already has accounts in; those keep their frozen flags.
+          items:
+            $ref: '#/components/schemas/Asset'
+
+    EventType:
+      type: object
+      required: [name, code, builtIn, transactions]
+      properties:
+        name:
+          type: string
+          examples: [card.authorized]
+        code:
+          type: integer
+        builtIn:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        transactions:
+          type: integer
+          format: int64
+          description: Transactions and holds recorded with this event type.
+
+    EventTypeList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventType'
+
+    CreateEventTypeRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 63
+        code:
+          type: integer
+          minimum: 2
+          maximum: 65535
+
+    SearchResults:
+      type: object
+      required: [query, accounts, transactions, holds, requests]
+      properties:
+        query:
+          type: string
+        accounts:
+          type: array
+          items:
+            type: object
+            required: [address, assets]
+            properties:
+              address:
+                $ref: '#/components/schemas/Address'
+              assets:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Asset'
+        transactions:
+          type: array
+          items:
+            type: object
+            required: [id, committedAt]
+            properties:
+              id:
+                $ref: '#/components/schemas/Id'
+              reference:
+                type: string
+              committedAt:
+                type: string
+                format: date-time
+        holds:
+          type: array
+          items:
+            type: object
+            required: [id, status]
+            properties:
+              id:
+                $ref: '#/components/schemas/Id'
+              status:
+                $ref: '#/components/schemas/HoldStatus'
+        requests:
+          type: array
+          items:
+            type: object
+            required: [key, operation, status]
+            properties:
+              key:
+                type: string
+              operation:
+                $ref: '#/components/schemas/Operation'
+              status:
+                $ref: '#/components/schemas/RequestStatus'
 
     Problem:
       type: object
@@ -177,3 +2017,16 @@ components:
         requestId:
           type: string
           description: The request ID, also returned in the X-Request-Id header.
+        posting:
+          type: integer
+          description: The zero-based index of the posting that caused the problem.
+        results:
+          type: array
+          description: |
+            The TigerBeetle result of every posting of a declined chain, in order, such as
+            `["linked_event_failed", "exceeds_credits"]`. Nothing was applied.
+          items:
+            type: string
+        targetId:
+          $ref: '#/components/schemas/Id'
+          description: The transaction or hold ID minted for a declined write.

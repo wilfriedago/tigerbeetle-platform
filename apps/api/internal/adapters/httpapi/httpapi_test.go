@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -201,10 +202,12 @@ func TestProblemFor(t *testing.T) {
 		{err: errors.Join(ledger.ErrAlreadyExists, errors.New("duplicate key value violates unique constraint")), wantStatus: 409},
 		{err: ledger.ErrInvalid, wantStatus: 400},
 		{err: ledger.ErrUnavailable, wantStatus: 503},
+		{err: ledger.ErrConflict, wantStatus: 409},
+		{err: ledger.ErrRejected, wantStatus: 422},
 		{err: errors.New("something else"), wantStatus: 500},
 	}
 	for _, tt := range tests {
-		p := problemFor(tt.err)
+		p, _ := problemFor(tt.err)
 		if p.Status != tt.wantStatus {
 			t.Errorf("problemFor(%v).Status = %d, want %d", tt.err, p.Status, tt.wantStatus)
 		}
@@ -212,6 +215,38 @@ func TestProblemFor(t *testing.T) {
 		if p.Detail != nil {
 			t.Errorf("problemFor(%v) set Detail %q; driver text must not reach clients", tt.err, *p.Detail)
 		}
+	}
+}
+
+func TestProblemForDomainProblem(t *testing.T) {
+	t.Parallel()
+	declined := &ledger.Problem{
+		Kind:    ledger.ErrRejected,
+		Reason:  "exceeds-credits",
+		Detail:  "Posting 2 would take users:1:wallet below zero in EUR/2.",
+		Posting: 1,
+		Results: []string{"linked_event_failed", "exceeds_credits"},
+	}
+	p, _ := problemFor(fmt.Errorf("create transaction: %w", declined))
+	if p.Status != 422 || p.Type != "/problems/exceeds-credits" {
+		t.Fatalf("status %d type %q, want 422 /problems/exceeds-credits", p.Status, p.Type)
+	}
+	if p.Posting == nil || *p.Posting != 1 || p.Results == nil || len(*p.Results) != 2 {
+		t.Fatalf("extensions not carried: posting %v results %v", p.Posting, p.Results)
+	}
+	inFlight := &ledger.Problem{Kind: ledger.ErrConflict, Reason: "request-in-flight", Posting: -1, RetryAfter: 1500 * time.Millisecond}
+	p, retry := problemFor(inFlight)
+	if p.Status != 409 || retry != 1500*time.Millisecond || p.Posting != nil {
+		t.Fatalf("in flight: status %d retry %v posting %v", p.Status, retry, p.Posting)
+	}
+}
+
+func TestValidationDetailIsClientSafe(t *testing.T) {
+	t.Parallel()
+	err := fmt.Errorf("create ledger %q: %w", "Bad", fmt.Errorf("%w: ledger name %q must match the pattern", ledger.ErrInvalid, "Bad"))
+	p, _ := problemFor(err)
+	if p.Detail == nil || *p.Detail != `ledger name "Bad" must match the pattern` {
+		t.Fatalf("detail = %v", p.Detail)
 	}
 }
 

@@ -11,13 +11,10 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/postgres"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/tigerbeetle"
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/httpserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/logging"
@@ -73,47 +70,22 @@ func run(args []string, stdout io.Writer) error {
 
 	logger := logging.New(stdout, level).With(slog.String("service", serviceName), slog.String("version", version))
 
-	metadata, err := postgres.New(ctx, cfg.PostgresURL)
+	svc, err := wire(ctx, cfg, logger)
 	if err != nil {
 		return err
 	}
 
-	defer metadata.Close()
+	defer svc.close()
 
-	if cfg.MigrateOnStart {
-		migrateCtx, cancel := context.WithTimeout(ctx, time.Minute)
-		err := metadata.Migrate(migrateCtx, logger)
-		cancel()
-		if err != nil {
-			return err
-		}
-	}
-
-	// The TigerBeetle client wants IP addresses; compose and Kubernetes hand us names.
-	addresses, err := tigerbeetle.ResolveAddresses(ctx, cfg.TigerBeetleAddresses)
-	if err != nil {
-		return err
-	}
-
-	ledgerStore, err := tigerbeetle.New(cfg.TigerBeetleClusterID, addresses)
-	if err != nil {
-		return err
-	}
-
-	defer ledgerStore.Close()
-
-	status := app.NewStatus(ledgerStore, metadata, cfg.ReadinessTimeout)
-
-	handler := httpapi.NewHandler(httpapi.Deps{
-		Logger:  logger,
-		Status:  status,
-		Service: serviceName,
-		Version: version,
-	})
+	// The reconciler settles writes interrupted by a crash or a TigerBeetle timeout. It stops with
+	// ctx and is waited for before the stores close (defers run in reverse order).
+	var background sync.WaitGroup
+	background.Go(func() { svc.reconciler.Run(ctx) })
+	defer background.Wait()
 
 	err = httpserver.Run(ctx, httpserver.Options{
 		Addr:            cfg.Addr,
-		Handler:         handler,
+		Handler:         svc.handler,
 		ShutdownTimeout: cfg.ShutdownTimeout,
 		Logger:          logger,
 	})
