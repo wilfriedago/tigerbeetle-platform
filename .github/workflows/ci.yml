@@ -36,6 +36,8 @@ jobs:
         run: scripts/install-tools.sh
       - name: Lint
         run: just lint-go
+      - name: Every depguard rule fires
+        run: just lint-depguard-probe
       - name: Unit tests
         run: just test-go
       - name: govulncheck
