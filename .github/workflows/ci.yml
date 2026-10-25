@@ -115,6 +115,24 @@ jobs:
           BASE: origin/${{ github.base_ref }}
         run: just spec-diff "$BASE"
 
+  proto:
+    name: proto
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The breaking-change check reads the protos of the base branch.
+          fetch-depth: 0
+      - name: Install just and buf
+        run: scripts/install-tools.sh just buf
+      - name: buf lint
+        run: just lint-proto
+      - name: No breaking change against the base branch
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: just proto-breaking "$BASE"
+
   web:
     name: web
     runs-on: ubuntu-24.04
