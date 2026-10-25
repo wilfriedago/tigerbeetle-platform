@@ -179,20 +179,25 @@ dev-ts:
 compose-up:
     {{ compose }} up --build --detach --wait
 
-# Stop the local stack, keeping its data.
+# The stack plus RabbitMQ and NATS, with gRPC, AMQP RPC and NATS RPC turned on (ADR-0021).
+[group('stack')]
+compose-up-brokers:
+    GRPC_ENABLED=true AMQP_RPC_ENABLED=true NATS_RPC_ENABLED=true {{ compose }} --profile brokers up --build --detach --wait
+
+# Stop the local stack, keeping its data. The brokers profile is named so its services stop too.
 [group('stack')]
 compose-down:
-    {{ compose }} down
+    {{ compose }} --profile brokers down
 
 # Follow the logs of the local stack.
 [group('stack')]
 compose-logs:
-    {{ compose }} logs --follow
+    {{ compose }} --profile brokers logs --follow
 
 # Stop the local stack and delete its volumes (TigerBeetle and Postgres data).
 [group('stack')]
 compose-reset:
-    {{ compose }} down --volumes
+    {{ compose }} --profile brokers down --volumes
 
 # golangci-lint, sqlc, govulncheck, just, oasdiff, buf, protoc-gen-go and protoc-gen-go-grpc.
 [doc('Install the pinned tools into $(go env GOPATH)/bin.')]

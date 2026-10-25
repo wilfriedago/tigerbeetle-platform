@@ -8,8 +8,8 @@ func TestLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if images.TigerBeetle == "" || images.Postgres == "" {
+	if images.TigerBeetle == "" || images.Postgres == "" || images.RabbitMQ == "" || images.NATS == "" {
 		t.Fatalf("images = %+v", images)
 	}
-	t.Logf("tigerbeetle=%s postgres=%s", images.TigerBeetle, images.Postgres)
+	t.Logf("images = %+v", images)
 }

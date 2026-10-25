@@ -1,4 +1,5 @@
-# Local development stack: TigerBeetle, Postgres, the API and the console.
+# Local development stack: TigerBeetle, Postgres, the API and the console. The brokers profile
+# (`just compose-up-brokers`) adds RabbitMQ and NATS and turns the broker RPC transports on.
 # Run from the repository root with `just compose-up` (docker compose --project-directory . ...),
 # so variables come from the root .env (see .env.example) and build contexts resolve correctly.
 #
@@ -86,9 +87,14 @@ services:
       TIGERBEETLE_TIMEOUT: ${TIGERBEETLE_TIMEOUT:-5s}
       RECONCILER_GRACE_PERIOD: ${RECONCILER_GRACE_PERIOD:-30s}
       RECONCILER_INTERVAL: ${RECONCILER_INTERVAL:-10s}
-      # gRPC stays off unless asked for: development only until authentication is decided.
+      # gRPC and the broker RPC transports stay off unless asked for: development only until
+      # authentication is decided (ADR-0021).
       GRPC_ENABLED: ${GRPC_ENABLED:-false}
       GRPC_ADDR: ':9090'
+      AMQP_RPC_ENABLED: ${AMQP_RPC_ENABLED:-false}
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672/
+      NATS_RPC_ENABLED: ${NATS_RPC_ENABLED:-false}
+      NATS_URL: nats://nats:4222
     ports:
       - '${API_PORT:-8080}:8080'
       - '${GRPC_PORT:-9090}:9090'
@@ -101,6 +107,13 @@ services:
         condition: service_healthy
       tigerbeetle:
         condition: service_healthy
+      # Only with the brokers profile; without it these are skipped.
+      rabbitmq:
+        condition: service_healthy
+        required: false
+      nats:
+        condition: service_healthy
+        required: false
     healthcheck:
       # The runtime image has no shell or curl; the binary probes itself.
       test: ['CMD', '/app/api', '-probe', 'http://127.0.0.1:8080/readyz']
@@ -108,6 +121,34 @@ services:
       timeout: 3s
       retries: 20
       start_period: 5s
+
+  rabbitmq:
+    image: rabbitmq:4.4.0-management@sha256:c200fd496482cda18c412be4e6f244830e1e75949b8cf5f0e887cea9ea456109
+    profiles: [brokers]
+    ports:
+      - '${RABBITMQ_PORT:-5672}:5672'
+      # The management UI, guest/guest.
+      - '${RABBITMQ_MANAGEMENT_PORT:-15672}:15672'
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'check_port_connectivity']
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  nats:
+    image: nats:2.15.1-alpine@sha256:7ae34c25dfd6fe2e01c6483eabef20d796690fdcac6c4d94ca780a6cf9877fde
+    profiles: [brokers]
+    # -m serves the monitoring endpoint the healthcheck reads. JetStream stays off: core request
+    # and reply is all the RPC transport uses.
+    command: ['-m', '8222']
+    ports:
+      - '${NATS_PORT:-4222}:4222'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8222/healthz']
+      interval: 2s
+      timeout: 2s
+      retries: 15
 
   console:
     build:

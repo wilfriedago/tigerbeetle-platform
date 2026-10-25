@@ -10,7 +10,9 @@ import (
 
 	"github.com/moby/moby/api/types/container"
 	"github.com/testcontainers/testcontainers-go"
+	tcnats "github.com/testcontainers/testcontainers-go/modules/nats"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
+	tcrabbitmq "github.com/testcontainers/testcontainers-go/modules/rabbitmq"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
@@ -98,4 +100,53 @@ func StartTigerBeetle(t testing.TB) string {
 		}
 	}
 	return net.JoinHostPort(ip.String(), port.Port())
+}
+
+// StartRabbitMQ runs the pinned RabbitMQ image for the test and returns its AMQP URL.
+func StartRabbitMQ(t testing.TB) string {
+	t.Helper()
+	ctx := context.Background()
+	images, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := tcrabbitmq.Run(ctx, images.RabbitMQ)
+	if err != nil {
+		t.Fatalf("start rabbitmq %s: %v", images.RabbitMQ, err)
+	}
+	t.Cleanup(func() {
+		if err := c.Terminate(context.Background()); err != nil {
+			t.Logf("terminate rabbitmq: %v", err)
+		}
+	})
+	url, err := c.AmqpURL(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return url
+}
+
+// StartNATS runs the pinned NATS image for the test and returns its URL. JetStream stays off, as
+// in deploy/compose/compose.yaml.
+func StartNATS(t testing.TB) string {
+	t.Helper()
+	ctx := context.Background()
+	images, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := tcnats.Run(ctx, images.NATS, testcontainers.WithCmd("-m", "8222"))
+	if err != nil {
+		t.Fatalf("start nats %s: %v", images.NATS, err)
+	}
+	t.Cleanup(func() {
+		if err := c.Terminate(context.Background()); err != nil {
+			t.Logf("terminate nats: %v", err)
+		}
+	})
+	url, err := c.ConnectionString(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return url
 }
