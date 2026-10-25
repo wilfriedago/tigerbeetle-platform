@@ -37,6 +37,9 @@ type Config struct {
 	ReconcilerGracePeriod time.Duration `env:"RECONCILER_GRACE_PERIOD" envDefault:"30s"`
 	// ReconcilerInterval is how often the reconciler looks for interrupted writes.
 	ReconcilerInterval time.Duration `env:"RECONCILER_INTERVAL" envDefault:"10s"`
+	// RESTEnabled serves the REST operations of the ledgers and bookkeeping modules. The health
+	// operations are always served (plan section 13.1).
+	RESTEnabled bool `env:"REST_ENABLED" envDefault:"true"`
 	// ReconcilerEnabled runs the reconciler in this process (plan section 13.1).
 	ReconcilerEnabled bool `env:"RECONCILER_ENABLED" envDefault:"true"`
 }

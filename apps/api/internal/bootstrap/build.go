@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/app"
+	healthv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/rest/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	platformpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
@@ -57,7 +58,7 @@ func Build(ctx context.Context, cfg config.Config, svc Service, logger *slog.Log
 		return nil, err
 	}
 	m := buildModules(r, cfg, logger, o)
-	a.handler = restHandler(r, m, cfg, svc, logger)
+	a.handler = httpHandler(r, m, cfg, svc, logger)
 	a.reconciler = m.reconciler
 	a.runners = runners(cfg, a, logger)
 	return a, nil
@@ -91,16 +92,10 @@ func (a *App) open(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	a.closers = append(a.closers, client.Close)
 
 	checker := readiness.New(cfg.ReadinessTimeout)
-	checker.Require(probePostgres, db.Ready)
-	checker.Require(probeTigerBeetle, client.Ready)
+	checker.Require(healthv1.ProbePostgres, db.Ready)
+	checker.Require(healthv1.ProbeTigerBeetle, client.Ready)
 	return resources{db: db, tigerbeetle: client, readiness: checker}, nil
 }
-
-// The readiness probe names, as /readyz and /v1/_info report them.
-const (
-	probePostgres    = "postgres"
-	probeTigerBeetle = "tigerbeetle"
-)
 
 // Handler is the HTTP handler of the API, for tests that serve it with httptest.
 func (a *App) Handler() http.Handler {

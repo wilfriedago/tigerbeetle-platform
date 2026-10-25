@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"os"
 
-	v1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/rest"
 )
 
 func main() {
@@ -38,9 +38,10 @@ func run(out string) error {
 	return nil
 }
 
-// build registers every operation with nil use cases: registering never calls one.
+// build registers every operation with nil handlers: registering never calls one. The spec lists
+// every operation whatever REST_ENABLED says.
 func build() ([]byte, error) {
 	api := restapi.NewAPI(http.NewServeMux())
-	v1.Register(api, v1.Deps{})
+	rest.RegisterAll(api, rest.Handlers{})
 	return restapi.Spec(api)
 }

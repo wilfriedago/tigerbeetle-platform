@@ -55,6 +55,7 @@ func newHarness(t *testing.T) *harness {
 		PostgresURL:           devstack.StartPostgres(t),
 		TigerBeetleAddresses:  []string{devstack.StartTigerBeetle(t)},
 		MigrateOnStart:        true,
+		RESTEnabled:           true,
 		ReadinessTimeout:      2 * time.Second,
 		TigerBeetleTimeout:    10 * time.Second,
 		ReconcilerGracePeriod: time.Millisecond,

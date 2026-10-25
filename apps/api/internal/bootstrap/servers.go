@@ -8,25 +8,23 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi"
 	v1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/adapters/httpapi/v1"
+	healthv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/rest/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/httpserver"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/rest"
 )
 
-// restHandler builds the HTTP handler of the REST operations.
-func restHandler(r resources, m modules, cfg config.Config, svc Service, logger *slog.Logger) http.Handler {
-	return httpapi.NewHandler(logger, v1.Deps{
-		Readiness:    r.readiness,
-		Database:     r.db,
-		Ledgers:      m.ledgers,
-		Settings:     m.settings,
-		Accounts:     m.accounts,
-		Transactions: m.transactions,
-		Holds:        m.holds,
-		Overview:     m.overview,
-		Reconciler:   m.reconciler,
-		Service: v1.Service{
+// httpHandler builds the HTTP handler: the health operations always, the module operations when
+// REST is enabled, on one ServeMux behind the standard middleware of platform/restapi.
+func httpHandler(r resources, m modules, cfg config.Config, svc Service, logger *slog.Logger) http.Handler {
+	mux := http.NewServeMux()
+	api := restapi.NewAPI(mux)
+	rest.RegisterHealth(api, healthv1.Deps{
+		Readiness: r.readiness,
+		Database:  r.db,
+		Service: healthv1.Service{
 			Name:                     svc.Name,
 			Version:                  svc.Version,
 			StartedAt:                time.Now().UTC(),
@@ -34,6 +32,18 @@ func restHandler(r resources, m modules, cfg config.Config, svc Service, logger 
 			TigerBeetleClusterID:     clusterID(cfg.TigerBeetleClusterID),
 		},
 	})
+	if cfg.RESTEnabled {
+		rest.RegisterModules(api, rest.Handlers{V1: v1.Deps{
+			Ledgers:      m.ledgers,
+			Settings:     m.settings,
+			Accounts:     m.accounts,
+			Transactions: m.transactions,
+			Holds:        m.holds,
+			Overview:     m.overview,
+			Reconciler:   m.reconciler,
+		}})
+	}
+	return restapi.Handler(mux, logger)
 }
 
 // runners lists the enabled servers and workers.
