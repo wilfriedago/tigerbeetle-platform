@@ -63,6 +63,13 @@ Chosen option: 1.
   who can see the ledger but lacks the permission gets 403 `FORBIDDEN`. The kernel gains
   `ErrUnauthenticated` and `ErrForbidden`; `internal/platform/problem` renders them per transport.
 - The reconciler and the CDC relay run as `ledger.System`, set only by `internal/bootstrap`.
+- Phase 5 (the console design of `.design/auth.pen`): seeing the organization, its name and its
+  members list with their roles, needs no permission beyond being in it; changing members needs
+  `org.members`, and anyone may leave, except the last owner. Only an owner grants or takes
+  away `owner`, and the last owner stays (409 `last-owner`). A grant records who granted it and
+  when, with that person's name as it was, for the member lists.
+- The access module's own use cases check permissions inside, not through wrappers, because
+  several of them also apply owner rules; its tests cover each rule.
 
 ### Consequences
 

@@ -87,6 +87,16 @@ Chosen option: 1.
     are granted to that subject at once, not kept as pending grants keyed by email. A grant does
     nothing until the person is a member: the organization must be in their token's claim before
     a call can name it.
+- Staff see each organization's owners and its member and ledger counts, never its ledgers'
+  contents. A suspension carries a reason, which the organization's members get in the 403
+  `organization-suspended` problem and on the console's suspended page.
+- Organizations and members are managed by people, through REST and GraphQL. Broker RPC serves
+  the platform's own services, so it has no access methods; gRPC gains them only if integrators
+  ask (plan section 7.1).
+- The API calls Keycloak's admin API through `internal/platform/keycloak` as the service account
+  `tbp-admin`, holding only realm-management's `manage-organizations`, `view-organizations`,
+  `manage-users`, `view-users` and `query-users`. Narrowing it further with fine-grained admin
+  permissions v2 is later work.
 
 ### Consequences
 

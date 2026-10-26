@@ -49,6 +49,9 @@ Sidebar, scoped to the current ledger:
                                        else /welcome for a person in no organization
 /welcome                               Welcome (no organization yet)
 /preferences                           Preferences (no organization)
+/me                                    Profile: your organizations and roles, the Keycloak account
+/staff/organizations                   Organizations (staff only, no X-Organization)
+/staff/organizations/$alias            Organization: identity, owners, counts; rename, suspend
 
 Every path below is under /$org, the organization's alias, such as /acme/ledgers.
 
@@ -68,6 +71,11 @@ Every path below is under /$org, the organization's alias, such as /acme/ledgers
 /ledgers/$ledger/settings              Ledger settings
 /ledgers/$ledger/settings/rules        Account rules
 /ledgers/$ledger/settings/event-types  Event types
+/ledgers/$ledger/settings/access       Access: who holds a role on the ledger
+/members                               Members (?tab=invitations, ?invite opens the dialog)
+/members/$member                       Member: roles, the account, removing or leaving
+/settings                              Organization settings: owners, leaving
+/settings/roles                        Roles and permissions
 /system                                System health
 /system/reconciler                     Reconciler
 /preferences                           Console preferences
@@ -75,7 +83,8 @@ Every path below is under /$org, the organization's alias, such as /acme/ledgers
 Later
 /ledgers/$ledger/posting-rules[/$rule[/versions/$v]]   posting-rule DSL
 /ledgers/$ledger/live                                  live feed (TigerBeetle CDC)
-/login, /org/members, /org/api-keys, /audit            once auth is decided
+/api-keys, /machine-clients                            phase 6 of docs/plans/auth/plan.md
+/audit                                                 later
 ```
 
 The ledger is a path segment, not a query parameter, so console URLs mirror the API paths of
@@ -293,6 +302,49 @@ case (ADR-0006).
 - Open question: ADR-0007 does not say whether this registry is per ledger or global. If it is
   global, the page moves under `/system`.
 
+## Organization pages
+
+The design is `.design/auth.pen` (open it in Pencil). Membership is Keycloak's; roles are the
+platform's grants (ADR-0027, ADR-0028). Every member sees the members list; owners and admins
+change it, and the API decides.
+
+### Members
+
+`/members`. API: `members`, `inviteMember`, `setMemberRole`, `removeMember`, `resendInvitation`,
+`deleteInvitation` (GraphQL; REST `/v1/members`, `/v1/invitations`).
+
+- Members tab: the people who are in, with their organization role, ledger roles, and when and by
+  whom they were added. Filters by name or email, organization role and ledger, in the URL.
+- Invitations tab: people on their way in. "pending" or "expired" is a Keycloak invitation to a
+  person with an account; "setting up" is an account the platform created whose owner has not
+  set a password. Resend and Revoke act on either.
+- Invite dialog: up to 20 emails, one organization role (owner only for owners), optional ledger
+  roles. Each email is one call; a failure names its email and keeps it in the box.
+
+### Member
+
+`/members/$member`. The organization role as three choices, ledger roles with their grant and
+revoke, the account in Keycloak (email, verified or not, subject), and what the person can and
+cannot do, derived from the role table. Remove (or Leave, on your own page) explains what stays.
+
+### Access
+
+`/ledgers/$ledger/settings/access`. Who holds a role on this ledger, and the admins and owners who
+hold every role through the organization. Ledger admins grant and revoke here (`ledger.members`).
+API keys and machine clients join the list in phase 6.
+
+### Organization settings and Roles and permissions
+
+`/settings` shows the organization's name, alias and status, its owners, counts, and Leave
+(refused for the last owner). `/settings/roles` is the role table of ADR-0028, read-only.
+
+### Staff
+
+`/staff/organizations` and `/staff/organizations/$alias`, reached from the account menu by staff.
+These calls send no `X-Organization`: staff are members of no organization. Counts only, never a
+tenant's ledgers. Creating an organization invites its first owner; suspending asks for a reason,
+which the organization's members see on the suspended page, and the alias to confirm.
+
 ## Platform pages
 
 ### System health
@@ -326,7 +378,7 @@ case (ADR-0006).
   (`docs/architecture.md`, Future work).
 - Live feed: a stream of transfers and balance changes from TigerBeetle CDC, filterable by
   address and asset, with pause.
-- Once authentication is decided: login, members and roles, API keys, audit log.
+- API keys and machine clients (phase 6 of `docs/plans/auth/plan.md`), then an audit log.
 
 ## Rules shared by every page
 

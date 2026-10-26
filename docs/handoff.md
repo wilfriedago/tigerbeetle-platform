@@ -105,6 +105,35 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
   renamed to `restapi.WriteProblem`); the tip builds and passes `just lint`, `just test`,
   `just test-integration` and `just generate-check`. Bisecting through phases 1 to 4 needs
   `git bisect skip` on those commits.
+- Phase 5 (organizations and members) is done, from fc204eb:
+  - The O6 spike settled how a person without an account is invited (ADR-0027): the API creates
+    the account and Keycloak emails the required actions; a person with an account gets
+    Keycloak's invitation. Keycloak's own registration link was rejected: it makes a managed
+    member. Roles go to the person's subject at once; there is no pending-grant table (deviation
+    from plan 5.3, recorded there).
+  - `internal/platform/keycloak` is the admin API client, used by the service account `tbp-admin`
+    (realm file, `AUTH_ADMIN_CLIENT_ID`/`AUTH_ADMIN_CLIENT_SECRET`; without them the calls answer
+    503). `access/infrastructure/keycloak` adapts it to the `Directory` port.
+  - Staff: list, create (retry-safe by alias), rename, suspend with a reason, reactivate.
+    Members: list (every member may read it), invite with an organization role and ledger roles,
+    set roles, remove or leave, resend and withdraw invitations, ledger roles by ledger admins.
+    REST (`organizations`, `members` tags) and GraphQL; no broker or gRPC methods (ADR-0027).
+  - The console follows `.design/auth.pen`: Members with an Invitations tab and the invite
+    dialog, Member, a ledger's Access, Roles and permissions, Organization settings, Profile,
+    the staff's Organizations, and the suspended and welcome pages. `docs/console.md` lists them.
+  - Migration 00013 was extended after its first commit (creator name, suspension reason, granter
+    name). A database that ran the first version needs it re-run: drop `created_by_issuer` and
+    `created_by_subject`, delete version 13 from `goose_db_version`, restart the API.
+  - Verified: Go unit and integration tests (`TestOrganizationsAndMembersEndToEnd` with the
+    in-memory directory, store tests for the new queries), console tests, every flow against
+    Keycloak 26.8.1 in the second stack (staff create, invite with and without an account, the
+    setup email to a working sign-in, suspension and the 403 with its reason), and every new page
+    in a browser as ada (owner), staff and ivy (owner of a suspended organization).
+  - Not done from the design: the identity provider and email domain panels, passkeys and active
+    sessions (Keycloak's account console has them; the profile links to it), API key and machine
+    client counts (phase 6), "last opened" in the organization chooser. The pages Keycloak itself
+    renders (sign-in, invitation, setup, emails) are designed in `.design/auth.pen` and are the
+    next step, as a Keycloakify theme (the owner's suggestion).
 
 A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
 owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the
