@@ -85,6 +85,14 @@ linters:
                 pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces,
                 desc: application depends on its domain only
               }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/infrastructure,
+                desc: application depends on its domain only
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces,
+                desc: application depends on its domain only
+              }
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health, desc: health has no application layer to call }
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform, desc: use cases get platform services through ports }
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport, desc: use cases know no transport }
@@ -118,6 +126,14 @@ linters:
                 pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces,
                 desc: infrastructure implements domain ports only
               }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/application,
+                desc: infrastructure implements domain ports only
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces,
+                desc: infrastructure implements domain ports only
+              }
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport, desc: infrastructure knows no transport }
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap, desc: infrastructure knows no wiring }
             - *io-http
@@ -134,6 +150,10 @@ linters:
               }
             - {
                 pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure,
+                desc: 'interfaces call use cases, never drivers'
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/infrastructure,
                 desc: 'interfaces call use cases, never drivers'
               }
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport, desc: 'transports compose modules, not the reverse' }
@@ -166,6 +186,14 @@ linters:
           deny:
             - {
                 pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health,
+                desc: modules talk through ports wired in bootstrap
+              }
+        isolate-access:
+          list-mode: lax
+          files: ['**/internal/modules/**', '!**/internal/modules/access/**']
+          deny:
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access,
                 desc: modules talk through ports wired in bootstrap
               }
         platform:
@@ -205,6 +233,10 @@ linters:
               }
             - {
                 pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure,
+                desc: spec commands build without drivers
+              }
+            - {
+                pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/infrastructure,
                 desc: spec commands build without drivers
               }
             - { pkg: github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap, desc: spec commands build without drivers }

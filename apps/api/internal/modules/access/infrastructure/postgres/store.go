@@ -1,0 +1,42 @@
+// Package postgres implements the access module's repositories on the pool of
+// internal/platform/postgres. Its queries, in queries/, touch only the tables the module owns;
+// sqlc generates gen/ from them.
+package postgres
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/domain"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/infrastructure/postgres/gen"
+	platformpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres"
+)
+
+// Store implements domain.OrganizationRepository.
+type Store struct {
+	queries *gen.Queries
+}
+
+// NewStore builds the store on the process's pool.
+func NewStore(db *platformpg.DB) *Store {
+	return &Store{queries: gen.New(db.Pool())}
+}
+
+// OrganizationByAlias loads an organization by its alias.
+func (s *Store) OrganizationByAlias(ctx context.Context, alias string) (domain.Organization, error) {
+	row, err := s.queries.OrganizationByAlias(ctx, alias)
+	if err != nil {
+		return domain.Organization{}, fmt.Errorf("postgres: organization by alias: %w", platformpg.MapError(err))
+	}
+	org := domain.Organization{
+		ID:        platformpg.IDOf(row.ID),
+		Alias:     row.Alias,
+		Name:      row.Name,
+		Status:    domain.OrganizationStatus(row.Status),
+		CreatedAt: platformpg.TimeOf(row.CreatedAt),
+	}
+	if row.KeycloakID.Valid {
+		org.KeycloakID = row.KeycloakID.String()
+	}
+	return org, nil
+}
