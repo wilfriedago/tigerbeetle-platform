@@ -22,15 +22,36 @@ type Authenticator interface {
 	Authenticate(ctx context.Context, authorization, organization string) (context.Context, error)
 }
 
+// Sessions turns the console's session cookie into an access token (ADR-0029); the access
+// module implements it.
+type Sessions interface {
+	AccessToken(ctx context.Context, sessionID string) (string, error)
+}
+
+// Options configure Handler.
+type Options struct {
+	// Auth authenticates every request outside Public.
+	Auth Authenticator
+	// Public paths need no credential, such as the health probes.
+	Public []string
+	// Sessions, SessionCookie and ConsoleOrigin let the console authenticate with its session
+	// cookie instead of a bearer token; Sessions is nil when the API serves no console.
+	Sessions      Sessions
+	SessionCookie string
+	// ConsoleOrigin is the console's origin, such as http://localhost:5173. A cookie-authenticated
+	// request that changes state must come from it (ADR-0029).
+	ConsoleOrigin string
+}
+
 // Handler wraps mux, on which NewAPI registered the operations, with the standard-library
 // middleware every request goes through: request ID, access log, panic recovery, authentication
 // and problem+json answers for unknown routes. A body must say it is JSON: anything else answers
-// 415, which also keeps cross-site form posts away from cookie sessions (ADR-0031). Huma does no routing of its own; the
-// ServeMux does. The public paths, such as the health probes, need no credential.
-func Handler(mux *http.ServeMux, logger *slog.Logger, auth Authenticator, public ...string) http.Handler {
+// 415, which also keeps cross-site form posts away from cookie sessions (ADR-0031). Huma does no
+// routing of its own; the ServeMux does.
+func Handler(mux *http.ServeMux, logger *slog.Logger, opts Options) http.Handler {
 	h := unknownRoutes(mux)
 	h = jsonOnly(h)
-	h = authenticate(auth, public)(h)
+	h = authenticate(opts)(h)
 	h = recoverPanic(h)
 	h = accessLog(h)
 	h = requestID(logger)(h)
@@ -41,10 +62,11 @@ func Handler(mux *http.ServeMux, logger *slog.Logger, auth Authenticator, public
 const OrganizationHeader = "X-Organization"
 
 // authenticate puts the principal and the tenant in the context of every request outside the
-// public paths, or answers the problem of a missing or bad credential (ADR-0025).
-func authenticate(auth Authenticator, public []string) func(http.Handler) http.Handler {
-	open := make(map[string]bool, len(public))
-	for _, p := range public {
+// public paths, or answers the problem of a missing or bad credential (ADR-0025). Without an
+// Authorization header, the console's session cookie stands in for it (ADR-0029).
+func authenticate(opts Options) func(http.Handler) http.Handler {
+	open := make(map[string]bool, len(opts.Public))
+	for _, p := range opts.Public {
 		open[p] = true
 	}
 	return func(next http.Handler) http.Handler {
@@ -53,14 +75,51 @@ func authenticate(auth Authenticator, public []string) func(http.Handler) http.H
 				next.ServeHTTP(w, r)
 				return
 			}
-			ctx, err := auth.Authenticate(r.Context(), r.Header.Get("Authorization"), r.Header.Get(OrganizationHeader))
+			authorization := r.Header.Get("Authorization")
+			if authorization == "" && opts.Sessions != nil {
+				if c, err := r.Cookie(opts.SessionCookie); err == nil && c.Value != "" {
+					if !SameOrigin(r, opts.ConsoleOrigin) {
+						WriteProblem(w, r, crossSite)
+						return
+					}
+					token, err := opts.Sessions.AccessToken(r.Context(), c.Value)
+					if err != nil {
+						WriteProblem(w, r, problem.From(err))
+						return
+					}
+					authorization = "Bearer " + token
+				}
+			}
+			ctx, err := opts.Auth.Authenticate(r.Context(), authorization, r.Header.Get(OrganizationHeader))
 			if err != nil {
-				writeProblem(w, r.WithContext(ctx), problem.From(err))
+				WriteProblem(w, r.WithContext(ctx), problem.From(err))
 				return
 			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// crossSite answers a cookie-authenticated request that changes state from another site.
+var crossSite = problem.Problem{
+	Kind: problem.KindForbidden, Reason: "cross-site-request", Title: problem.TitleFor("cross-site-request"),
+	Status: http.StatusForbidden, Detail: "a request that changes state must come from the console", Posting: -1,
+}
+
+// SameOrigin reports whether a request may use the session cookie: reads always, since SameSite
+// already keeps the cookie off cross-site requests that change state; writes only when the browser
+// says the request comes from the same origin (Fetch Metadata), or its Origin is the console's.
+// It is the second layer of CSRF defence under SameSite=Lax (ADR-0029).
+func SameOrigin(r *http.Request, consoleOrigin string) bool {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return true
+	}
+	if r.Header.Get("Sec-Fetch-Site") == "same-origin" {
+		return true
+	}
+	origin := r.Header.Get("Origin")
+	return origin != "" && origin == consoleOrigin
 }
 
 // pathKey carries the request path, the instance of a problem, to errors built from a context. The
@@ -161,7 +220,7 @@ func recoverPanic(next http.Handler) http.Handler {
 func jsonOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Body != nil && r.Body != http.NoBody && r.ContentLength != 0 && !isJSON(r.Header.Get("Content-Type")) {
-			writeProblem(w, r, problem.Problem{
+			WriteProblem(w, r, problem.Problem{
 				Kind: problem.KindInvalid, Reason: "unsupported-media-type", Title: problem.TitleFor("unsupported-media-type"),
 				Status: http.StatusUnsupportedMediaType, Detail: "send the body as application/json", Posting: -1,
 			})

@@ -19,6 +19,7 @@ import (
 // modules holds the use cases of every module.
 type modules struct {
 	access      accessapp.Application
+	accessDeps  accessapp.Deps
 	ledgers     ledgersapp.Application
 	bookkeeping bookkeepingapp.Application
 	// bookkeepingAccounts is what the ledger event relay enriches events from (ADR-0022).
@@ -36,7 +37,8 @@ func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options
 
 	// Access comes first: every other module checks its permissions through it (ADR-0027).
 	accessStore := accesspg.NewStore(r.db)
-	ac := accessapp.New(accessapp.Deps{Organizations: accessStore, Grants: accessStore})
+	accessDeps := accessapp.Deps{Organizations: accessStore, Grants: accessStore, Sessions: accessStore, Clock: clock}
+	ac := accessapp.New(accessDeps)
 
 	ledgerStore := ledgerspg.NewStore(r.db)
 	directory := ledgersapp.NewDirectory(ledgerStore)
@@ -72,5 +74,5 @@ func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options
 		Clock:      clock,
 		Authorizer: ac.Authorizer,
 	})
-	return modules{access: ac, ledgers: lg, bookkeeping: bk, bookkeepingAccounts: bookStore}
+	return modules{access: ac, accessDeps: accessDeps, ledgers: lg, bookkeeping: bk, bookkeepingAccounts: bookStore}
 }

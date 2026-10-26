@@ -93,6 +93,23 @@ type Config struct {
 	AuthStaffValue string `env:"AUTH_STAFF_VALUE" envDefault:"tbp-staff"`
 	// AuthOrganizationClaim lists the aliases of a person's organizations (ADR-0026).
 	AuthOrganizationClaim string `env:"AUTH_ORGANIZATION_CLAIM" envDefault:"organization"`
+
+	// The console's sign-in through the backend-for-frontend (ADR-0029); off when AUTH_CLIENT_ID is
+	// empty, for an API that serves no console.
+
+	// AuthClientID and AuthClientSecret are the console's confidential client.
+	AuthClientID     string `env:"AUTH_CLIENT_ID"`
+	AuthClientSecret string `env:"AUTH_CLIENT_SECRET"`
+	// AuthRedirectURL is where the provider sends the browser back, through the console's origin.
+	AuthRedirectURL string `env:"AUTH_REDIRECT_URL"`
+	// AuthConsoleOrigin is the console's origin, the only one allowed to change state with the
+	// session cookie.
+	AuthConsoleOrigin string `env:"AUTH_CONSOLE_ORIGIN"`
+	// AuthSessionKey seals the stored tokens and the sign-in cookie: 32 bytes in standard base64,
+	// comma-separated during a rotation, the new key first.
+	AuthSessionKey string `env:"AUTH_SESSION_KEY"`
+	// AuthCookieSecure marks the cookies Secure; false only for plain-HTTP development.
+	AuthCookieSecure bool `env:"AUTH_COOKIE_SECURE" envDefault:"true"`
 }
 
 // Load reads the process environment.
@@ -135,6 +152,9 @@ func (c *Config) validate() error {
 	}
 	if (c.AMQPRPCEnabled || c.NATSRPCEnabled) && (c.RPCConcurrency < 1 || c.RPCTimeoutMax <= 0) {
 		return fmt.Errorf("config: RPC_CONCURRENCY and RPC_TIMEOUT_MAX must be positive")
+	}
+	if c.AuthClientID != "" && (c.AuthClientSecret == "" || c.AuthRedirectURL == "" || c.AuthConsoleOrigin == "" || c.AuthSessionKey == "") {
+		return fmt.Errorf("config: AUTH_CLIENT_ID needs AUTH_CLIENT_SECRET, AUTH_REDIRECT_URL, AUTH_CONSOLE_ORIGIN and AUTH_SESSION_KEY")
 	}
 	if c.ShutdownTimeout <= 0 || c.ReadinessTimeout <= 0 || c.TigerBeetleTimeout <= 0 {
 		return fmt.Errorf("config: SHUTDOWN_TIMEOUT, READINESS_TIMEOUT and TIGERBEETLE_TIMEOUT must be positive")

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/web"
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
 	bookkeepingkafka "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure/kafka"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/cdc"
@@ -48,7 +49,7 @@ func healthSource(r resources, cfg config.Config, svc Service) healthdto.Source 
 // httpHandler builds the HTTP handler: the health operations always, the module operations when
 // REST is enabled, and POST /graphql when GraphQL is, on one ServeMux behind the standard
 // middleware of platform/restapi (request ID, access log, panic recovery).
-func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger, auth *authn.Authenticator) http.Handler {
+func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger, auth *authn.Authenticator, signIn *console) http.Handler {
 	mux := http.NewServeMux()
 	api := restapi.NewAPI(mux)
 	rest.RegisterHealth(api, health)
@@ -81,7 +82,13 @@ func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *
 		})))
 	}
 	// Liveness and readiness are for orchestrators and load balancers: no credential.
-	return restapi.Handler(mux, logger, auth, "/healthz", "/readyz")
+	opts := restapi.Options{Auth: auth, Public: []string{"/healthz", "/readyz"}}
+	if signIn != nil {
+		web.Register(mux, signIn.sessions, m.access.ViewerQueries, signIn.web)
+		opts.Public = append(opts.Public, web.Paths...)
+		opts.Sessions, opts.SessionCookie, opts.ConsoleOrigin = signIn.sessions, signIn.web.SessionCookie(), signIn.web.ConsoleOrigin
+	}
+	return restapi.Handler(mux, logger, opts)
 }
 
 // grpcServer builds the gRPC server with every module's services and server reflection.

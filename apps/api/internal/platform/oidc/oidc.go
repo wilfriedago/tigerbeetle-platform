@@ -46,7 +46,10 @@ const clockSkew = time.Minute
 // Verifier checks access tokens.
 type Verifier struct {
 	verifier *gooidc.IDTokenVerifier
-	cfg      Config
+	provider *gooidc.Provider
+	// ctx carries the HTTP client and the issuer override for later calls to the provider.
+	ctx context.Context
+	cfg Config
 }
 
 // New reads the provider's discovery document and returns a verifier. The keys are fetched on
@@ -78,7 +81,7 @@ func New(ctx context.Context, cfg Config) (*Verifier, error) {
 		SupportedSigningAlgs: []string{gooidc.RS256, gooidc.RS384, gooidc.RS512, gooidc.ES256, gooidc.ES384, gooidc.ES512, gooidc.PS256, gooidc.PS384, gooidc.PS512},
 		Now:                  func() time.Time { return time.Now().Add(-clockSkew) },
 	})
-	return &Verifier{verifier: v, cfg: cfg}, nil
+	return &Verifier{verifier: v, provider: provider, ctx: ctx, cfg: cfg}, nil
 }
 
 // Verify checks a raw access token and returns its principal. Every failure is ErrUnauthenticated;

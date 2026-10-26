@@ -51,6 +51,7 @@ func TestParse(t *testing.T) {
 				AuthStaffClaim:        "roles",
 				AuthStaffValue:        "tbp-staff",
 				AuthOrganizationClaim: "organization",
+				AuthCookieSecure:      true,
 			},
 		},
 		{
@@ -70,6 +71,7 @@ func TestParse(t *testing.T) {
 				KafkaEventsTopic: "tbp.ledger-events.v1", CDCQueue: "tbp.ledger-events.relay",
 				AuthIssuerURL: "http://localhost:18080/realms/tbp", AuthAudience: "tbp-api",
 				AuthStaffClaim: "roles", AuthStaffValue: "tbp-staff", AuthOrganizationClaim: "organization",
+				AuthCookieSecure: true,
 			},
 		},
 		{name: "missing issuer", environ: map[string]string{"POSTGRES_URL": "postgres://x", "TIGERBEETLE_ADDRESSES": "localhost:3000", "AUTH_AUDIENCE": "tbp-api"}, wantErr: true},

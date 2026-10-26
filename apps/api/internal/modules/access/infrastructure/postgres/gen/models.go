@@ -105,6 +105,16 @@ type Organization struct {
 	CreatedAt  pgtype.Timestamptz
 }
 
+type Session struct {
+	IDHash          []byte
+	Issuer          string
+	Subject         string
+	Tokens          []byte
+	AccessExpiresAt pgtype.Timestamptz
+	ExpiresAt       pgtype.Timestamptz
+	CreatedAt       pgtype.Timestamptz
+}
+
 type Transaction struct {
 	ID             pgtype.UUID
 	Ledger         string

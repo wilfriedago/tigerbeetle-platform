@@ -30,3 +30,37 @@ func (q *Queries) OrganizationByAlias(ctx context.Context, alias string) (Organi
 	)
 	return i, err
 }
+
+const organizationsByAlias = `-- name: OrganizationsByAlias :many
+SELECT id, alias, keycloak_id, name, status, created_at
+FROM organizations
+WHERE alias = ANY($1::text[])
+ORDER BY name
+`
+
+func (q *Queries) OrganizationsByAlias(ctx context.Context, aliases []string) ([]Organization, error) {
+	rows, err := q.db.Query(ctx, organizationsByAlias, aliases)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Organization{}
+	for rows.Next() {
+		var i Organization
+		if err := rows.Scan(
+			&i.ID,
+			&i.Alias,
+			&i.KeycloakID,
+			&i.Name,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

@@ -70,12 +70,16 @@ func Build(ctx context.Context, cfg config.Config, svc Service, logger *slog.Log
 		return nil, err
 	}
 	m := buildModules(r, cfg, logger, o)
-	auth, err := authenticator(ctx, cfg, m)
+	auth, verifier, err := authenticator(ctx, cfg, m)
+	if err != nil {
+		return nil, err
+	}
+	signIn, err := consoleSignIn(cfg, verifier, m)
 	if err != nil {
 		return nil, err
 	}
 	health := healthSource(r, cfg, svc)
-	a.handler = httpHandler(health, m, cfg, logger, auth)
+	a.handler = httpHandler(health, m, cfg, logger, auth, signIn)
 	if cfg.GRPCEnabled {
 		a.grpc = grpcServer(health, m, cfg, logger, auth)
 	}
@@ -123,7 +127,7 @@ func (a *App) open(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 // authenticator reads the identity provider's discovery document and builds the authenticator
 // every transport shares (ADR-0025). Authentication is always on: without an issuer the API does
 // not start.
-func authenticator(ctx context.Context, cfg config.Config, m modules) (*authn.Authenticator, error) {
+func authenticator(ctx context.Context, cfg config.Config, m modules) (*authn.Authenticator, *oidc.Verifier, error) {
 	verifier, err := oidc.New(ctx, oidc.Config{
 		IssuerURL:         cfg.AuthIssuerURL,
 		DiscoveryURL:      cfg.AuthDiscoveryURL,
@@ -133,9 +137,9 @@ func authenticator(ctx context.Context, cfg config.Config, m modules) (*authn.Au
 		OrganizationClaim: cfg.AuthOrganizationClaim,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return authn.New(verifier, m.access.OrganizationQueries), nil
+	return authn.New(verifier, m.access.OrganizationQueries), verifier, nil
 }
 
 // Handler is the HTTP handler of the API, for tests that serve it with httptest.

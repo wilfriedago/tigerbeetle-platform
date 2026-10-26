@@ -41,7 +41,7 @@ func serve(t *testing.T, m Modules, body string) map[string]any {
 func post(m Modules, body string) *httptest.ResponseRecorder {
 	mux := http.NewServeMux()
 	mux.Handle("POST /graphql", NewHandler(NewResolver(m)))
-	h := restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), authntest.Default())
+	h := restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), restapi.Options{Auth: authntest.Default()})
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/graphql", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

@@ -13,7 +13,7 @@ import (
 	platformpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres"
 )
 
-// Store implements domain.OrganizationRepository and domain.GrantRepository.
+// Store implements the access module's repositories: organizations, grants and sessions.
 type Store struct {
 	queries *gen.Queries
 }
@@ -46,6 +46,10 @@ func (s *Store) OrganizationByAlias(ctx context.Context, alias string) (domain.O
 	if err != nil {
 		return domain.Organization{}, fmt.Errorf("postgres: organization by alias: %w", platformpg.MapError(err))
 	}
+	return organizationOf(row), nil
+}
+
+func organizationOf(row gen.Organization) domain.Organization {
 	org := domain.Organization{
 		ID:        platformpg.IDOf(row.ID),
 		Alias:     row.Alias,
@@ -56,5 +60,5 @@ func (s *Store) OrganizationByAlias(ctx context.Context, alias string) (domain.O
 	if row.KeycloakID.Valid {
 		org.KeycloakID = row.KeycloakID.String()
 	}
-	return org, nil
+	return org
 }

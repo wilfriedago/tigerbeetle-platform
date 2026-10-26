@@ -43,4 +43,6 @@ func (o Organization) Tenant() ledger.Tenant {
 type OrganizationRepository interface {
 	// OrganizationByAlias returns ledger.ErrNotFound for an unknown alias.
 	OrganizationByAlias(ctx context.Context, alias string) (Organization, error)
+	// OrganizationsByAlias returns the known organizations among the aliases, in name order.
+	OrganizationsByAlias(ctx context.Context, aliases []string) ([]Organization, error)
 }

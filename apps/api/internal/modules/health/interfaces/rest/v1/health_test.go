@@ -30,7 +30,7 @@ func newTestServer(t *testing.T, deps Deps) http.Handler {
 	mux := http.NewServeMux()
 	api := restapi.NewAPI(mux)
 	Register(api, deps)
-	return restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), authntest.Default())
+	return restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), restapi.Options{Auth: authntest.Default()})
 }
 
 func statusDeps(pg, tb readyFunc) Deps {

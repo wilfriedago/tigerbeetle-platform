@@ -77,7 +77,7 @@ func newTestHandler(t *testing.T) (http.Handler, huma.API) {
 		}
 		return &struct{ Body thing }{Body: thing{Name: "made", Limit: in.Body.Code, Amount: "1", Tags: in.Body.Items}}, nil
 	})
-	return Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), authntest.Default()), api
+	return Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), Options{Auth: authntest.Default()}), api
 }
 
 func do(t *testing.T, h http.Handler, method, path, body string, headers map[string]string) *httptest.ResponseRecorder {
