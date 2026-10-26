@@ -14,7 +14,7 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
 
 - Phase 0 (documentation) is done: the plan, ADR-0026 to ADR-0032, the amended status lines, and
   pointers in AGENTS.md and docs/architecture.md.
-- Phase 1 (tenancy in the data model) is done, from 1ff1797:
+- Phase 1 (tenancy in the data model) is done, from dda1c65:
   - Migration 00009: `organizations`, and `organization_id` leading the keys of `ledgers` and the
     eight tables that name a ledger. Pre-alpha data is in the organization `default`
     (`ledger.DefaultOrganizationID`, `00000000-0000-0000-0000-000000000001`).
@@ -30,7 +30,7 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
     `just generate-check`. Not run: the e2e suite against the compose stack.
   - Known gap for phase 3: the reconciler status (`getReconcilerStatus`) still counts pending
     writes across every organization; it must be filtered by tenant once tenants are real.
-- Phase 2 (authentication) is done, from 203e51d:
+- Phase 2 (authentication) is done, from 1bb4d50:
   - Every call except liveness, readiness, gRPC health and reflection carries a bearer token,
     verified by `internal/platform/oidc` (go-oidc v3.21.0) and turned into a principal and a
     tenant by `internal/platform/authn`, on REST, GraphQL, gRPC, AMQP RPC and NATS RPC alike.
@@ -54,7 +54,7 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
   - The console cannot sign in until phase 4: its calls now answer 401.
   - Deferred to phase 7: `/readyz` reporting Keycloak (it changes the readiness payload of
     REST, GraphQL and gRPC).
-- Phase 3 (authorization) is done, from a8e75bd:
+- Phase 3 (authorization) is done, from 001cd1e:
   - Roles and permissions in `kernel/ledger/permission.go`; `grants` (migration 00010) in the
     access module, whose authorizer reads the caller's grants on every call. Organization roles
     member, admin, owner; ledger roles viewer, operator, admin; staff hold only
@@ -76,7 +76,7 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
   - Verified: `just lint`, unit, integration (`TestAuthorizationEndToEnd` covers REST, GraphQL and
     gRPC, two organizations with the same ledger name, viewer and operator, the key rule),
     `just test-e2e` and `scripts/seed-demo.sh` against Keycloak in the second compose stack.
-- Phase 4 (console sign-in) is done, from 7314a77:
+- Phase 4 (console sign-in) is done, from 367a382:
   - The API's backend-for-frontend: `/auth/login`, `/auth/callback`, `/auth/logout`,
     `/auth/session` in `access/interfaces/web`; sessions (migration 00012) keep only the hash of
     the cookie's ID and the tokens sealed by `platform/sealed`. The middleware turns the cookie
@@ -97,6 +97,14 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
     console port needed its redirect URI added to the realm's client at run time.
   - Note: agent-browser's clicks did not open the base-ui menus in that session (dispatched DOM
     pointer events did); the main stack's menus opened with the same tool.
+- Rebased onto `feat/rfc9457-problems` on 2026-10-26, which landed first and took ADR-0025
+  (problem details). The auth ADRs moved to 0026-0032 (bdaedb9) and the auth reasons are entries
+  in `internal/platform/problem/catalog.go`, so their types are absolute URIs into
+  `docs/problems.md`. The hashes above are after the rebase. Some commits in the middle of the
+  rebased range do not build on their own (they call `writeProblem`, which the problems branch
+  renamed to `restapi.WriteProblem`); the tip builds and passes `just lint`, `just test`,
+  `just test-integration` and `just generate-check`. Bisecting through phases 1 to 4 needs
+  `git bisect skip` on those commits.
 
 A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
 owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the
