@@ -79,7 +79,8 @@
             "introspection.token.claim": "true"
           }
         }
-      ]
+      ],
+      "baseUrl": "http://localhost:5173/"
     },
     {
       "clientId": "tbp-cli",
@@ -117,6 +118,18 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "tbp-admin",
+      "name": "TigerBeetle Platform API, admin access",
+      "description": "The service account the API uses for Keycloak's admin API: organizations, members and invitations (ADR-0027). Only the roles it needs.",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "tbp-admin-dev-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
     }
   ],
   "users": [
@@ -221,6 +234,14 @@
         }
       ],
       "realmRoles": ["default-roles-tbp"]
+    },
+    {
+      "username": "service-account-tbp-admin",
+      "enabled": true,
+      "serviceAccountClientId": "tbp-admin",
+      "clientRoles": {
+        "realm-management": ["manage-organizations", "view-organizations", "manage-users", "view-users", "query-users"]
+      }
     }
   ],
   "organizations": [
