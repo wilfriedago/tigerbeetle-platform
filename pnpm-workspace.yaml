@@ -3,9 +3,12 @@ packages:
   - packages/*
 
 # esbuild, which orval loads its config with, works from its platform package; its install script
-# only checks that binary, so it does not run.
+# only checks that binary, so it does not run. @parcel/watcher, graphql-codegen's watcher, also
+# ships its binary in a platform package; its install script compiles only when asked to build
+# from source.
 allowBuilds:
   esbuild: false
+  '@parcel/watcher': false
 
 minimumReleaseAgeExclude:
   - '@redocly/cli@2.71.0'

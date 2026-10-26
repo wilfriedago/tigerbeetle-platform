@@ -24,9 +24,14 @@
       "dependsOn": ["^generate"]
     },
     "dev": {
+      "with": ["codegen:watch"],
       "cache": false,
       "persistent": true,
       "env": ["API_PROXY_TARGET", "VITE_*"]
+    },
+    "codegen:watch": {
+      "cache": false,
+      "persistent": true
     },
     "console#generate": {
       "dependsOn": ["^generate"],

@@ -17,7 +17,8 @@
     "check:fix": "vp check --fix",
     "typecheck": "tsc --noEmit",
     "test": "vp test run",
-    "generate": "graphql-codegen --config codegen.ts && tsr generate"
+    "generate": "graphql-codegen --config codegen.ts && tsr generate",
+    "codegen:watch": "graphql-codegen --config codegen.ts --watch"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
@@ -42,6 +43,7 @@
     "@graphql-codegen/cli": "7.4.6",
     "@graphql-codegen/client-preset": "6.2.3",
     "@graphql-typed-document-node/core": "3.2.0",
+    "@parcel/watcher": "2.6.0",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/react-devtools": "0.10.13",
     "@tanstack/react-form-devtools": "0.2.34",
