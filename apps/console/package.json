@@ -30,6 +30,7 @@
     "@tanstack/react-router": "1.170.46",
     "@tanstack/react-table": "9.3.1",
     "@tigerbeetle-platform/api-client": "workspace:*",
+    "@tigerbeetle-platform/design-tokens": "workspace:*",
     "cmdk": "1.1.1",
     "cn": "0.5.0",
     "lucide-react": "1.61.0",

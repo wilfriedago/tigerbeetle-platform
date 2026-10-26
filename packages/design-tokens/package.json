@@ -1,0 +1,11 @@
+{
+  "name": "@tigerbeetle-platform/design-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Design tokens shared by the console and the Keycloak theme: the Ledger Instrument palette, roles and Tailwind theme.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./tokens.css"
+  }
+}

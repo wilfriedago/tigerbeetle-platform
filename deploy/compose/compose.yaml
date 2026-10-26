@@ -338,6 +338,7 @@ services:
       # Live reload for the console, the client and the schema without rebuilding the image.
       - ./apps/console/src:/workspace/apps/console/src
       - ./packages/api-client/src:/workspace/packages/api-client/src
+      - ./packages/design-tokens:/workspace/packages/design-tokens
       - ./packages/graphql:/workspace/packages/graphql
     depends_on:
       api:
