@@ -194,7 +194,10 @@ services:
   # skipped when it exists. Admin console at http://localhost:18080 (admin / admin). Every dev
   # user's password is "password".
   keycloak:
-    image: quay.io/keycloak/keycloak:26.8.1@sha256:a78d6b79572168cb25886b80a8b5b8d4ed4390743e3eecb810538683e209dd6b
+    # Keycloak 26.8.1 with the platform's login theme, built from apps/keycloak-theme.
+    build:
+      context: .
+      dockerfile: deploy/compose/keycloak.Dockerfile
     command: ['start-dev', '--import-realm']
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin

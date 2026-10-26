@@ -10,6 +10,7 @@ export default defineConfig({
       'packages/api-client/src/gen/**',
       'apps/console/src/graphql/gen/**',
       'apps/console/src/route-tree.gen.ts',
+      'apps/keycloak-theme/src/kc.gen.tsx',
       'packages/openapi/openapi.yaml',
       'packages/graphql/schema.graphql',
       'apps/api/internal/platform/graphqlschema/testdata/**'
@@ -49,7 +50,12 @@ export default defineConfig({
       style: 'warn',
       suspicious: 'warn'
     },
-    ignorePatterns: ['packages/api-client/src/gen/**', 'apps/console/src/graphql/gen/**', 'apps/console/src/route-tree.gen.ts'],
+    ignorePatterns: [
+      'packages/api-client/src/gen/**',
+      'apps/console/src/graphql/gen/**',
+      'apps/console/src/route-tree.gen.ts',
+      'apps/keycloak-theme/src/kc.gen.tsx'
+    ],
     jsPlugins: [
       { name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' },
       { name: 'react-doctor', specifier: 'oxlint-plugin-react-doctor' },
@@ -227,7 +233,9 @@ export default defineConfig({
             kebabCase: true,
             snakeCase: true
           },
-          ignore: [String.raw`^\$`]
+          // $ marks TanStack Router's path parameters; KcContext and KcPage are the names
+          // Keycloakify's generated kc.gen.tsx imports in apps/keycloak-theme.
+          ignore: [String.raw`^\$`, String.raw`^Kc(Context|Page)\.tsx?$`]
         }
       ],
       'node/callback-return': 'off',

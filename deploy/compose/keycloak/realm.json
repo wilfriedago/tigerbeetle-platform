@@ -3,6 +3,7 @@
   "displayName": "TigerBeetle Platform",
   "enabled": true,
   "organizationsEnabled": true,
+  "loginTheme": "tbp",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
