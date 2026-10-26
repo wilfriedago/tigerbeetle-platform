@@ -20,7 +20,10 @@ func TestClientFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	verifier := "a-pkce-verifier-of-at-least-forty-three-characters-long"
-	authURL := client.AuthCodeURL("state-1", "nonce-1", verifier)
+	authURL, err := client.AuthCodeURL(t.Context(), "state-1", "nonce-1", verifier)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(authURL, "code_challenge_method=S256") || !strings.Contains(authURL, "organization%3A%2A") {
 		t.Fatalf("authorization URL %s lacks PKCE or the scope", authURL)
 	}

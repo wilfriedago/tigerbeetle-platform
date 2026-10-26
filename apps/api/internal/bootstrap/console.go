@@ -49,8 +49,8 @@ type identityProvider struct {
 	client *oidc.Client
 }
 
-func (p identityProvider) AuthCodeURL(state, nonce, verifier string) string {
-	return p.client.AuthCodeURL(state, nonce, verifier)
+func (p identityProvider) AuthCodeURL(ctx context.Context, state, nonce, verifier string) (string, error) {
+	return p.client.AuthCodeURL(ctx, state, nonce, verifier)
 }
 
 func (p identityProvider) Exchange(ctx context.Context, code, verifier, nonce string) (accessapp.Tokens, error) {

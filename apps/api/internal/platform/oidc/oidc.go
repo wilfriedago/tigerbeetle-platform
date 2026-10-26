@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	gooidc "github.com/coreos/go-oidc/v3/oidc"
@@ -43,18 +44,38 @@ type Config struct {
 // between the provider's clock and the API's.
 const clockSkew = time.Minute
 
+// discoveryTimeout bounds one read of the discovery document, and retryAfter how often a failed
+// read is tried again while calls keep arriving.
+const (
+	discoveryTimeout = 5 * time.Second
+	retryAfter       = 2 * time.Second
+)
+
 // Verifier checks access tokens.
 type Verifier struct {
-	verifier *gooidc.IDTokenVerifier
-	provider *gooidc.Provider
-	// ctx carries the HTTP client and the issuer override for later calls to the provider.
+	// ctx carries the HTTP client and the issuer override for every call to the provider.
 	ctx context.Context
 	cfg Config
-	// discovery is the address the provider is read at, for the readiness probe.
+	// discovery is the address the provider is read at.
 	discovery string
+
+	mu sync.Mutex
+	// found is the provider once its discovery document was read; nil until then.
+	found *discovered
+	// lastErr and lastTry throttle discovery while the provider does not answer.
+	lastErr error
+	lastTry time.Time
 }
 
-// New reads the provider's discovery document and returns a verifier. The keys are fetched on
+// discovered is what the discovery document gives.
+type discovered struct {
+	provider   *gooidc.Provider
+	verifier   *gooidc.IDTokenVerifier
+	endSession string
+}
+
+// New returns a verifier and reads the provider's discovery document if the provider answers;
+// otherwise the first call that needs it does. The keys are fetched on
 // first use, cached, and fetched again when a token names a key the cache does not hold, which is
 // how key rotation works without a restart.
 func New(ctx context.Context, cfg Config) (*Verifier, error) {
@@ -73,17 +94,62 @@ func New(ctx context.Context, cfg Config) (*Verifier, error) {
 		ctx = gooidc.InsecureIssuerURLContext(ctx, cfg.IssuerURL)
 		discovery = cfg.DiscoveryURL
 	}
-	provider, err := gooidc.NewProvider(ctx, discovery)
-	if err != nil {
-		return nil, fmt.Errorf("oidc: discovery at %s: %w", discovery, err)
+	v := &Verifier{ctx: ctx, cfg: cfg, discovery: discovery}
+	// The API starts without the provider (it is an optional dependency of /readyz): discovery is
+	// tried now and again on the first call that needs it.
+	_, _ = v.load(ctx)
+	return v, nil
+}
+
+// load returns the provider, reading its discovery document the first time. While the provider
+// does not answer, every call fails with ledger.ErrUnavailable, and the document is read again
+// at most every retryAfter.
+func (v *Verifier) load(ctx context.Context) (*discovered, error) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	if v.found != nil {
+		return v.found, nil
 	}
-	v := provider.Verifier(&gooidc.Config{
-		// go-oidc compares ClientID with the aud claim; for an access token that is the API.
-		ClientID:             cfg.Audience,
-		SupportedSigningAlgs: []string{gooidc.RS256, gooidc.RS384, gooidc.RS512, gooidc.ES256, gooidc.ES384, gooidc.ES512, gooidc.PS256, gooidc.PS384, gooidc.PS512},
-		Now:                  func() time.Time { return time.Now().Add(-clockSkew) },
-	})
-	return &Verifier{verifier: v, provider: provider, ctx: ctx, cfg: cfg, discovery: discovery}, nil
+	if v.lastErr != nil && time.Since(v.lastTry) < retryAfter {
+		return nil, v.lastErr
+	}
+	v.lastTry = time.Now()
+	// v.ctx carries the HTTP client and the issuer override; ctx only bounds the wait.
+	read, cancel := context.WithTimeout(v.ctx, discoveryTimeout)
+	defer cancel()
+	stop := context.AfterFunc(ctx, cancel)
+	defer stop()
+	provider, err := gooidc.NewProvider(read, v.discovery)
+	if err != nil {
+		v.lastErr = fmt.Errorf("%w: oidc: discovery at %s: %w", ledger.ErrUnavailable, v.discovery, err)
+		return nil, v.lastErr
+	}
+	var claims struct {
+		EndSession string `json:"end_session_endpoint"`
+	}
+	if err := provider.Claims(&claims); err != nil {
+		v.lastErr = fmt.Errorf("%w: oidc: discovery claims: %w", ledger.ErrUnavailable, err)
+		return nil, v.lastErr
+	}
+	v.found = &discovered{
+		provider: provider,
+		verifier: provider.Verifier(&gooidc.Config{
+			// go-oidc compares ClientID with the aud claim; for an access token that is the API.
+			ClientID:             v.cfg.Audience,
+			SupportedSigningAlgs: []string{gooidc.RS256, gooidc.RS384, gooidc.RS512, gooidc.ES256, gooidc.ES384, gooidc.ES512, gooidc.PS256, gooidc.PS384, gooidc.PS512},
+			Now:                  func() time.Time { return time.Now().Add(-clockSkew) },
+		}),
+		endSession: claims.EndSession,
+	}
+	v.lastErr = nil
+	return v.found, nil
+}
+
+// cached returns the provider if its discovery document was read, without reading it.
+func (v *Verifier) cached() *discovered {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	return v.found
 }
 
 // Ready probes the provider's discovery document, for /readyz. When the provider does not
@@ -109,10 +175,15 @@ func (v *Verifier) Ready(ctx context.Context) error {
 	return nil
 }
 
-// Verify checks a raw access token and returns its principal. Every failure is ErrUnauthenticated;
-// the reason goes to the logs only, through the wrapped error.
+// Verify checks a raw access token and returns its principal. Every failure is ErrUnauthenticated,
+// the reason in the wrapped error for the logs, except ErrUnavailable while the provider's
+// discovery document cannot be read.
 func (v *Verifier) Verify(ctx context.Context, raw string) (ledger.Principal, error) {
-	tok, err := v.verifier.Verify(ctx, raw)
+	d, err := v.load(ctx)
+	if err != nil {
+		return ledger.Principal{}, err
+	}
+	tok, err := d.verifier.Verify(ctx, raw)
 	if err != nil {
 		return ledger.Principal{}, fmt.Errorf("%w: %w", ledger.ErrUnauthenticated, err)
 	}

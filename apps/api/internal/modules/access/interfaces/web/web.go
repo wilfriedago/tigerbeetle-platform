@@ -84,7 +84,11 @@ func returnTo(raw string) string {
 }
 
 func (h handlers) login(w http.ResponseWriter, r *http.Request) {
-	authURL, cookie := h.sessions.Begin(returnTo(r.URL.Query().Get("return_to")))
+	authURL, cookie, err := h.sessions.Begin(r.Context(), returnTo(r.URL.Query().Get("return_to")))
+	if err != nil {
+		restapi.WriteProblem(w, r, restapi.Fail(r.Context(), err).Problem)
+		return
+	}
 	h.setCookie(w, h.cfg.signInCookie(), cookie, 600)
 	http.Redirect(w, r, authURL, http.StatusFound) //nolint:gosec // G710: the provider's own authorization endpoint
 }

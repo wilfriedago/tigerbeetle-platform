@@ -15,7 +15,7 @@ type Authorizer interface {
 
 // Sessions are the console's sign-in through the backend-for-frontend (ADR-0030).
 type Sessions interface {
-	Begin(returnTo string) (authURL, cookie string)
+	Begin(ctx context.Context, returnTo string) (authURL, cookie string, err error)
 	Complete(ctx context.Context, cookie, code, state string) (sessionID, returnTo string, err error)
 	AccessToken(ctx context.Context, sessionID string) (string, error)
 	End(ctx context.Context, sessionID, postLogoutRedirect string) (logoutURL string, err error)

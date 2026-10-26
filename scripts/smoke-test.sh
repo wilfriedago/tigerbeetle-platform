@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke test for the api image: it prints its version, runs as a non-root user, starts without
-# its dependencies, answers the liveness probe and reports the missing dependencies on /readyz.
+# its dependencies (Keycloak included), answers the liveness probe and reports the missing dependencies on /readyz.
 # Usage: scripts/smoke-test.sh <image>
 set -euo pipefail
 
@@ -25,6 +25,8 @@ echo "==> starts without its dependencies"
 docker run -d --name "$name" -p "${port}:8080" --security-opt seccomp=unconfined \
   -e POSTGRES_URL="postgres://nobody:nobody@127.0.0.1:1/nothing" \
   -e TIGERBEETLE_ADDRESSES="127.0.0.1:1" \
+  -e AUTH_ISSUER_URL="http://127.0.0.1:1/realms/tbp" \
+  -e AUTH_AUDIENCE="tbp-api" \
   "$image" >/dev/null
 
 for _ in $(seq 1 30); do

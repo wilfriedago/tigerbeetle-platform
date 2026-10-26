@@ -60,10 +60,14 @@ type stored struct {
 
 // Begin starts a sign-in: the URL to send the browser to, and the sealed value of the sign-in
 // cookie that Complete checks.
-func (s *sessions) Begin(returnTo string) (authURL, cookie string) {
+func (s *sessions) Begin(ctx context.Context, returnTo string) (authURL, cookie string, err error) {
 	in := signIn{State: random(), Nonce: random(), Verifier: random() + random(), ReturnTo: returnTo, Expires: s.clock.Now().Add(signInLifetime)}
+	authURL, err = s.idp.AuthCodeURL(ctx, in.State, in.Nonce, in.Verifier)
+	if err != nil {
+		return "", "", fmt.Errorf("begin sign-in: %w", err)
+	}
 	raw, _ := json.Marshal(in)
-	return s.idp.AuthCodeURL(in.State, in.Nonce, in.Verifier), base64.RawURLEncoding.EncodeToString(s.sealer.Seal(raw))
+	return authURL, base64.RawURLEncoding.EncodeToString(s.sealer.Seal(raw)), nil
 }
 
 // Complete finishes a sign-in: it checks the state against the sign-in cookie, exchanges the code

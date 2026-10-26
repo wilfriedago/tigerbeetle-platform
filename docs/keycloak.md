@@ -141,5 +141,7 @@ tested, leave the roles as listed; without one of them, the calls that need it f
 | `AUTH_ADMIN_CLIENT_ID`, `AUTH_ADMIN_CLIENT_SECRET` | `tbp-admin` and its secret                                                      |
 | `AUTH_API_KEY_PEPPER`                              | 32 random bytes in base64; changing it invalidates every API key                |
 
-`/readyz` reports Keycloak as an optional dependency: when it does not answer, tokens already
-issued still verify, but nobody can sign in.
+`/readyz` reports Keycloak as an optional dependency. The API starts without it and reads its
+discovery document on first use. When Keycloak stops answering later, tokens still verify with the
+keys already fetched, but nobody can sign in; until the API has read the document once, calls
+with a token answer 503, never 401, and API keys keep working.

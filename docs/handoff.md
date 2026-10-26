@@ -177,7 +177,9 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
     users `tbp-api` and `tbp-service` (no subject permissions); Kafka listeners require SASL
     PLAIN (`tbp-api`, `tbp-dev` for tools through `deploy/compose/kafka-client.properties`,
     `tbp-broker`), with no authorizer. Passwords are `<user>-dev`, for the local stack only.
-  - `/readyz` reports Keycloak as an optional dependency.
+  - `/readyz` reports Keycloak as an optional dependency, and the API starts without it:
+    `internal/platform/oidc` reads discovery on first use, retried at most every 2 seconds, and
+    calls with a token answer 503 until then (the image's smoke test starts it that way).
   - Verified: `TestTLS` (a TLS gRPC server answers a client that trusts it and refuses a
     plaintext one), the config validation, and in the second stack: every dependency up,
     `just test-e2e` over REST, GraphQL, gRPC, AMQP and NATS with the `tbp-service` users, a

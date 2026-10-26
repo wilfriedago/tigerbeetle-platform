@@ -3,6 +3,11 @@ package oidc_test
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -87,5 +92,49 @@ func TestBearerToken(t *testing.T) {
 		if got := oidc.BearerToken(in); got != want {
 			t.Errorf("BearerToken(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+// TestProviderLater starts the verifier while the provider does not answer: calls fail with
+// ErrUnavailable, not ErrUnauthenticated, and succeed once the provider is back.
+func TestProviderLater(t *testing.T) {
+	iss := oidctest.New(t)
+	var up atomic.Bool
+	target, err := url.Parse(iss.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	front := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !up.Load() {
+			http.Error(w, "starting", http.StatusServiceUnavailable)
+			return
+		}
+		proxy.ServeHTTP(w, r)
+	}))
+	t.Cleanup(front.Close)
+
+	v, err := oidc.New(t.Context(), oidc.Config{IssuerURL: iss.URL, DiscoveryURL: front.URL, Audience: oidctest.Audience})
+	if err != nil {
+		t.Fatalf("New while the provider is down: %v", err)
+	}
+	token := iss.Person(t, "ada", "acme")
+	if _, err := v.Verify(t.Context(), token); !errors.Is(err, ledger.ErrUnavailable) {
+		t.Fatalf("Verify while the provider is down = %v, want ErrUnavailable", err)
+	}
+	up.Store(true)
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		p, err := v.Verify(t.Context(), token)
+		if err == nil {
+			if p.Subject != "ada" {
+				t.Fatalf("subject = %q", p.Subject)
+			}
+			return
+		}
+		if !errors.Is(err, ledger.ErrUnavailable) || time.Now().After(deadline) {
+			t.Fatalf("Verify once the provider is up: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
 }

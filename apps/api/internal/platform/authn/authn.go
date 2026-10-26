@@ -78,6 +78,12 @@ func (a *Authenticator) Authenticate(ctx context.Context, authorization, organiz
 		return a.owned(ctx, p, t, organization)
 	}
 	p, err := a.tokens.Verify(ctx, raw)
+	if errors.Is(err, ledger.ErrUnavailable) {
+		// The provider cannot be read: a 503 the caller retries, not a 401 that discards a good
+		// token.
+		logging.From(ctx).WarnContext(ctx, "authentication unavailable", slog.Any("error", err))
+		return ctx, err
+	}
 	if err != nil {
 		// The reason (expired, wrong audience, unknown key) goes to the log, not to the client.
 		logging.From(ctx).InfoContext(ctx, "authentication failed", slog.Any("error", err))

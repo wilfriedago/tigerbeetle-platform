@@ -33,7 +33,9 @@ func reverse(b []byte) []byte {
 
 type fakeIDP struct{ exchanged int }
 
-func (*fakeIDP) AuthCodeURL(state, _, _ string) string { return "https://idp.test/auth?state=" + state }
+func (*fakeIDP) AuthCodeURL(_ context.Context, state, _, _ string) (string, error) {
+	return "https://idp.test/auth?state=" + state, nil
+}
 
 func (f *fakeIDP) Exchange(context.Context, string, string, string) (Tokens, error) {
 	f.exchanged++
@@ -89,7 +91,10 @@ func TestSignIn(t *testing.T) {
 	store := memSessions{}
 	s := &sessions{idp: idp, tokens: fakeVerifier{}, sealer: plainSealer{}, store: store, clock: ledger.ClockFunc(func() time.Time { return now })}
 
-	authURL, cookie := s.Begin("/acme/ledgers")
+	authURL, cookie, err := s.Begin(t.Context(), "/acme/ledgers")
+	if err != nil {
+		t.Fatal(err)
+	}
 	state := stateOf(t, authURL)
 	t.Run("a state from another sign-in is refused", func(t *testing.T) {
 		if _, _, err := s.Complete(context.Background(), cookie, "code", state+"x"); !errors.Is(err, ledger.ErrUnauthenticated) {

@@ -10,7 +10,7 @@ import (
 // IdentityProvider is the console's OAuth client at the identity provider (ADR-0030); bootstrap
 // adapts internal/platform/oidc to it.
 type IdentityProvider interface {
-	AuthCodeURL(state, nonce, verifier string) string
+	AuthCodeURL(ctx context.Context, state, nonce, verifier string) (string, error)
 	Exchange(ctx context.Context, code, verifier, nonce string) (Tokens, error)
 	Refresh(ctx context.Context, refreshToken string) (Tokens, error)
 	EndSessionURL(idTokenHint, postLogoutRedirect string) string
