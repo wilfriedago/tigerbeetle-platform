@@ -176,10 +176,12 @@ true; until then it describes the code as it is.
 - Pin everything: Go modules, npm packages, Docker tags, GitHub Actions by SHA, tool binaries in
   `scripts/install-tools.sh`.
 - No emojis anywhere. SQL keywords uppercase, identifiers lowercase. `.editorconfig` applies.
-- Out of scope until decided otherwise: authentication, release pipelines, Kubernetes. Until
-  authentication is decided, gRPC, AMQP RPC, NATS RPC and the Kafka ledger events stay off by
-  default and development-only (`just compose-up-brokers` turns them on); GraphQL has the status
-  REST has. The ledger event format (`docs/ledger-events.md`) only gains fields under `v1`.
+- Out of scope until decided otherwise: release pipelines, Kubernetes. Every transport
+  authenticates the same way (ADR-0026, ADR-0032). gRPC, AMQP RPC, NATS RPC and the Kafka ledger
+  events stay off by default (`just compose-up-brokers` turns them on); gRPC serves tenants, with
+  TLS options, while AMQP RPC, NATS RPC and the Kafka topic serve only the platform's own
+  services. GraphQL has the status REST has. The ledger event format (`docs/ledger-events.md`)
+  only gains fields under `v1`.
 - An ADR whose status reads `Accepted, amended by ADR-NNNN` is partly replaced: read the amending
   ADRs before acting on it. A new ADR that replaces part of an older one sets that status line in
   the same commit (ADR-0015).

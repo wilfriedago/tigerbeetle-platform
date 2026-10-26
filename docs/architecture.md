@@ -83,8 +83,9 @@ gRPC (ADR-0021) has a hand-written contract in `packages/proto`: one package,
 module's `interfaces/grpc/v1` implements its services over the same use cases and `dto` types,
 and `internal/transport/grpc` registers them all, joining the two services that span modules
 (LedgerService and OperationsService). `internal/platform/grpcserver` runs the server behind
-`GRPC_ENABLED` (off by default, development only until authentication is decided) with request
-ID, access log, error and recovery interceptors, `grpc.health.v1` and reflection. Errors carry
+`GRPC_ENABLED` (off by default; TLS with `GRPC_TLS_CERT_FILE` and `GRPC_TLS_KEY_FILE`, else
+plaintext behind a proxy that terminates TLS) with request ID, authentication, access log, error
+and recovery interceptors, `grpc.health.v1` and reflection. Errors carry
 the standard `google.rpc` details: `ErrorInfo` with an AIP-193 reason derived from the problem
 type, `RetryInfo` when a retry later makes sense, `BadRequest` when an input error names a field.
 
@@ -100,7 +101,10 @@ replies go to `reply_to` with the correlation ID, and the ack follows the reply;
 `internal/platform/amqp` redials a dropped connection, because amqp091-go does not. Over NATS a
 `micro` service in the queue group `tbp-api` serves `tbp.rpc.v1.<operationId>`. Either way each
 request runs once across replicas, and a client retries a write with the same key. Both are off
-by default (`AMQP_RPC_ENABLED`, `NATS_RPC_ENABLED`) and turned on by `just compose-up-brokers`.
+by default (`AMQP_RPC_ENABLED`, `NATS_RPC_ENABLED`), turned on by `just compose-up-brokers`, and
+serve the platform's own services, which authenticate like any caller (ADR-0032). `amqps://` and
+`tls://` URLs, or a CA file (`AMQP_TLS_CA_FILE`, `NATS_TLS_CA_FILE`), turn TLS on; the compose
+stack gives each caller its own broker user (`deploy/compose/rabbitmq.conf`, `nats.conf`).
 
 Ledger events leave through Kafka (ADR-0022), outbound only. TigerBeetle's own change data
 capture, the `amqp` subcommand of the server image, publishes every committed transfer to the
@@ -109,7 +113,10 @@ RabbitMQ exchange `tbp.cdc`; the relay in the bookkeeping module (`interfaces/cd
 `tbp.ledger-events.relay` in order, adds the ledger, asset and addresses Postgres holds, and
 writes one record per transfer to `tbp.ledger-events.v1`, acknowledging RabbitMQ only once Kafka
 has the record. The source is TigerBeetle's committed state, so there is no dual-write gap: a
-crash delays an event, it cannot lose it. `docs/ledger-events.md` is the record format.
+crash delays an event, it cannot lose it. `docs/ledger-events.md` is the record format. The
+producer takes TLS (`KAFKA_TLS`, `KAFKA_TLS_CA_FILE`) and SASL PLAIN or SCRAM
+(`KAFKA_SASL_MECHANISM`); the compose Kafka requires SASL PLAIN. The topic is internal to the
+platform (ADR-0032).
 
 ## Code layout of apps/api
 

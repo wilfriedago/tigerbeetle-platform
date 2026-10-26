@@ -552,7 +552,7 @@ deployable between phases 1 and 3, which is acceptable pre-alpha.
    every transport.
 7. Exposure: TLS options for gRPC and the broker connections, broker credentials in compose, the
    end of "development-only" for gRPC; AGENTS.md loses "authentication" from its out-of-scope
-   line.
+   line. gRPC keeps its default (off), as ADR-0032 decided; Kafka also gains SASL.
 
 ## 11. Risks
 

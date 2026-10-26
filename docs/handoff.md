@@ -6,7 +6,7 @@ this file for the state of the work.
 
 ## Where things stand
 
-### Authentication, authorization and multi-tenancy (in progress)
+### Authentication, authorization and multi-tenancy (phases 0 to 7 done, not merged)
 
 Planned in `docs/plans/auth/plan.md`, approved by the owner on 2026-10-26, on the branch
 `feat/auth` (worktree `../tigerbeetle-platform-worktrees/auth`, so the owner's uncommitted edits
@@ -50,7 +50,8 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
     `TestAuthenticationEndToEnd`), and `just test-e2e` against a second compose stack.
   - Running a second stack next to the main one needs another subnet: the compose network pins
     `172.30.231.0/24` for the CDC job. An override file with `172.30.232.0/24` for the network,
-    TigerBeetle and RabbitMQ, plus other host ports and `COMPOSE_PROJECT_NAME`, works.
+    TigerBeetle and RabbitMQ, the CDC job's `command` with those addresses, plus other host
+    ports and `COMPOSE_PROJECT_NAME`, works.
   - The console cannot sign in until phase 4: its calls now answer 401.
   - Deferred to phase 7: `/readyz` reporting Keycloak (it changes the readiness payload of
     REST, GraphQL and gRPC).
@@ -161,6 +162,24 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
   - Not done: the "recent writes" panel of a credential (write requests have no actor filter
     yet); `tbp-admin` can manage every client of the realm until fine-grained admin permissions
     v2 narrow it.
+- Phase 7 (exposure) is done:
+  - `internal/platform/tlsconfig` builds the TLS settings: gRPC serves TLS with
+    `GRPC_TLS_CERT_FILE` and `GRPC_TLS_KEY_FILE`; AMQP (RPC and the CDC relay), NATS and Kafka
+    connect with TLS through `amqps://`, `tls://`, `KAFKA_TLS` or a CA file. Kafka gains SASL
+    PLAIN, SCRAM-SHA-256 and SCRAM-SHA-512 (`KAFKA_SASL_*`). A bad certificate stops start-up.
+  - gRPC stays off by default (ADR-0032) but is no longer development-only; AMQP RPC, NATS RPC
+    and the Kafka topic serve the platform's own services. AGENTS.md says so.
+  - Compose has no guest account any more: RabbitMQ users `tbp-admin` (management UI),
+    `tbp-api`, `tbp-cdc` and `tbp-service`, each with the narrowest permissions that work; NATS
+    users `tbp-api` and `tbp-service` (no subject permissions); Kafka listeners require SASL
+    PLAIN (`tbp-api`, `tbp-dev` for tools through `deploy/compose/kafka-client.properties`,
+    `tbp-broker`), with no authorizer. Passwords are `<user>-dev`, for the local stack only.
+  - `/readyz` reports Keycloak as an optional dependency.
+  - Verified: `TestTLS` (a TLS gRPC server answers a client that trusts it and refuses a
+    plaintext one), the config validation, and in the second stack: every dependency up,
+    `just test-e2e` over REST, GraphQL, gRPC, AMQP and NATS with the `tbp-service` users, a
+    ledger event read from Kafka with SASL, guest and unauthenticated Kafka clients refused.
+    Not verified: TLS against real brokers (the compose stack has no certificates).
 
 A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
 owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the
