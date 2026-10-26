@@ -68,18 +68,28 @@ const listLedgers = `-- name: ListLedgers :many
 SELECT name, metadata, created_at, organization_id
 FROM ledgers
 WHERE organization_id = $1 AND name > $2::text
+    -- Only the ledgers the caller may read (ADR-0027): all of them, or the named ones.
+    AND ($3::boolean OR name = ANY($4::text[]))
 ORDER BY name
-LIMIT $3
+LIMIT $5
 `
 
 type ListLedgersParams struct {
 	OrganizationID pgtype.UUID
 	After          string
+	AllLedgers     bool
+	Names          []string
 	PageSize       int32
 }
 
 func (q *Queries) ListLedgers(ctx context.Context, arg ListLedgersParams) ([]Ledger, error) {
-	rows, err := q.db.Query(ctx, listLedgers, arg.OrganizationID, arg.After, arg.PageSize)
+	rows, err := q.db.Query(ctx, listLedgers,
+		arg.OrganizationID,
+		arg.After,
+		arg.AllLedgers,
+		arg.Names,
+		arg.PageSize,
+	)
 	if err != nil {
 		return nil, err
 	}

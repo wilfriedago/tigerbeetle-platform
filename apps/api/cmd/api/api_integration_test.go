@@ -49,6 +49,8 @@ type harness struct {
 	app    *bootstrap.App
 	faults *faultyLedger
 	auth   testAuth
+	// cfgPostgresURL is the database of the harness, for tests that seed grants.
+	cfgPostgresURL string
 }
 
 func newHarness(t *testing.T) *harness {
@@ -78,6 +80,8 @@ func newHarness(t *testing.T) *harness {
 	}
 	t.Cleanup(built.Close)
 	h.app = built
+	h.cfgPostgresURL = cfg.PostgresURL
+	h.auth.ownDefault(t, cfg.PostgresURL)
 	h.server = httptest.NewServer(h.auth.withCredentials(built.Handler()))
 	t.Cleanup(h.server.Close)
 	return h

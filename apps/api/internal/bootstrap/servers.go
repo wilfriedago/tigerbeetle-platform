@@ -69,7 +69,7 @@ func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *
 				AccountQueries:      m.bookkeeping.AccountQueries,
 				RequestQueries:      m.bookkeeping.RequestQueries,
 				OverviewQueries:     m.bookkeeping.OverviewQueries,
-				Reconciler:          m.bookkeeping.Reconciler,
+				Reconciler:          m.bookkeeping.ReconcilerQueries,
 			},
 		})
 	}

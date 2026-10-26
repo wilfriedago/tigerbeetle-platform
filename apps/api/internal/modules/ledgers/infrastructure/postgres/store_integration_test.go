@@ -69,11 +69,11 @@ func TestTenantIsolationIntegration(t *testing.T) {
 	if _, err := store.GetEventType(globex, "payments", "payout"); !errors.Is(err, ledger.ErrNotFound) {
 		t.Fatalf("GetEventType(globex) error = %v, want ErrNotFound", err)
 	}
-	page, err := store.ListLedgers(globex, "", 10)
+	page, err := store.ListLedgers(globex, true, nil, "", 10)
 	if err != nil || len(page) != 1 {
 		t.Fatalf("ListLedgers(globex) = %+v, %v; want only its own ledger", page, err)
 	}
-	if _, err := store.ListLedgers(context.Background(), "", 10); err == nil {
+	if _, err := store.ListLedgers(context.Background(), true, nil, "", 10); err == nil {
 		t.Fatal("ListLedgers without a tenant succeeded")
 	}
 }
@@ -100,7 +100,7 @@ func TestStoreIntegration(t *testing.T) {
 	if _, err := store.CreateLedger(ctx, ledger.Ledger{Name: "b", CreatedAt: now}); err != nil {
 		t.Fatal(err)
 	}
-	page, err := store.ListLedgers(ctx, "a", 10)
+	page, err := store.ListLedgers(ctx, true, nil, "a", 10)
 	if err != nil || len(page) != 2 || page[0].Name != "b" || page[1].Name != "main" {
 		t.Fatalf("ListLedgers = %+v, %v", page, err)
 	}

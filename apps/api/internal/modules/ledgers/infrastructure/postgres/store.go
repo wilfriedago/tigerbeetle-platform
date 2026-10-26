@@ -58,13 +58,13 @@ func (s *Store) GetLedger(ctx context.Context, name string) (ledger.Ledger, erro
 	return ledgerOf(row)
 }
 
-// ListLedgers returns ledgers in name order after the given name.
-func (s *Store) ListLedgers(ctx context.Context, after string, limit int) ([]ledger.Ledger, error) {
+// ListLedgers returns ledgers in name order after the given name: all of them, or the named ones.
+func (s *Store) ListLedgers(ctx context.Context, all bool, names []string, after string, limit int) ([]ledger.Ledger, error) {
 	org, err := platformpg.TenantOf(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.queries.ListLedgers(ctx, gen.ListLedgersParams{OrganizationID: org, After: after, PageSize: int32(limit)})
+	rows, err := s.queries.ListLedgers(ctx, gen.ListLedgersParams{OrganizationID: org, After: after, AllLedgers: all, Names: names, PageSize: int32(limit)})
 	if err != nil {
 		return nil, fmt.Errorf("postgres: list ledgers: %w", platformpg.MapError(err))
 	}

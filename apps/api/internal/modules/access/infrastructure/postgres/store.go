@@ -7,12 +7,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/domain"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/infrastructure/postgres/gen"
 	platformpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres"
 )
 
-// Store implements domain.OrganizationRepository.
+// Store implements domain.OrganizationRepository and domain.GrantRepository.
 type Store struct {
 	queries *gen.Queries
 }
@@ -20,6 +21,23 @@ type Store struct {
 // NewStore builds the store on the process's pool.
 func NewStore(db *platformpg.DB) *Store {
 	return &Store{queries: gen.New(db.Pool())}
+}
+
+// GrantsOf returns the grants of a principal in the organization of the call.
+func (s *Store) GrantsOf(ctx context.Context, issuer, subject string) ([]domain.Grant, error) {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.queries.GrantsOf(ctx, gen.GrantsOfParams{OrganizationID: org, Issuer: issuer, Subject: subject})
+	if err != nil {
+		return nil, fmt.Errorf("postgres: grants: %w", platformpg.MapError(err))
+	}
+	out := make([]domain.Grant, len(rows))
+	for i, r := range rows {
+		out[i] = domain.Grant{Ledger: platformpg.StringOf(r.Ledger), Role: ledger.Role(r.Role)}
+	}
+	return out, nil
 }
 
 // OrganizationByAlias loads an organization by its alias.

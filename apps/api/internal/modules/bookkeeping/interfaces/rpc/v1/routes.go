@@ -170,7 +170,7 @@ func registerOverview(r *rpc.Router, app application.Application) {
 		return dto.SearchResultsFrom(p.Q, &res), nil
 	}))
 	r.Handle("v1.getReconcilerStatus", rpc.Bind(func(ctx context.Context, _ struct{}, _ rpc.NoBody, _ rpc.Request) (any, error) {
-		st, err := app.Reconciler.Status(ctx)
+		st, err := app.ReconcilerQueries.Status(ctx)
 		if err != nil {
 			return nil, err
 		}

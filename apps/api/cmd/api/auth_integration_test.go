@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -38,6 +39,33 @@ func trustTestIssuer(t *testing.T, cfg *config.Config) testAuth {
 	cfg.AuthStaffValue = "tbp-staff"
 	cfg.AuthOrganizationClaim = "organization"
 	return testAuth{iss: iss, token: iss.Person(t, "tester", "default")}
+}
+
+// grant gives the subject a role in the organization with the alias, or on one of its ledgers,
+// straight in the database: the API has no endpoint for grants until phase 5 of the plan.
+func (a testAuth) grant(t *testing.T, postgresURL, subject, alias, ledgerName, role string) {
+	t.Helper()
+	pool, err := pgxpool.New(context.Background(), postgresURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	var target *string
+	if ledgerName != "" {
+		target = &ledgerName
+	}
+	_, err = pool.Exec(context.Background(), `INSERT INTO grants (organization_id, issuer, subject, ledger, role)
+		SELECT id, $1, $2, $3, $4 FROM organizations WHERE alias = $5`, a.iss.URL, subject, target, role, alias)
+	if err != nil {
+		t.Fatalf("grant %s %s in %s: %v", role, subject, alias, err)
+	}
+}
+
+// ownDefault makes the test person the owner of the default organization, so the tests of what
+// a call does are not refused.
+func (a testAuth) ownDefault(t *testing.T, postgresURL string) {
+	t.Helper()
+	a.grant(t, postgresURL, "tester", "default", "", "owner")
 }
 
 // withCredentials adds the test person's token and organization to every request that carries no
@@ -126,6 +154,110 @@ func TestAuthenticationEndToEnd(t *testing.T) {
 		}
 		if _, err := healthpb.NewHealthClient(conn).Check(t.Context(), &healthpb.HealthCheckRequest{}); err != nil {
 			t.Fatalf("health check: %v", err)
+		}
+	})
+}
+
+// organization adds the platform's copy of an organization, as staff will through the API in
+// phase 5 of the plan.
+func organization(t *testing.T, postgresURL, alias string) {
+	t.Helper()
+	pool, err := pgxpool.New(context.Background(), postgresURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	if _, err := pool.Exec(context.Background(), `INSERT INTO organizations (id, alias, name) VALUES (gen_random_uuid(), $1, $1)`, alias); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestAuthorizationEndToEnd checks the grants of ADR-0027 and the tenant isolation of ADR-0026
+// through the transports: two organizations with a ledger of the same name, a viewer, an
+// operator, a member without a role, and an Idempotency-Key used by two callers (ADR-0030).
+func TestAuthorizationEndToEnd(t *testing.T) {
+	h := newHarness(t)
+	pg := h.cfgPostgresURL
+	organization(t, pg, "globex")
+	as := func(subject string, orgs ...string) string { return "Bearer " + h.auth.iss.Person(t, subject, orgs...) }
+	owner, olga := "Bearer "+h.auth.token, as("olga", "default", "globex")
+	viewer, operator := as("vic", "default"), as("opie", "default")
+	send := func(authorization, org, method, path, body, key string) (int, string) {
+		headers := map[string]string{"Authorization": authorization, "X-Organization": org, "Content-Type": "application/json"}
+		if key != "" {
+			headers["Idempotency-Key"] = key
+		}
+		code, _, raw := h.rawDo(method, path, body, headers)
+		return code, string(raw)
+	}
+	payment := `{"postings":[{"source":"world","destination":"users:1:wallet","asset":"EUR/2","amount":"1250"}]}`
+
+	if code, raw := send(owner, "default", http.MethodPost, "/v1/ledgers/payments", "{}", ""); code != http.StatusCreated {
+		t.Fatalf("owner creates payments in default: %d %s", code, raw)
+	}
+	h.auth.grant(t, pg, "olga", "globex", "", "owner")
+	if code, raw := send(olga, "globex", http.MethodPost, "/v1/ledgers/payments", `{"metadata":{"owner":"globex"}}`, ""); code != http.StatusCreated {
+		t.Fatalf("olga creates payments in globex: %d %s", code, raw)
+	}
+	h.auth.grant(t, pg, "vic", "default", "payments", "viewer")
+	h.auth.grant(t, pg, "opie", "default", "payments", "operator")
+
+	t.Run("a member without a role sees no ledger", func(t *testing.T) {
+		if code, raw := send(olga, "default", http.MethodGet, "/v1/ledgers/payments", "", ""); code != http.StatusNotFound {
+			t.Fatalf("olga reads default's payments: %d %s", code, raw)
+		}
+		if code, raw := send(olga, "default", http.MethodGet, "/v1/ledgers", "", ""); code != http.StatusOK || strings.Contains(raw, "payments") {
+			t.Fatalf("olga lists default's ledgers: %d %s", code, raw)
+		}
+	})
+	t.Run("a viewer reads but may not write, on every transport", func(t *testing.T) {
+		if code, raw := send(viewer, "default", http.MethodGet, "/v1/ledgers/payments", "", ""); code != http.StatusOK {
+			t.Fatalf("viewer reads: %d %s", code, raw)
+		}
+		if code, raw := send(viewer, "default", http.MethodPost, "/v1/ledgers/payments/transactions", payment, "vic-1"); code != http.StatusForbidden || !strings.Contains(raw, "/problems/forbidden") {
+			t.Fatalf("viewer writes over REST: %d %s", code, raw)
+		}
+		code, raw := send(viewer, "default", http.MethodPost, "/graphql",
+			`{"query":"mutation($input: CreateTransactionInput!) { createTransaction(input: $input) { id } }","variables":{"input":{"ledger":"payments","idempotencyKey":"vic-2","postings":[{"source":"world","destination":"users:1:wallet","asset":"EUR/2","amount":"1250"}]}}}`, "")
+		if code != http.StatusOK || !strings.Contains(raw, `"FORBIDDEN"`) {
+			t.Fatalf("viewer writes over GraphQL: %d %s", code, raw)
+		}
+		conn := h.grpcConnWith()
+		ctx := metadata.AppendToOutgoingContext(t.Context(), "authorization", viewer, "x-organization", "default")
+		_, err := pb.NewTransactionServiceClient(conn).CreateTransaction(ctx, &pb.CreateTransactionRequest{
+			Ledger: "payments", IdempotencyKey: "vic-3",
+			Postings: []*pb.Posting{{Source: "world", Destination: "users:1:wallet", Asset: "EUR/2", Amount: "1250"}},
+		})
+		if status.Code(err) != codes.PermissionDenied {
+			t.Fatalf("viewer writes over gRPC: %v", err)
+		}
+		if code, raw := send(viewer, "default", http.MethodGet, "/v1/_reconciler", "", ""); code != http.StatusForbidden {
+			t.Fatalf("viewer reads the reconciler: %d %s", code, raw)
+		}
+	})
+	t.Run("an Idempotency-Key replays only for the caller that used it", func(t *testing.T) {
+		if code, raw := send(operator, "default", http.MethodPost, "/v1/ledgers/payments/transactions", payment, "shared-key"); code != http.StatusCreated {
+			t.Fatalf("operator writes: %d %s", code, raw)
+		}
+		if code, raw := send(operator, "default", http.MethodPost, "/v1/ledgers/payments/transactions", payment, "shared-key"); code != http.StatusCreated {
+			t.Fatalf("operator replays: %d %s", code, raw)
+		}
+		code, raw := send(owner, "default", http.MethodPost, "/v1/ledgers/payments/transactions", payment, "shared-key")
+		if code != http.StatusUnprocessableEntity || !strings.Contains(raw, "idempotency-key-reused") || strings.Contains(raw, `"id"`) {
+			t.Fatalf("owner reuses the operator's key: %d %s", code, raw)
+		}
+	})
+	t.Run("the other organization's ledger of the same name stays apart", func(t *testing.T) {
+		code, raw := send(olga, "globex", http.MethodGet, "/v1/ledgers/payments", "", "")
+		if code != http.StatusOK || !strings.Contains(raw, `"owner":"globex"`) {
+			t.Fatalf("olga reads globex's payments: %d %s", code, raw)
+		}
+		code, raw = send(olga, "globex", http.MethodGet, "/v1/ledgers/payments/transactions", "", "")
+		if code != http.StatusOK || strings.Contains(raw, `"postings"`) && strings.Contains(raw, "users:1:wallet") {
+			t.Fatalf("olga sees default's transactions in globex: %d %s", code, raw)
+		}
+		if code, raw := send(owner, "globex", http.MethodGet, "/v1/ledgers/payments", "", ""); code != http.StatusNotFound {
+			t.Fatalf("default's owner reads globex, where it is no member: %d %s", code, raw)
 		}
 	})
 }

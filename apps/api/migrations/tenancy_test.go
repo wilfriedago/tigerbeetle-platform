@@ -13,7 +13,7 @@ import (
 // tenant's rows.
 var tenantTables = []string{
 	"ledgers", "ledger_assets", "account_rules", "event_types", "addresses", "accounts",
-	"write_requests", "transactions", "holds",
+	"write_requests", "transactions", "holds", "grants",
 }
 
 // TestQueriesNameTheOrganization reads every sqlc query of every module. A query that touches a

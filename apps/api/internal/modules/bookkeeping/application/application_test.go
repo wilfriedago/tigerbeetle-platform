@@ -27,6 +27,7 @@ func newWorld() *world {
 		Ledger: w.tb, IDs: &counterIDs{}, Clock: ledger.ClockFunc(func() time.Time { return w.now }),
 		Ledgers: fakeLedgers{}, Policies: fakeLedgers{}, EventTypes: fakeLedgers{},
 		GracePeriod: time.Second, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Authorizer: allowAll{},
 	})
 	return w
 }

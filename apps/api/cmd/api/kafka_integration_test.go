@@ -138,6 +138,7 @@ func TestLedgerEventsToKafka(t *testing.T) {
 	}
 	t.Cleanup(writer.Close)
 	h := &harness{t: t, app: writer, auth: auth}
+	auth.ownDefault(t, cfg.PostgresURL)
 	h.server = httptest.NewServer(auth.withCredentials(writer.Handler()))
 	t.Cleanup(h.server.Close)
 

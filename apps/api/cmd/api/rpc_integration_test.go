@@ -82,6 +82,7 @@ func newRPCStack(t *testing.T) *rpcStack {
 		})
 		s.apps = append(s.apps, app)
 	}
+	s.auth.ownDefault(t, cfg.PostgresURL)
 	s.rest = httptest.NewServer(s.auth.withCredentials(s.apps[0].Handler()))
 	t.Cleanup(s.rest.Close)
 

@@ -34,6 +34,10 @@ type modules struct {
 func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options) modules {
 	clock := ledger.ClockFunc(time.Now)
 
+	// Access comes first: every other module checks its permissions through it (ADR-0027).
+	accessStore := accesspg.NewStore(r.db)
+	ac := accessapp.New(accessapp.Deps{Organizations: accessStore, Grants: accessStore})
+
 	ledgerStore := ledgerspg.NewStore(r.db)
 	directory := ledgersapp.NewDirectory(ledgerStore)
 	policies := ledgersapp.NewPolicyQueries(ledgerStore, ledgerStore)
@@ -54,6 +58,7 @@ func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options
 		GracePeriod:        cfg.ReconcilerGracePeriod,
 		ReconcilerInterval: cfg.ReconcilerInterval,
 		Logger:             logger,
+		Authorizer:         ac.Authorizer,
 	})
 
 	lg := ledgersapp.New(ledgersapp.Deps{
@@ -65,7 +70,7 @@ func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options
 		Usage:      bk.Footprints,
 		Addresses:  bk.Footprints,
 		Clock:      clock,
+		Authorizer: ac.Authorizer,
 	})
-	ac := accessapp.New(accessapp.Deps{Organizations: accesspg.NewStore(r.db)})
 	return modules{access: ac, ledgers: lg, bookkeeping: bk, bookkeepingAccounts: bookStore}
 }

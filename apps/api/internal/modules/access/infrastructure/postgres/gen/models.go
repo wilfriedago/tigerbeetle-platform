@@ -49,6 +49,17 @@ type EventType struct {
 	OrganizationID pgtype.UUID
 }
 
+type Grant struct {
+	OrganizationID   pgtype.UUID
+	Issuer           string
+	Subject          string
+	Ledger           *string
+	Role             string
+	GrantedByIssuer  *string
+	GrantedBySubject *string
+	CreatedAt        pgtype.Timestamptz
+}
+
 type Hold struct {
 	ID                   pgtype.UUID
 	Ledger               string
@@ -135,4 +146,6 @@ type WriteRequest struct {
 	CreatedAt      pgtype.Timestamptz
 	ResolvedAt     pgtype.Timestamptz
 	OrganizationID pgtype.UUID
+	ActorIssuer    *string
+	ActorSubject   *string
 }

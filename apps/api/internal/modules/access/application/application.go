@@ -14,16 +14,22 @@ import (
 // Deps are the access module's ports.
 type Deps struct {
 	Organizations domain.OrganizationRepository
+	Grants        domain.GrantRepository
 }
 
 // Application is the access module's use cases, built by New.
 type Application struct {
 	OrganizationQueries OrganizationQueries
+	// Authorizer answers the other modules' Authorizer ports.
+	Authorizer Authorizer
 }
 
 // New builds the module on its ports.
 func New(d Deps) Application {
-	return Application{OrganizationQueries: organizationQueries{orgs: d.Organizations}}
+	return Application{
+		OrganizationQueries: organizationQueries{orgs: d.Organizations},
+		Authorizer:          authorizer{grants: d.Grants},
+	}
 }
 
 type organizationQueries struct {
