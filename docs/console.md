@@ -20,11 +20,11 @@ example `ledgers/$ledger/transactions/index.tsx`), and the page is in `src/featu
 
 The shell follows the usual ledger-console pattern: an organization switcher, a ledger switcher, a
 sidebar scoped to the selected ledger, a page title with a one-line description, and overview
-cards. Every page needs a signed-in person (ADR-0029): without a session the browser goes to the
+cards. Every page needs a signed-in person (ADR-0030): without a session the browser goes to the
 identity provider's sign-in and comes back to the page it asked for. Pages of an organization live
-under `/$org/`, so each tab keeps its own organization (ADR-0026). The account menu shows the
+under `/$org/`, so each tab keeps its own organization (ADR-0027). The account menu shows the
 person and their role, and signs out. Actions the person's role does not allow are hidden, such
-as "New ledger" for a member; the API still checks every call (ADR-0027).
+as "New ledger" for a member; the API still checks every call (ADR-0028).
 
 Top bar:
 

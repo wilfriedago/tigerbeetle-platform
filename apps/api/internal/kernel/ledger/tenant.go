@@ -2,7 +2,7 @@ package ledger
 
 import "context"
 
-// Tenant is the organization a call acts for (ADR-0026). Every ledger belongs to exactly one
+// Tenant is the organization a call acts for (ADR-0027). Every ledger belongs to exactly one
 // organization, and ledger names are unique inside it, so a ledger is found by the tenant and its
 // name together. The tenant is resolved once per call, at the entry point, and travels in the
 // context.
@@ -15,7 +15,7 @@ type Tenant struct {
 }
 
 // DefaultOrganizationID is the organization that pre-alpha data was moved into when ledgers
-// became per organization (ADR-0026, migration 00009). Its alias is "default".
+// became per organization (ADR-0027, migration 00009). Its alias is "default".
 var DefaultOrganizationID = ID{15: 1}
 
 // DefaultTenant is the tenant of DefaultOrganizationID.

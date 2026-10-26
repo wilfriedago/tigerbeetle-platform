@@ -63,7 +63,7 @@ func NewAPI(mux *http.ServeMux) huma.API {
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		SecurityScheme: {
 			Type: "http", Scheme: "bearer", BearerFormat: "JWT",
-			Description: "An access token from the platform's identity provider (ADR-0025).",
+			Description: "An access token from the platform's identity provider (ADR-0026).",
 		},
 	}
 	cfg.Components.Schemas.RegisterTypeAlias(reflect.TypeFor[int](), reflect.TypeFor[integer]())
@@ -114,8 +114,8 @@ the catalogue (` + "`docs/problems.md`" + `): for example
 A problem the HTTP status describes on its own has the type ` + "`about:blank`" + `.
 
 Every operation except the health probes needs an access token, ` + "`Authorization: Bearer <token>`" + `
-(ADR-0025), and answers 401 without a valid one. A person names the organization a call acts
-for with ` + "`X-Organization`" + `; ledger names are unique within an organization (ADR-0026). A caller
-without a role on a ledger gets 404, one whose role lacks the permission 403 (ADR-0027). Request
-bodies must be sent as ` + "`application/json`" + `; anything else answers 415 (ADR-0031).
+(ADR-0026), and answers 401 without a valid one. A person names the organization a call acts
+for with ` + "`X-Organization`" + `; ledger names are unique within an organization (ADR-0027). A caller
+without a role on a ledger gets 404, one whose role lacks the permission 403 (ADR-0028). Request
+bodies must be sent as ` + "`application/json`" + `; anything else answers 415 (ADR-0032).
 `

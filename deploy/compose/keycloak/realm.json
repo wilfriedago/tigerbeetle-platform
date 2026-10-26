@@ -20,7 +20,7 @@
     "realm": [
       {
         "name": "tbp-staff",
-        "description": "People who run the platform: they manage organizations and hold no permission inside one without a grant (ADR-0027)."
+        "description": "People who run the platform: they manage organizations and hold no permission inside one without a grant (ADR-0028)."
       }
     ]
   },
@@ -28,7 +28,7 @@
     {
       "clientId": "tbp-api",
       "name": "TigerBeetle Platform API",
-      "description": "The audience of access tokens (ADR-0025). It signs no one in.",
+      "description": "The audience of access tokens (ADR-0026). It signs no one in.",
       "enabled": true,
       "publicClient": false,
       "bearerOnly": true,
@@ -39,7 +39,7 @@
     {
       "clientId": "tbp-console",
       "name": "TigerBeetle Platform console",
-      "description": "The console's backend-for-frontend in the API (ADR-0029).",
+      "description": "The console's backend-for-frontend in the API (ADR-0030).",
       "enabled": true,
       "publicClient": false,
       "clientAuthenticatorType": "client-secret",
@@ -228,7 +228,7 @@
       "name": "Default",
       "alias": "default",
       "enabled": true,
-      "description": "Pre-alpha data (ADR-0026).",
+      "description": "Pre-alpha data (ADR-0027).",
       "members": [
         {
           "username": "ada",

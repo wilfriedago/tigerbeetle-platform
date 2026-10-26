@@ -1,4 +1,4 @@
-// Package oidc verifies the access tokens of the identity provider (ADR-0025) and maps their claims
+// Package oidc verifies the access tokens of the identity provider (ADR-0026) and maps their claims
 // to a ledger.Principal. It speaks standard OpenID Connect only: discovery from the issuer, the
 // provider's published keys, then the signature, issuer, audience and lifetime of each token.
 // Nothing here names Keycloak; where a provider puts roles and organizations is configured.

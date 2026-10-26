@@ -16,8 +16,8 @@ as on every other transport. Lists page with `page_size`, `page_token` and `next
 `BadRequest` details (plan section 9.2). Liveness and readiness are the standard
 `grpc.health.v1.Health` service.
 
-Authentication (ADR-0025, ADR-0031): every call except `grpc.health.v1.Health` and server
+Authentication (ADR-0026, ADR-0032): every call except `grpc.health.v1.Health` and server
 reflection sends `authorization: Bearer <token>` metadata, and a person names the organization
-with `x-organization` metadata (ADR-0026). Without a valid token a call fails with
-`UNAUTHENTICATED`; a role that lacks the permission gives `PERMISSION_DENIED` (ADR-0027). For
+with `x-organization` metadata (ADR-0027). Without a valid token a call fails with
+`UNAUTHENTICATED`; a role that lacks the permission gives `PERMISSION_DENIED` (ADR-0028). For
 example: `grpcurl -H "authorization: Bearer $TOKEN" -H "x-organization: acme" ...`.

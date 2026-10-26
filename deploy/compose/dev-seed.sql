@@ -8,7 +8,7 @@ INSERT INTO organizations (id, alias, name) VALUES
     ('00000000-0000-0000-0000-0000000061b0', 'globex', 'Globex')
 ON CONFLICT DO NOTHING;
 
--- Organization roles (ADR-0027). Ledger roles need the ledger to exist first.
+-- Organization roles (ADR-0028). Ledger roles need the ledger to exist first.
 INSERT INTO grants (organization_id, issuer, subject, role)
 SELECT o.id, :'issuer', g.subject, g.role
 FROM (VALUES

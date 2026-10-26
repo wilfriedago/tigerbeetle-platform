@@ -1,4 +1,4 @@
-// Package domain is the domain layer of the access module (ADR-0026, ADR-0027): organizations as
+// Package domain is the domain layer of the access module (ADR-0027, ADR-0028): organizations as
 // the platform knows them, and the ports its infrastructure implements. It imports only the
 // shared kernel.
 package domain
@@ -20,7 +20,7 @@ const (
 	OrganizationSuspended OrganizationStatus = "suspended"
 )
 
-// Organization is the platform's copy of a Keycloak organization (ADR-0026): Keycloak owns its
+// Organization is the platform's copy of a Keycloak organization (ADR-0027): Keycloak owns its
 // name, members and invitations; the platform's tables point at ID.
 type Organization struct {
 	ID ledger.ID

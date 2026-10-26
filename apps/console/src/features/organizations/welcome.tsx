@@ -5,7 +5,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '~/
 
 import { useSession } from '~/lib/auth/use-session'
 
-/** A signed-in person who belongs to no organization yet (ADR-0026). */
+/** A signed-in person who belongs to no organization yet (ADR-0027). */
 export function Welcome() {
   const session = useSession()
   return (

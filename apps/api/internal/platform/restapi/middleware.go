@@ -22,7 +22,7 @@ type Authenticator interface {
 	Authenticate(ctx context.Context, authorization, organization string) (context.Context, error)
 }
 
-// Sessions turns the console's session cookie into an access token (ADR-0029); the access
+// Sessions turns the console's session cookie into an access token (ADR-0030); the access
 // module implements it.
 type Sessions interface {
 	AccessToken(ctx context.Context, sessionID string) (string, error)
@@ -39,14 +39,14 @@ type Options struct {
 	Sessions      Sessions
 	SessionCookie string
 	// ConsoleOrigin is the console's origin, such as http://localhost:5173. A cookie-authenticated
-	// request that changes state must come from it (ADR-0029).
+	// request that changes state must come from it (ADR-0030).
 	ConsoleOrigin string
 }
 
 // Handler wraps mux, on which NewAPI registered the operations, with the standard-library
 // middleware every request goes through: request ID, access log, panic recovery, authentication
 // and problem+json answers for unknown routes. A body must say it is JSON: anything else answers
-// 415, which also keeps cross-site form posts away from cookie sessions (ADR-0031). Huma does no
+// 415, which also keeps cross-site form posts away from cookie sessions (ADR-0032). Huma does no
 // routing of its own; the ServeMux does.
 func Handler(mux *http.ServeMux, logger *slog.Logger, opts Options) http.Handler {
 	h := unknownRoutes(mux)
@@ -58,12 +58,12 @@ func Handler(mux *http.ServeMux, logger *slog.Logger, opts Options) http.Handler
 	return h
 }
 
-// OrganizationHeader names the organization a person acts for (ADR-0026).
+// OrganizationHeader names the organization a person acts for (ADR-0027).
 const OrganizationHeader = "X-Organization"
 
 // authenticate puts the principal and the tenant in the context of every request outside the
-// public paths, or answers the problem of a missing or bad credential (ADR-0025). Without an
-// Authorization header, the console's session cookie stands in for it (ADR-0029).
+// public paths, or answers the problem of a missing or bad credential (ADR-0026). Without an
+// Authorization header, the console's session cookie stands in for it (ADR-0030).
 func authenticate(opts Options) func(http.Handler) http.Handler {
 	open := make(map[string]bool, len(opts.Public))
 	for _, p := range opts.Public {
@@ -109,7 +109,7 @@ var crossSite = problem.Problem{
 // SameOrigin reports whether a request may use the session cookie: reads always, since SameSite
 // already keeps the cookie off cross-site requests that change state; writes only when the browser
 // says the request comes from the same origin (Fetch Metadata), or its Origin is the console's.
-// It is the second layer of CSRF defence under SameSite=Lax (ADR-0029).
+// It is the second layer of CSRF defence under SameSite=Lax (ADR-0030).
 func SameOrigin(r *http.Request, consoleOrigin string) bool {
 	switch r.Method {
 	case http.MethodGet, http.MethodHead, http.MethodOptions:
@@ -216,7 +216,7 @@ func recoverPanic(next http.Handler) http.Handler {
 
 // jsonOnly answers 415 to a request whose body does not say it is JSON. Every body of the API is
 // JSON; reading a form or text post as JSON would let a page on another site post to the API
-// with the console's session cookie (ADR-0031). It runs in front of REST and GraphQL alike.
+// with the console's session cookie (ADR-0032). It runs in front of REST and GraphQL alike.
 func jsonOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Body != nil && r.Body != http.NoBody && r.ContentLength != 0 && !isJSON(r.Header.Get("Content-Type")) {

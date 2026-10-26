@@ -1,4 +1,4 @@
-// Package oidctest is an in-process OpenID Connect issuer for tests (ADR-0025): an RSA key, an
+// Package oidctest is an in-process OpenID Connect issuer for tests (ADR-0026): an RSA key, an
 // httptest server publishing the discovery document and the key set, and helpers that mint signed
 // access tokens with any claims. Tests never need Keycloak.
 package oidctest

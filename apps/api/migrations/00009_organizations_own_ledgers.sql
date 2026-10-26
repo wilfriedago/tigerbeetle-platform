@@ -1,5 +1,5 @@
 -- organizations is owned by the access module; the organization_id columns belong to the tables'
--- existing owners (ADR-0026, docs/plans/auth/plan.md section 5).
+-- existing owners (ADR-0027, docs/plans/auth/plan.md section 5).
 -- +goose Up
 -- An organization is a tenant. Keycloak owns its name, members and invitations; this row is the
 -- platform's copy, which the platform's tables point at, plus the status the platform enforces.

@@ -1,4 +1,4 @@
-// Package authn authenticates a call on any transport (ADR-0025, ADR-0031): it reads the credential
+// Package authn authenticates a call on any transport (ADR-0026, ADR-0032): it reads the credential
 // and the organization the call names, and puts the principal and the tenant in the context. The
 // HTTP middleware, the gRPC interceptors and the broker dispatcher all call Authenticate, so every
 // transport accepts and refuses the same calls.

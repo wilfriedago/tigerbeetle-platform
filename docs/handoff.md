@@ -10,9 +10,9 @@ this file for the state of the work.
 
 Planned in `docs/plans/auth/plan.md`, approved by the owner on 2026-10-26, on the branch
 `feat/auth` (worktree `../tigerbeetle-platform-worktrees/auth`, so the owner's uncommitted edits
-in the main checkout stay untouched). ADR-0025 to ADR-0031 record the decisions.
+in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
 
-- Phase 0 (documentation) is done: the plan, ADR-0025 to ADR-0031, the amended status lines, and
+- Phase 0 (documentation) is done: the plan, ADR-0026 to ADR-0032, the amended status lines, and
   pointers in AGENTS.md and docs/architecture.md.
 - Phase 1 (tenancy in the data model) is done, from 1ff1797:
   - Migration 00009: `organizations`, and `organization_id` leading the keys of `ledgers` and the
@@ -24,7 +24,7 @@ in the main checkout stay untouched). ADR-0025 to ADR-0031 record the decisions.
   - Write records carry their organization; the reconciler settles each record inside it.
   - `apps/api/migrations/tenancy_test.go` fails when a query touches a tenant table without
     `organization_id`; `-- tenant-free:` comments mark the four queries that may cross.
-  - Deviation from the plan, recorded in ADR-0026: composite keys and the tenant from the
+  - Deviation from the plan, recorded in ADR-0027: composite keys and the tenant from the
     context, not a platform-wide ledger ID (that would have changed about 350 signatures).
   - Verified: `just lint`, Go unit and integration tests (with an isolation test per store),
     `just generate-check`. Not run: the e2e suite against the compose stack.
@@ -63,7 +63,7 @@ in the main checkout stay untouched). ADR-0025 to ADR-0031 record the decisions.
     `TestEveryUseCaseIsChecked` calls each method behind a refusing authorizer and fails when one
     reaches the real use case. The ledger list is filtered in SQL. The reconciler status shows
     only the organization's own backlog.
-  - Idempotency keys replay only for their actor (migration 00011, ADR-0030).
+  - Idempotency keys replay only for their actor (migration 00011, ADR-0031).
   - The spec (SpecVersion 0.2.0) declares `bearerAuth` and `X-Organization`; 33 accepted
     breaking lines are in `packages/openapi/oasdiff-ignore.txt`. `jsonBodies` is gone: a non-JSON
     body answers 415 (`unsupported-media-type`) from the `jsonOnly` middleware, because Huma maps

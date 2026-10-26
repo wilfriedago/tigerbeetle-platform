@@ -22,7 +22,7 @@ type Options struct {
 	Logger          *slog.Logger
 	// Reflection lets grpcurl and similar tools list and describe the services.
 	Reflection bool
-	// Auth authenticates every call except health and reflection (ADR-0031).
+	// Auth authenticates every call except health and reflection (ADR-0032).
 	Auth Authenticator
 }
 

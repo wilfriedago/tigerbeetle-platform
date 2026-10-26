@@ -142,38 +142,38 @@ var catalog = []Definition{
 	{
 		"unauthenticated", "Unauthenticated", http.StatusUnauthorized,
 		"The call carries no access token or API key, or one that is not valid: expired, for another audience, or revoked. " +
-			"Send `Authorization: Bearer <token>` (ADR-0025).",
+			"Send `Authorization: Bearer <token>` (ADR-0026).",
 	},
 	{
 		"sign-in-failed", "Sign-in failed", http.StatusUnauthorized,
 		"The console's sign-in could not be completed: it took too long, or its answer did not match the request. Start " +
-			"again (ADR-0029).",
+			"again (ADR-0030).",
 	},
 	{
 		"forbidden", "Forbidden", http.StatusForbidden,
-		"The caller is known but its role does not allow this. `detail` names the permission it lacks (ADR-0027).",
+		"The caller is known but its role does not allow this. `detail` names the permission it lacks (ADR-0028).",
 	},
 	{
 		"cross-site-request", "Cross-site request", http.StatusForbidden,
 		"A request that changes state came with the console's session cookie but not from the console's own origin " +
-			"(ADR-0029).",
+			"(ADR-0030).",
 	},
 	{
 		"organization-required", "Organization required", http.StatusBadRequest,
 		"A call about a ledger named no organization. Send the organization's alias in `X-Organization` (gRPC " +
-			"`x-organization` metadata, broker `organization` header) (ADR-0026).",
+			"`x-organization` metadata, broker `organization` header) (ADR-0027).",
 	},
 	{
 		"organization-not-found", "Organization not found", http.StatusNotFound,
-		"The organization does not exist, or the caller is not one of its members (ADR-0026).",
+		"The organization does not exist, or the caller is not one of its members (ADR-0027).",
 	},
 	{
 		"organization-suspended", "Organization suspended", http.StatusForbidden,
-		"The organization is suspended: no call can act for it until staff lift the suspension (ADR-0026).",
+		"The organization is suspended: no call can act for it until staff lift the suspension (ADR-0027).",
 	},
 	{
 		"unsupported-media-type", "Unsupported media type", http.StatusUnsupportedMediaType,
-		"The request body is not sent as `application/json` (ADR-0031).",
+		"The request body is not sent as `application/json` (ADR-0032).",
 	},
 	{
 		"unknown-method", "Unknown method", http.StatusNotFound,

@@ -1,4 +1,4 @@
-# 25. Identity from Keycloak through standard OpenID Connect
+# 26. Identity from Keycloak through standard OpenID Connect
 
 Status: Accepted
 Date: 2026-10-26
@@ -7,7 +7,7 @@ Date: 2026-10-26
 
 Until now the API had no authentication: `AGENTS.md` kept it out of scope, and ADR-0021 kept
 gRPC, AMQP RPC, NATS RPC and the Kafka events development-only for that reason. The platform is
-now multi-tenant (ADR-0026) and moves money for several organizations, so every call must say
+now multi-tenant (ADR-0027) and moves money for several organizations, so every call must say
 who makes it.
 
 Identity is the generic part of the problem: user accounts, password hashing, login and logout
@@ -27,7 +27,7 @@ The full comparison, with sources checked on 2026-10-26, is in
 - A login UI that ships with the provider.
 - Configuration as code: the local stack starts with users, clients and organizations seeded
   from a committed file.
-- Organizations, invitations and per-organization single sign-on (ADR-0026).
+- Organizations, invitations and per-organization single sign-on (ADR-0027).
 - A licence and footprint that suit a self-hosted Apache-2.0 project.
 - The API must not depend on the vendor for verifying tokens, so the choice stays reversible.
 
@@ -90,10 +90,10 @@ Chosen option: 2, Keycloak, behind standard OpenID Connect.
 ## More Information
 
 - `docs/plans/auth/plan.md`, sections 3, 4 and 6.3: the comparison and the verification design.
-- [ADR-0026](0026-organizations-as-tenants.md): organizations, which Keycloak owns.
-- [ADR-0027](0027-authorization-through-platform-grants.md): what the platform decides once
+- [ADR-0027](0027-organizations-as-tenants.md): organizations, which Keycloak owns.
+- [ADR-0028](0028-authorization-through-platform-grants.md): what the platform decides once
   the caller is known.
-- [ADR-0029](0029-console-sessions-through-a-backend-for-frontend.md): how the console signs in.
+- [ADR-0030](0030-console-sessions-through-a-backend-for-frontend.md): how the console signs in.
 - go-oidc: https://github.com/coreos/go-oidc
 - Keycloak server administration guide: https://www.keycloak.org/docs/latest/server_admin/
 - Keycloak import at startup: https://www.keycloak.org/server/importExport

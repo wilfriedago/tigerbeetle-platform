@@ -1,7 +1,7 @@
--- Owned by the access module (ADR-0027).
+-- Owned by the access module (ADR-0028).
 -- +goose Up
 -- A grant gives a principal (issuer and subject) a role in an organization, or on one of its
--- ledgers. Membership itself is Keycloak's (ADR-0026); a grant only says what a member may do.
+-- ledgers. Membership itself is Keycloak's (ADR-0027); a grant only says what a member may do.
 CREATE TABLE grants (
     organization_id uuid NOT NULL REFERENCES organizations (id),
     issuer text NOT NULL,

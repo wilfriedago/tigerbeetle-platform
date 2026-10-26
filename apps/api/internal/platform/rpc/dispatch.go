@@ -22,9 +22,9 @@ const (
 	HeaderIdempotencyKey = "idempotency-key"
 	// HeaderDeadline is the client's deadline in Unix milliseconds.
 	HeaderDeadline = "x-deadline"
-	// HeaderAuthorization carries "Bearer <token or API key>" (ADR-0031).
+	// HeaderAuthorization carries "Bearer <token or API key>" (ADR-0032).
 	HeaderAuthorization = "authorization"
-	// HeaderOrganization names the organization a person acts for (ADR-0026).
+	// HeaderOrganization names the organization a person acts for (ADR-0027).
 	HeaderOrganization = "organization"
 )
 
@@ -76,7 +76,7 @@ type Dispatcher struct {
 }
 
 // NewDispatcher builds a dispatcher. maxTimeout bounds every call (RPC_TIMEOUT_MAX). Every method
-// except the public ones, such as the health probes, needs a credential (ADR-0031).
+// except the public ones, such as the health probes, needs a credential (ADR-0032).
 func NewDispatcher(router *Router, maxTimeout time.Duration, logger *slog.Logger, auth Authenticator, public ...string) *Dispatcher {
 	open := make(map[string]bool, len(public))
 	for _, m := range public {

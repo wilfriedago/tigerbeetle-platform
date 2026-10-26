@@ -28,7 +28,7 @@ func (d denyAll) Require(context.Context, ledger.Permission, string) error {
 // TestEveryUseCaseIsChecked calls every method of every use case the module exports, with zero
 // arguments, behind an authorizer that refuses everything. Each call must come back with the
 // authorizer's refusal: a method that reaches the real use case first would panic on the nil
-// repositories of this test, or answer something else (ADR-0027).
+// repositories of this test, or answer something else (ADR-0028).
 func TestEveryUseCaseIsChecked(t *testing.T) {
 	checks := 0
 	app := reflect.ValueOf(New(Deps{Authorizer: denyAll{checks: &checks}}))

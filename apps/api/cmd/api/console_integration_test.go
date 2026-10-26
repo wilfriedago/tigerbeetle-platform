@@ -25,7 +25,7 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 )
 
-// TestConsoleSignInEndToEnd runs the backend-for-frontend of ADR-0029 against the in-process
+// TestConsoleSignInEndToEnd runs the backend-for-frontend of ADR-0030 against the in-process
 // issuer: sign-in, the session cookie on REST, the CSRF check, a refresh, and sign-out.
 func TestConsoleSignInEndToEnd(t *testing.T) {
 	var handler atomic.Value

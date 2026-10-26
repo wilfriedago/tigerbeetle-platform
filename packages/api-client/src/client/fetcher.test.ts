@@ -90,7 +90,7 @@ describe('fetcher', () => {
     expect(header(calls[0], 'Accept')).toBe('application/json, application/problem+json')
   })
 
-  it('sends the access token and the organization of the configuration (ADR-0025, ADR-0026)', async () => {
+  it('sends the access token and the organization of the configuration (ADR-0026, ADR-0027)', async () => {
     const { calls, fetch } = fakeFetch(json(200, {}), json(200, {}))
     let token = 'first'
     configureClient({ accessToken: () => token, baseUrl: 'http://api.test', fetch, organization: 'acme' })

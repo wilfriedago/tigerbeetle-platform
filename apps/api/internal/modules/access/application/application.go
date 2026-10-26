@@ -1,4 +1,4 @@
-// Package application holds the use cases of the access module (ADR-0026, ADR-0027): finding the
+// Package application holds the use cases of the access module (ADR-0027, ADR-0028): finding the
 // organization a call is made for, and, in later phases, grants, members and credentials.
 // usecases.go exports them as interfaces.
 package application
@@ -43,7 +43,7 @@ func New(d Deps) Application {
 	}
 }
 
-// NewSessions builds the console's sign-in (ADR-0029).
+// NewSessions builds the console's sign-in (ADR-0030).
 func NewSessions(d Deps, s SessionDeps) Sessions {
 	return &sessions{idp: s.IdentityProvider, tokens: s.Tokens, sealer: s.Sealer, store: d.Sessions, clock: d.Clock}
 }
@@ -53,7 +53,7 @@ type organizationQueries struct {
 }
 
 // Tenant resolves the organization a call names. A suspended organization answers 403
-// organization-suspended (ADR-0026).
+// organization-suspended (ADR-0027).
 func (q organizationQueries) Tenant(ctx context.Context, alias string) (ledger.Tenant, error) {
 	org, err := q.orgs.OrganizationByAlias(ctx, alias)
 	if err != nil {

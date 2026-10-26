@@ -1,11 +1,11 @@
-# 27. Authorization through platform grants, enforced in the application layer
+# 28. Authorization through platform grants, enforced in the application layer
 
 Status: Accepted
 Date: 2026-10-26
 
 ## Context and Problem Statement
 
-Once callers are known (ADR-0025) and belong to organizations (ADR-0026), the platform must
+Once callers are known (ADR-0026) and belong to organizations (ADR-0027), the platform must
 decide what each may do. Who may move money on which ledger is a business rule of this platform,
 not of the identity provider: roles change when a ledger is created or a member is added, and
 Keycloak organizations have no roles of their own (Keycloak issue 50606). Putting a role per
@@ -30,7 +30,7 @@ everything else in ADR-0017 stands.
 
 1. Roles and permissions defined in the kernel, grants in Postgres, checked by wrappers around
    each module's use cases.
-2. Roles in token claims (Keycloak organization groups, ADR-0026).
+2. Roles in token claims (Keycloak organization groups, ADR-0027).
 3. A policy engine now: cedar-go, Casbin, OPA, OpenFGA or SpiceDB.
 
 Option 2 has the token problems above. Option 3 pays off with attribute conditions or

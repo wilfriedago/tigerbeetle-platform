@@ -6,7 +6,7 @@ import { defineConfig, defineTransformer } from 'orval'
 const methods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'] as const
 
 // The fetch layer sends X-Request-Id and X-Organization on every call (the organization from the
-// client's configuration, ADR-0026), so the generated functions do not take them as arguments;
+// client's configuration, ADR-0027), so the generated functions do not take them as arguments;
 // the Idempotency-Key of the five money writes stays a typed, required header.
 const fetchLayerHeaders = new Set(['X-Request-Id', 'X-Organization'])
 

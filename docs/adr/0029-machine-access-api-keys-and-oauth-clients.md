@@ -1,4 +1,4 @@
-# 28. Machine access: API keys and OAuth machine clients
+# 29. Machine access: API keys and OAuth machine clients
 
 Status: Accepted
 Date: 2026-10-26
@@ -14,8 +14,8 @@ transport. Some integrators expect a static API key; others prefer short-lived O
 
 - Self-service for organization admins, from the console.
 - A credential belongs to exactly one organization, so its calls need no `X-Organization` header
-  (ADR-0026).
-- The same grants as people (ADR-0027): a key that may only post to one ledger gets `operator`
+  (ADR-0027).
+- The same grants as people (ADR-0028): a key that may only post to one ledger gets `operator`
   on it.
 - A leaked database must not let anyone use the keys in it.
 - A leaked key must be recognisable by secret scanners.
@@ -68,6 +68,6 @@ Machine clients:
 ## More Information
 
 - `docs/plans/auth/plan.md`, section 6.8.
-- [ADR-0026](0026-organizations-as-tenants.md), [ADR-0027](0027-authorization-through-platform-grants.md).
+- [ADR-0027](0027-organizations-as-tenants.md), [ADR-0028](0028-authorization-through-platform-grants.md).
 - Keycloak service accounts: https://www.keycloak.org/docs/latest/server_admin/#_service_accounts
 - RFC 6750, bearer token usage: https://www.rfc-editor.org/rfc/rfc6750

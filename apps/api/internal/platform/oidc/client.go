@@ -13,7 +13,7 @@ import (
 )
 
 // ClientConfig is a confidential client of the provider, such as the console's
-// backend-for-frontend (ADR-0029).
+// backend-for-frontend (ADR-0030).
 type ClientConfig struct {
 	ClientID     string
 	ClientSecret string

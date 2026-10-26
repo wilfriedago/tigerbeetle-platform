@@ -37,7 +37,7 @@ func startStore(t *testing.T) *Store {
 }
 
 // TestTenantIsolationIntegration gives two organizations a ledger with the same name and checks
-// that nothing crosses between them (ADR-0026).
+// that nothing crosses between them (ADR-0027).
 func TestTenantIsolationIntegration(t *testing.T) {
 	store := startStore(t)
 	acme := ledger.WithTenant(context.Background(), ledger.DefaultTenant)

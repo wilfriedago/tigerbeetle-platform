@@ -125,7 +125,7 @@ func (a *App) open(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 }
 
 // authenticator reads the identity provider's discovery document and builds the authenticator
-// every transport shares (ADR-0025). Authentication is always on: without an issuer the API does
+// every transport shares (ADR-0026). Authentication is always on: without an issuer the API does
 // not start.
 func authenticator(ctx context.Context, cfg config.Config, m modules) (*authn.Authenticator, *oidc.Verifier, error) {
 	verifier, err := oidc.New(ctx, oidc.Config{

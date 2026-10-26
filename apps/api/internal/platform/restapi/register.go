@@ -19,8 +19,8 @@ import (
 // in the spec document what the domain checks. Huma still reports values it cannot decode, such
 // as limit=abc, and a missing required body.
 func Register[I, O any](api huma.API, op huma.Operation, handler func(context.Context, *I) (*O, error)) {
-	// Every operation needs a bearer token (ADR-0025) and may name the organization it acts for
-	// (ADR-0026), except the public ones registered with RegisterPublic.
+	// Every operation needs a bearer token (ADR-0026) and may name the organization it acts for
+	// (ADR-0027), except the public ones registered with RegisterPublic.
 	op.Security = []map[string][]string{{SecurityScheme: {}}}
 	op.Parameters = append(op.Parameters, organizationParam())
 	register(api, op, handler)

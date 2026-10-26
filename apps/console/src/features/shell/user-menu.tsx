@@ -14,7 +14,7 @@ import {
 import { signOut } from '~/lib/auth/session'
 import { useSession } from '~/lib/auth/use-session'
 
-// The signed-in person and "Sign out" (ADR-0029). Signing out ends the session in the API, then
+// The signed-in person and "Sign out" (ADR-0030). Signing out ends the session in the API, then
 // at the identity provider, and comes back to the console's sign-in.
 export function UserMenu() {
   const session = useSession()

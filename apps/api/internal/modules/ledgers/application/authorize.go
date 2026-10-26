@@ -6,7 +6,7 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
-// The use cases behind their permission checks (ADR-0027). Each type wraps one use-case interface
+// The use cases behind their permission checks (ADR-0028). Each type wraps one use-case interface
 // and checks the permission before it calls the real use case; New returns only these, so every
 // transport gets the same answer. TestEveryUseCaseIsChecked fails when a method has no check.
 //

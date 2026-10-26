@@ -14,7 +14,7 @@ import {
 import { useSession } from '~/lib/auth/use-session'
 import { useOrganization } from '~/lib/organization'
 
-// The organization the console acts for (ADR-0026), above the ledger switcher. Choosing another
+// The organization the console acts for (ADR-0027), above the ledger switcher. Choosing another
 // one opens its ledgers; the URL carries the organization, so each tab keeps its own.
 export function OrganizationSwitcher() {
   const current = useOrganization()

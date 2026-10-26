@@ -1,4 +1,4 @@
-# 29. Console sessions through a backend-for-frontend
+# 30. Console sessions through a backend-for-frontend
 
 Status: Accepted
 Date: 2026-10-26
@@ -7,8 +7,8 @@ Date: 2026-10-26
 
 The console is a single-page application that talks only to the platform API, through `/api` on
 its own origin (ADR-0014; a Vite proxy in development, a reverse proxy in production). It must
-now sign people in with Keycloak (ADR-0025), work inside one organization at a time (ADR-0026),
-and hide what the person may not do (ADR-0027).
+now sign people in with Keycloak (ADR-0026), work inside one organization at a time (ADR-0027),
+and hide what the person may not do (ADR-0028).
 
 A browser application can hold OAuth tokens itself or leave them to a server. RFC 10017 (OAuth
 2.0 for Browser-Based Applications, BCP 212, August 2026) ranks a browser-only client the most
@@ -51,7 +51,7 @@ Chosen option: 1.
   request.
 - CSRF in depth: SameSite keeps the cookie off cross-site posts; a cookie-authenticated request
   that changes state must also carry `Sec-Fetch-Site: same-origin` or an `Origin` equal to
-  `AUTH_CONSOLE_ORIGIN`; and request bodies are JSON only (ADR-0031).
+  `AUTH_CONSOLE_ORIGIN`; and request bodies are JSON only (ADR-0032).
 - Console: every page moves under `/$org/`; the organization switcher lists the person's
   organizations from the GraphQL `viewer`; every request sends `X-Organization` from the URL; a
   401 sends the browser to `/api/auth/login`; `useCan(permission, ledger)` hides what the person

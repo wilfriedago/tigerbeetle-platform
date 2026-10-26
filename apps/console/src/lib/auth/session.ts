@@ -4,7 +4,7 @@ import { redirect } from '@tanstack/react-router'
 import { HttpStatusError, ORGANIZATION_HEADER, randomRequestId, REQUEST_ID_HEADER } from '@tigerbeetle-platform/api-client'
 
 /**
- * The console signs in through the API's backend-for-frontend (ADR-0029): the browser holds an
+ * The console signs in through the API's backend-for-frontend (ADR-0030): the browser holds an
  * HttpOnly session cookie and never a token. These are its routes, under the API's base URL.
  */
 let base = '/api'
@@ -67,7 +67,7 @@ export function sessionQuery(organization?: string) {
 
 /**
  * The session, or a redirect to sign in that comes back to returnTo: what every route that needs a
- * signed-in person calls first in its beforeLoad (ADR-0029).
+ * signed-in person calls first in its beforeLoad (ADR-0030).
  */
 export async function requireSession(queryClient: QueryClient, returnTo: string): Promise<Session> {
   try {
@@ -99,7 +99,7 @@ export async function signOut(): Promise<void> {
 
 const roleRank: Record<string, number> = { admin: 3, operator: 2, viewer: 1 }
 
-/** What a ledger role allows, as the API decides it (ADR-0027); the API still checks. */
+/** What a ledger role allows, as the API decides it (ADR-0028); the API still checks. */
 const needs: Record<Permission, number> = { 'ledger.configure': 3, 'ledger.read': 1, 'metadata.write': 2, 'money.write': 2 }
 
 export type Permission = 'ledger.read' | 'money.write' | 'metadata.write' | 'ledger.configure'

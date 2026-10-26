@@ -10,7 +10,7 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/sealed"
 )
 
-// console is the console's sign-in (ADR-0029), nil when AUTH_CLIENT_ID is empty.
+// console is the console's sign-in (ADR-0030), nil when AUTH_CLIENT_ID is empty.
 type console struct {
 	sessions accessapp.Sessions
 	web      web.Config
@@ -27,7 +27,7 @@ func consoleSignIn(cfg config.Config, verifier *oidc.Verifier, m modules) (*cons
 	}
 	client, err := verifier.Client(oidc.ClientConfig{
 		ClientID: cfg.AuthClientID, ClientSecret: cfg.AuthClientSecret, RedirectURL: cfg.AuthRedirectURL,
-		// organization:* lists every organization of the person in the token (ADR-0026).
+		// organization:* lists every organization of the person in the token (ADR-0027).
 		Scopes: []string{"organization:*"},
 	})
 	if err != nil {

@@ -14,7 +14,7 @@ import { requireSession } from '~/lib/auth/session'
 import { getLastLedger } from '~/lib/last-ledger'
 
 export const Route = createFileRoute('/_console')({
-  // Every page needs a signed-in person (ADR-0029). Without a session the browser goes to sign
+  // Every page needs a signed-in person (ADR-0030). Without a session the browser goes to sign
   // in, and comes back to the page it asked for.
   beforeLoad: async ({ context, location }) => {
     await requireSession(context.queryClient, location.href)

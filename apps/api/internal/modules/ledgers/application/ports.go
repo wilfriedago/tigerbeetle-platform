@@ -10,7 +10,7 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
-// Authorizer is answered by the access module (ADR-0027): whether the caller holds a permission,
+// Authorizer is answered by the access module (ADR-0028): whether the caller holds a permission,
 // on a ledger or in the organization of the call, and which ledgers it may see.
 type Authorizer interface {
 	Require(ctx context.Context, perm ledger.Permission, ledgerName string) error

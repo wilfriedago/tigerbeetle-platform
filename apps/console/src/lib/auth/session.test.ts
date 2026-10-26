@@ -14,7 +14,7 @@ describe('can', () => {
     expect(canCreateLedgers(session('admin'))).toBe(true)
   })
 
-  it('follows the ledger role of a member (ADR-0027)', () => {
+  it('follows the ledger role of a member (ADR-0028)', () => {
     const viewer = session('member', { payments: 'viewer' })
     expect(can(viewer, 'ledger.read', 'payments')).toBe(true)
     expect(can(viewer, 'money.write', 'payments')).toBe(false)

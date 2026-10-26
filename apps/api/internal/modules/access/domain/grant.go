@@ -7,7 +7,7 @@ import (
 )
 
 // Grant is a role a principal holds in the organization of the call, or on one of its ledgers
-// (ADR-0027).
+// (ADR-0028).
 type Grant struct {
 	// Ledger is "" for a role in the whole organization.
 	Ledger string

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Session is a console session of the backend-for-frontend (ADR-0029).
+// Session is a console session of the backend-for-frontend (ADR-0030).
 type Session struct {
 	// IDHash is the SHA-256 of the session ID the browser's cookie holds.
 	IDHash  []byte

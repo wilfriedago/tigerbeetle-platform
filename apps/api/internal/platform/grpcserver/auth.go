@@ -14,7 +14,7 @@ type Authenticator interface {
 	Authenticate(ctx context.Context, authorization, organization string) (context.Context, error)
 }
 
-// Metadata keys of the credential and the organization (ADR-0031): the gRPC spellings of the
+// Metadata keys of the credential and the organization (ADR-0032): the gRPC spellings of the
 // Authorization and X-Organization headers.
 const (
 	AuthorizationKey = "authorization"

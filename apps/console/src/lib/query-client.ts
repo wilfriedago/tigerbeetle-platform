@@ -12,7 +12,7 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
   return failureCount < 2
 }
 
-/** A 401 means the session ended (ADR-0029): sign in again and come back to this page. */
+/** A 401 means the session ended (ADR-0030): sign in again and come back to this page. */
 function onError(error: unknown): void {
   if ((error instanceof ApiError || error instanceof HttpStatusError) && error.status === 401) {
     signIn()

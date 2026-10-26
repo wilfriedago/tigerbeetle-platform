@@ -68,7 +68,7 @@ const listLedgers = `-- name: ListLedgers :many
 SELECT name, metadata, created_at, organization_id
 FROM ledgers
 WHERE organization_id = $1 AND name > $2::text
-    -- Only the ledgers the caller may read (ADR-0027): all of them, or the named ones.
+    -- Only the ledgers the caller may read (ADR-0028): all of them, or the named ones.
     AND ($3::boolean OR name = ANY($4::text[]))
 ORDER BY name
 LIMIT $5

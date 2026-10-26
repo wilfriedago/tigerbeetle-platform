@@ -19,7 +19,7 @@ function baseUrl(): string {
   return import.meta.env.VITE_API_URL ?? '/api'
 }
 
-/** Makes every later call act for the organization (ADR-0026); the $org route calls it. */
+/** Makes every later call act for the organization (ADR-0027); the $org route calls it. */
 export function actForOrganization(alias: string): void {
   configureClient({ baseUrl: baseUrl(), organization: alias })
   setGraphQLOrganization(alias)

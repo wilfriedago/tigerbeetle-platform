@@ -290,7 +290,7 @@ func TestValidationStaysInTheDomain(t *testing.T) {
 }
 
 // TestBodiesMustSayTheyAreJSON: a body sent as a form or as text is refused with 415 instead of
-// being read as JSON (ADR-0031), which keeps cross-site form posts away from cookie sessions.
+// being read as JSON (ADR-0032), which keeps cross-site form posts away from cookie sessions.
 func TestBodiesMustSayTheyAreJSON(t *testing.T) {
 	t.Parallel()
 	h, _ := newTestHandler(t)

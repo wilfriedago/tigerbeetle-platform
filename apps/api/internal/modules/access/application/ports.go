@@ -7,7 +7,7 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
-// IdentityProvider is the console's OAuth client at the identity provider (ADR-0029); bootstrap
+// IdentityProvider is the console's OAuth client at the identity provider (ADR-0030); bootstrap
 // adapts internal/platform/oidc to it.
 type IdentityProvider interface {
 	AuthCodeURL(state, nonce, verifier string) string

@@ -1,7 +1,7 @@
 import { useParams } from '@tanstack/react-router'
 
 /**
- * The organization the console acts for (ADR-0026, ADR-0029). It is the $org of the URL, so two
+ * The organization the console acts for (ADR-0027, ADR-0030). It is the $org of the URL, so two
  * tabs on two organizations never mix data; the $org route sets it before its pages load, and every
  * API call sends it as X-Organization.
  */

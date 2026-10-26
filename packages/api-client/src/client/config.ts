@@ -16,11 +16,11 @@ export interface ClientConfig {
   /** Generates the X-Request-Id of each call. */
   requestId: () => string
   /**
-   * Returns the access token sent as `Authorization: Bearer` (ADR-0025), read before each call so
+   * Returns the access token sent as `Authorization: Bearer` (ADR-0026), read before each call so
    * a refreshed token is used. Leave it out when a cookie session authenticates, as in the console.
    */
   accessToken?: () => string | undefined | Promise<string | undefined>
-  /** The alias of the organization calls act for, sent as X-Organization (ADR-0026). */
+  /** The alias of the organization calls act for, sent as X-Organization (ADR-0027). */
   organization?: string
 }
 

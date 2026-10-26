@@ -79,7 +79,7 @@ type Config struct {
 	// CDCQueue is the relay queue, bound to the CDC exchange tbp.cdc.
 	CDCQueue string `env:"CDC_QUEUE" envDefault:"tbp.ledger-events.relay"`
 
-	// Authentication is always on (ADR-0025): there is no switch to turn it off.
+	// Authentication is always on (ADR-0026): there is no switch to turn it off.
 
 	// AuthIssuerURL is the identity provider's issuer, as access tokens name it.
 	AuthIssuerURL string `env:"AUTH_ISSUER_URL,required,notEmpty"`
@@ -91,10 +91,10 @@ type Config struct {
 	// AuthStaffClaim and AuthStaffValue mark the platform's staff in a token.
 	AuthStaffClaim string `env:"AUTH_STAFF_CLAIM" envDefault:"roles"`
 	AuthStaffValue string `env:"AUTH_STAFF_VALUE" envDefault:"tbp-staff"`
-	// AuthOrganizationClaim lists the aliases of a person's organizations (ADR-0026).
+	// AuthOrganizationClaim lists the aliases of a person's organizations (ADR-0027).
 	AuthOrganizationClaim string `env:"AUTH_ORGANIZATION_CLAIM" envDefault:"organization"`
 
-	// The console's sign-in through the backend-for-frontend (ADR-0029); off when AUTH_CLIENT_ID is
+	// The console's sign-in through the backend-for-frontend (ADR-0030); off when AUTH_CLIENT_ID is
 	// empty, for an API that serves no console.
 
 	// AuthClientID and AuthClientSecret are the console's confidential client.

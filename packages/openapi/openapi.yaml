@@ -1263,6 +1263,12 @@ components:
       required:
         - data
       type: object
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      description: An access token from the platform's identity provider (ADR-0026).
+      scheme: bearer
+      type: http
 info:
   description: |
     The contract for the TigerBeetle Platform API. This file is generated from the Go code by
@@ -1286,12 +1292,18 @@ info:
     the catalogue (`docs/problems.md`): for example
     `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#exceeds-credits`.
     A problem the HTTP status describes on its own has the type `about:blank`.
+
+    Every operation except the health probes needs an access token, `Authorization: Bearer <token>`
+    (ADR-0026), and answers 401 without a valid one. A person names the organization a call acts
+    for with `X-Organization`; ledger names are unique within an organization (ADR-0027). A caller
+    without a role on a ledger gets 404, one whose role lacks the permission 403 (ADR-0028). Request
+    bodies must be sent as `application/json`; anything else answers 415 (ADR-0032).
   license:
     identifier: Apache-2.0
     name: Apache-2.0
   summary: A ledger API that makes TigerBeetle easier to work with.
   title: TigerBeetle Platform API
-  version: 0.1.0
+  version: 0.2.0
 openapi: 3.1.0
 paths:
   /healthz:
@@ -1371,6 +1383,12 @@ paths:
       description: Service name and version, runtime versions, and the reachability of Postgres and TigerBeetle.
       operationId: getInfo
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1391,6 +1409,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Service information
       tags:
         - operations
@@ -1401,6 +1421,12 @@ paths:
         and TigerBeetle (ADR-0007): its last run and the records it is waiting on.
       operationId: getReconcilerStatus
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1421,6 +1447,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Reconciler status
       tags:
         - operations
@@ -1434,6 +1462,12 @@ paths:
           name: cursor
           schema:
             maxLength: 512
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -1463,6 +1497,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: List ledgers
       tags:
         - ledgers
@@ -1471,6 +1507,12 @@ paths:
       description: The ledger with its metadata, assets and account count.
       operationId: getLedger
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1497,6 +1539,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Get a ledger
       tags:
         - ledgers
@@ -1507,6 +1551,12 @@ paths:
         name is taken.
       operationId: createLedger
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1539,6 +1589,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Create a ledger
       tags:
         - ledgers
@@ -1556,6 +1608,12 @@ paths:
           name: cursor
           schema:
             maxLength: 512
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -1607,6 +1665,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: List accounts
       tags:
         - accounts
@@ -1623,6 +1683,12 @@ paths:
           required: true
           schema:
             $ref: "#/components/schemas/Address"
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1649,6 +1715,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Get an account
       tags:
         - accounts
@@ -1666,6 +1734,12 @@ paths:
           required: true
           schema:
             $ref: "#/components/schemas/Address"
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1704,6 +1778,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Balance history
       tags:
         - accounts
@@ -1718,6 +1794,12 @@ paths:
           required: true
           schema:
             $ref: "#/components/schemas/Address"
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1750,6 +1832,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Replace account metadata
       tags:
         - accounts
@@ -1762,6 +1846,12 @@ paths:
         covering more accounts than the cap answers 422 `prefix-too-broad`.
       operationId: aggregateBalances
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1794,6 +1884,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Sum balances under a prefix
       tags:
         - accounts
@@ -1804,6 +1896,12 @@ paths:
         chart of accounts by segment. Without a prefix, the top-level segments.
       operationId: listSegments
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1834,6 +1932,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Address segments under a prefix
       tags:
         - accounts
@@ -1844,6 +1944,12 @@ paths:
         account count and the money issued. A scale never changes: a new scale is a new asset.
       operationId: listAssets
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1870,6 +1976,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: List assets
       tags:
         - ledgers
@@ -1878,6 +1986,12 @@ paths:
       description: The event types of the ledger with their TigerBeetle `code` and usage.
       operationId: listEventTypes
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1904,6 +2018,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: List event types
       tags:
         - settings
@@ -1913,6 +2029,12 @@ paths:
         there is no edit or delete (ADR-0007). Without a code, the next free one is assigned.
       operationId: createEventType
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -1945,6 +2067,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Create an event type
       tags:
         - settings
@@ -1958,6 +2082,12 @@ paths:
           name: cursor
           schema:
             maxLength: 512
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -2002,6 +2132,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: List holds
       tags:
         - holds
@@ -2020,6 +2152,12 @@ paths:
           schema:
             maxLength: 255
             minLength: 1
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -2053,6 +2191,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Create a hold
       tags:
         - holds
@@ -2061,6 +2201,12 @@ paths:
       description: The hold, its pending transfer and, once resolved, the transfer that resolved it.
       operationId: getHold
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -2093,6 +2239,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Get a hold
       tags:
         - holds
@@ -2113,6 +2261,12 @@ paths:
           schema:
             maxLength: 255
             minLength: 1
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -2151,6 +2305,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Capture a hold
       tags:
         - holds
@@ -2168,6 +2324,12 @@ paths:
           schema:
             maxLength: 255
             minLength: 1
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -2201,6 +2363,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Void a hold
       tags:
         - holds
@@ -2209,6 +2373,12 @@ paths:
       description: Replaces the metadata of the ledger with the given key/value pairs.
       operationId: replaceLedgerMetadata
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -2241,6 +2411,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Replace ledger metadata
       tags:
         - ledgers
@@ -2256,6 +2428,12 @@ paths:
           name: cursor
           schema:
             maxLength: 512
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -2305,6 +2483,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: List write requests
       tags:
         - transactions
@@ -2313,6 +2493,12 @@ paths:
       description: The record with the stored request, the stored outcome and the minted IDs.
       operationId: getWriteRequest
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -2347,6 +2533,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Get a write request
       tags:
         - transactions
@@ -2358,6 +2546,12 @@ paths:
         accounts keep the flags stored on their row (ADR-0006).
       operationId: listRules
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -2384,6 +2578,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: List account rules
       tags:
         - settings
@@ -2392,6 +2588,12 @@ paths:
       description: The rule that would create the account for an address, and every rule considered.
       operationId: matchRule
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -2423,6 +2625,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Which rule wins for an address
       tags:
         - settings
@@ -2438,6 +2642,12 @@ paths:
           schema:
             maxLength: 256
             minLength: 1
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -2461,6 +2671,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Delete a rule
       tags:
         - settings
@@ -2475,6 +2687,12 @@ paths:
           schema:
             maxLength: 256
             minLength: 1
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -2508,6 +2726,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Create or replace a rule
       tags:
         - settings
@@ -2518,6 +2738,12 @@ paths:
         finds accounts, a reference finds transactions, an Idempotency-Key finds a write request.
       operationId: search
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -2551,6 +2777,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Search the ledger
       tags:
         - ledgers
@@ -2562,6 +2790,12 @@ paths:
         of the last 24 hours with their reasons.
       operationId: getLedgerStats
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -2588,6 +2822,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Ledger overview figures
       tags:
         - ledgers
@@ -2604,6 +2840,12 @@ paths:
           name: cursor
           schema:
             maxLength: 512
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -2670,6 +2912,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: List transactions
       tags:
         - transactions
@@ -2690,6 +2934,12 @@ paths:
           schema:
             maxLength: 255
             minLength: 1
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -2723,6 +2973,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Create a transaction
       tags:
         - transactions
@@ -2731,6 +2983,12 @@ paths:
       description: The transaction with its postings and the TigerBeetle transfer behind each one.
       operationId: getTransaction
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -2763,6 +3021,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Get a transaction
       tags:
         - transactions
@@ -2771,6 +3031,12 @@ paths:
       description: Replaces the metadata stored in Postgres with the transaction. The postings never change.
       operationId: replaceTransactionMetadata
       parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
           name: X-Request-Id
@@ -2809,6 +3075,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Replace transaction metadata
       tags:
         - transactions
@@ -2830,6 +3098,12 @@ paths:
           schema:
             maxLength: 255
             minLength: 1
+            type: string
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
             type: string
         - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
           in: header
@@ -2868,6 +3142,8 @@ paths:
                 type: string
         default:
           $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
       summary: Revert a transaction
       tags:
         - transactions

@@ -1,4 +1,12 @@
-import { ApiError, HttpStatusError, ORGANIZATION_HEADER, problemFrom, problemTypeOf, randomRequestId, REQUEST_ID_HEADER } from '@tigerbeetle-platform/api-client'
+import {
+  ApiError,
+  HttpStatusError,
+  ORGANIZATION_HEADER,
+  problemFrom,
+  problemTypeOf,
+  randomRequestId,
+  REQUEST_ID_HEADER
+} from '@tigerbeetle-platform/api-client'
 
 import { type TypedDocumentString } from '~/graphql/gen/graphql'
 
@@ -15,7 +23,7 @@ export function configureGraphQL(baseUrl: string): void {
   endpoint = `${baseUrl.replace(/\/+$/, '')}/graphql`
 }
 
-/** Names the organization every request acts for, sent as X-Organization (ADR-0026). */
+/** Names the organization every request acts for, sent as X-Organization (ADR-0027). */
 export function setGraphQLOrganization(alias: string | undefined): void {
   organization = alias
 }
@@ -45,7 +53,7 @@ export async function request<TResult, TVariables>(
   if (organization) {
     headers[ORGANIZATION_HEADER] = organization
   }
-  // The session cookie authenticates the request (ADR-0029); the console holds no token.
+  // The session cookie authenticates the request (ADR-0030); the console holds no token.
   const response = await globalThis.fetch(endpoint, {
     body: JSON.stringify({ query: document.toString(), variables }),
     credentials: 'same-origin',

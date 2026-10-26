@@ -12,7 +12,7 @@ the REST client from the spec, and a root justfile runs everything. The plan in
 ADR-0024 record the decisions.
 
 Authentication, authorization and multi-tenancy are in progress on the plan in
-`docs/plans/auth/plan.md` (ADR-0025 to ADR-0031): Keycloak for identity and organizations,
+`docs/plans/auth/plan.md` (ADR-0026 to ADR-0032): Keycloak for identity and organizations,
 platform grants per organization and ledger, a backend-for-frontend for the console, API keys and
 OAuth machine clients. Until its phases land, the sections below describe the code as it is.
 
@@ -329,16 +329,16 @@ Cursor pagination orders by the stored big-endian ID, which is time order.
   TigerBeetle CDC.
 - `docs/adr/0023-console-on-graphql.md`: the console on GraphQL.
 - `docs/adr/0024-transport-neutral-write-protocol.md`: the write protocol on every transport.
-- `docs/adr/0025-identity-from-keycloak-through-openid-connect.md`: Keycloak behind standard
+- `docs/adr/0026-identity-from-keycloak-through-openid-connect.md`: Keycloak behind standard
   OpenID Connect.
-- `docs/adr/0026-organizations-as-tenants.md`: organizations in Keycloak, ledgers per
+- `docs/adr/0027-organizations-as-tenants.md`: organizations in Keycloak, ledgers per
   organization.
-- `docs/adr/0027-authorization-through-platform-grants.md`: roles, grants and the use-case
+- `docs/adr/0028-authorization-through-platform-grants.md`: roles, grants and the use-case
   wrappers.
-- `docs/adr/0028-machine-access-api-keys-and-oauth-clients.md`: API keys and machine clients.
-- `docs/adr/0029-console-sessions-through-a-backend-for-frontend.md`: console sign-in.
-- `docs/adr/0030-idempotency-keys-belong-to-their-principal.md`: replay only for the same caller.
-- `docs/adr/0031-authenticated-transports-and-strict-request-bodies.md`: credentials on every
+- `docs/adr/0029-machine-access-api-keys-and-oauth-clients.md`: API keys and machine clients.
+- `docs/adr/0030-console-sessions-through-a-backend-for-frontend.md`: console sign-in.
+- `docs/adr/0031-idempotency-keys-belong-to-their-principal.md`: replay only for the same caller.
+- `docs/adr/0032-authenticated-transports-and-strict-request-bodies.md`: credentials on every
   transport, 415 for non-JSON bodies, internal events.
 
 An ADR whose status reads `Accepted, amended by ...` is partly replaced; the amending ADRs say

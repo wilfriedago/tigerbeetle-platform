@@ -1,4 +1,4 @@
-// Package web serves the console's sign-in through the backend-for-frontend (ADR-0029): browser
+// Package web serves the console's sign-in through the backend-for-frontend (ADR-0030): browser
 // redirects and cookies, not API operations, so they are not in the REST spec.
 //
 //	GET  /auth/login?return_to=/acme/ledgers   start a sign-in at the identity provider

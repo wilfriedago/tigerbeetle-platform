@@ -6,7 +6,7 @@
 GET /readyz added the new `degraded` enum value to the `status` response property for the response status `200`
 GET /readyz added the new `degraded` enum value to the `status` response property for the response status `503`
 
-# ADR-0025, ADR-0031: every operation except the health probes needs a bearer token (SpecVersion
+# ADR-0026, ADR-0032: every operation except the health probes needs a bearer token (SpecVersion
 # 0.2.0, pre-alpha); a client without one gets 401.
 GET /v1/_info the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
 GET /v1/_reconciler the endpoint no longer allows anonymous access and now only accepts `bearerAuth`

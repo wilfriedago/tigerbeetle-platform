@@ -154,7 +154,7 @@ type SegmentRow struct {
 
 // WriteRecord is an idempotency record (ADR-0007).
 type WriteRecord struct {
-	// Organization is the tenant the record belongs to (ADR-0026). The reconciler, which reads
+	// Organization is the tenant the record belongs to (ADR-0027). The reconciler, which reads
 	// records across tenants, acts for it when it settles the record.
 	Organization   ledger.ID
 	Ledger         string
@@ -172,7 +172,7 @@ type WriteRecord struct {
 	Attempts       int
 	CreatedAt      time.Time
 	ResolvedAt     *time.Time
-	// ActorIssuer and ActorSubject name the principal that made the write (ADR-0030); a key
+	// ActorIssuer and ActorSubject name the principal that made the write (ADR-0031); a key
 	// replays only for it. Records from before authentication have neither.
 	ActorIssuer  string
 	ActorSubject string

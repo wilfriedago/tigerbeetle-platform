@@ -53,7 +53,7 @@ func (f *writeFlow) begin(ctx context.Context, rec domain.WriteRecord) (stored d
 	if created {
 		return got, true, nil
 	}
-	// A key belongs to the principal that used it first (ADR-0030). Another principal learns
+	// A key belongs to the principal that used it first (ADR-0031). Another principal learns
 	// only that the key is taken, never the stored answer.
 	if got.ActorIssuer != rec.ActorIssuer || got.ActorSubject != rec.ActorSubject {
 		return domain.WriteRecord{}, false, ledger.NewProblem(ledger.ErrRejected, "idempotency-key-reused",

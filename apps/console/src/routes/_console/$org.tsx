@@ -6,7 +6,7 @@ import { actForOrganization } from '~/lib/api'
 import { sessionQuery } from '~/lib/auth/session'
 import { activeOrganization, setActiveOrganization } from '~/lib/organization'
 
-// Every page of an organization starts here (ADR-0026, ADR-0029): the person must belong to it,
+// Every page of an organization starts here (ADR-0027, ADR-0030): the person must belong to it,
 // and every call below acts for it. Switching organizations drops the cached answers of the
 // previous one, so its ledgers never show under the new one.
 export const Route = createFileRoute('/_console/$org')({

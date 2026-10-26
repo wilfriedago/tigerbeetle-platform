@@ -1,4 +1,4 @@
-# 26. Organizations as tenants, owned by Keycloak Organizations
+# 27. Organizations as tenants, owned by Keycloak Organizations
 
 Status: Accepted
 Date: 2026-10-26
@@ -22,7 +22,7 @@ what Postgres holds in ADR-0002; everything else in both stands.
 ## Decision Drivers
 
 - No cross-tenant read or write, by construction rather than by every query remembering a filter.
-- Invitations and per-organization single sign-on without building them (ADR-0025).
+- Invitations and per-organization single sign-on without building them (ADR-0026).
 - REST paths, protos and GraphQL arguments stay as they are.
 - Removing someone from one organization never touches their other memberships.
 - TigerBeetle stays the only source of truth for money (ADR-0002).
@@ -49,10 +49,10 @@ Chosen option: 1.
   alias (unique and immutable in Keycloak, so the link between the two), the Keycloak ID once
   known, the name, and a status, `active` or `suspended`. Suspension is enforced by the platform:
   every call in the organization's name answers 403 `organization-suspended`.
-- Only staff create organizations, for now (ADR-0027). Creating one creates it in Keycloak, then
+- Only staff create organizations, for now (ADR-0028). Creating one creates it in Keycloak, then
   the copy, then invites the first owner; retrying with the same alias finishes the job.
 - The tenant of a call comes from its credential: an API key or a machine client belongs to one
-  organization (ADR-0028). A person names the organization with the `X-Organization` header (the
+  organization (ADR-0029). A person names the organization with the `X-Organization` header (the
   alias); people's tokens are requested with the scope `organization:*`, so their `organization`
   claim lists every membership, and the API checks the header against it. A non-member gets 404.
   The header travels like the request ID: an HTTP header, `x-organization` gRPC metadata, an
@@ -78,7 +78,7 @@ Chosen option: 1.
 - Good: invitations, member lists, and SSO by email domain come from Keycloak.
 - Good: no contract path changes; machine callers need nothing extra.
 - Bad: membership is read from the token, so a removed member keeps access until the token
-  expires, at most five minutes. Grants (ADR-0027) are checked on every call and revoke at once.
+  expires, at most five minutes. Grants (ADR-0028) are checked on every call and revoke at once.
 - Bad: the API depends on Keycloak's admin API for organizations and invitations, with a service
   account that needs `manage-organizations` and `manage-users`.
 - Bad: once any organization exists, Keycloak's login asks for the username or email first.
@@ -93,6 +93,6 @@ Chosen option: 1.
 - `docs/plans/auth/plan.md`, section 4.3 (the Keycloak Organizations facts) and section 5.
 - [ADR-0002](0002-tigerbeetle-source-of-truth-postgres-context.md),
   [ADR-0004](0004-ledger-api-surface.md): the records this one amends.
-- [ADR-0027](0027-authorization-through-platform-grants.md): roles inside an organization.
+- [ADR-0028](0028-authorization-through-platform-grants.md): roles inside an organization.
 - Keycloak, managing organizations: https://www.keycloak.org/docs/latest/server_admin/#_managing_organizations
 - TigerBeetle ledgers: https://docs.tigerbeetle.com/coding/data-modeling/#ledgers

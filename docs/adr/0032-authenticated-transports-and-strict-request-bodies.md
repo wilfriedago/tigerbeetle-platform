@@ -1,4 +1,4 @@
-# 31. Authenticated transports and strict request bodies
+# 32. Authenticated transports and strict request bodies
 
 Status: Accepted
 Date: 2026-10-26
@@ -11,9 +11,9 @@ middleware in `apps/api/internal/platform/restapi/middleware.go` reads any body 
 its `Content-Type`, and a stricter answer waited for a new API minor version. ADR-0022 published
 ledger events for every ledger on one topic.
 
-With cookie sessions (ADR-0029) the lenient bodies become a CSRF risk: a form on another site can
+With cookie sessions (ADR-0030) the lenient bodies become a CSRF risk: a form on another site can
 post `text/plain`, which the middleware rewrites to JSON in front of `/graphql` too. Tenants
-(ADR-0026) make one event topic for every ledger a cross-tenant stream.
+(ADR-0027) make one event topic for every ledger a cross-tenant stream.
 
 This record replaces only the lenient bodies and the absence of a security scheme in ADR-0018,
 the development-only exposure in ADR-0021, and the event payload of ADR-0022 (which gains
@@ -21,7 +21,7 @@ fields); everything else in the three stands.
 
 ## Decision Drivers
 
-- Every transport authenticates the same way and resolves the same tenant (ADR-0026).
+- Every transport authenticates the same way and resolves the same tenant (ADR-0027).
 - No body read as JSON unless it says so.
 - The REST contract states the security it requires.
 - Events never reach a tenant they do not belong to.

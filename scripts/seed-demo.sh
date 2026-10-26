@@ -4,7 +4,7 @@
 # declined write, and holds that are open, captured and voided.
 # Usage: scripts/seed-demo.sh [ledger]   (API_URL defaults to http://localhost:8080)
 # It signs in as the dev user ada of the local Keycloak (KEYCLOAK_URL, default
-# http://localhost:18080/realms/tbp) and acts for ORGANIZATION (default "default"), ADR-0025.
+# http://localhost:18080/realms/tbp) and acts for ORGANIZATION (default "default"), ADR-0026.
 # Running it twice adds more activity to the same ledger; nothing is ever deleted.
 set -euo pipefail
 

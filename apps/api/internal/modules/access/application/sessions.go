@@ -31,7 +31,7 @@ const refreshMargin = 30 * time.Second
 // errNoSession is the answer to a missing, expired or ended session: sign in again.
 var errNoSession = ledger.NewProblem(ledger.ErrUnauthenticated, "unauthenticated", "the session has ended; sign in again")
 
-// sessions runs the console's sign-in through the backend-for-frontend (ADR-0029). The browser
+// sessions runs the console's sign-in through the backend-for-frontend (ADR-0030). The browser
 // only ever holds a random session ID; the tokens stay here, sealed.
 type sessions struct {
 	idp     IdentityProvider

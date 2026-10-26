@@ -8,7 +8,7 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/domain"
 )
 
-// authorizer decides with the grants of the caller in the organization of the call (ADR-0027).
+// authorizer decides with the grants of the caller in the organization of the call (ADR-0028).
 // It reads them on every call, without a cache, so a revoked grant stops working at once.
 type authorizer struct {
 	grants domain.GrantRepository

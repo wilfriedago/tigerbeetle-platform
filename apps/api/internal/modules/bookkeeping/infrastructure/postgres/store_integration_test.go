@@ -19,7 +19,7 @@ import (
 )
 
 // otherTenant is a second organization; the tests give it a ledger with the same name as the
-// default tenant's to prove that nothing crosses between them (ADR-0026).
+// default tenant's to prove that nothing crosses between them (ADR-0027).
 var otherTenant = ledger.Tenant{ID: ledger.ID{15: 2}, Alias: "globex"}
 
 func TestFootprintsIntegration(t *testing.T) {

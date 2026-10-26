@@ -5,7 +5,7 @@
 // `just compose-up-brokers`, then run `just test-e2e`. The addresses default to the compose
 // ports; E2E_API_URL, E2E_GRPC_ADDR, E2E_AMQP_URL, E2E_NATS_URL and E2E_KEYCLOAK_URL override
 // them. Every call signs in as the dev user ada of the realm file, acting for the organization
-// "default" (ADR-0025, ADR-0026).
+// "default" (ADR-0026, ADR-0027).
 package e2e
 
 import (

@@ -24,9 +24,9 @@ var (
 	// already reverted.
 	ErrConflict = errors.New("conflict")
 	// ErrUnauthenticated means the call carries no credential, or one that is not valid: a bad or
-	// expired token, a revoked API key (ADR-0025).
+	// expired token, a revoked API key (ADR-0026).
 	ErrUnauthenticated = errors.New("unauthenticated")
-	// ErrForbidden means the caller is known but may not do this (ADR-0027).
+	// ErrForbidden means the caller is known but may not do this (ADR-0028).
 	ErrForbidden = errors.New("forbidden")
 )
 

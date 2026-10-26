@@ -3,22 +3,22 @@ package ledger
 import "context"
 
 // PrincipalKind says what kind of caller a principal is. It is for logs and display; decisions
-// rest on grants (ADR-0027), never on the kind alone.
+// rest on grants (ADR-0028), never on the kind alone.
 type PrincipalKind string
 
 // The kinds of principal.
 const (
 	// KindPerson is someone signed in through the identity provider.
 	KindPerson PrincipalKind = "person"
-	// KindMachine is an OAuth machine client using client credentials (ADR-0028).
+	// KindMachine is an OAuth machine client using client credentials (ADR-0029).
 	KindMachine PrincipalKind = "machine"
-	// KindAPIKey is a platform API key (ADR-0028).
+	// KindAPIKey is a platform API key (ADR-0029).
 	KindAPIKey PrincipalKind = "api-key"
 	// KindSystem is the platform itself: the reconciler and the CDC relay.
 	KindSystem PrincipalKind = "system"
 )
 
-// Principal is the caller of a call, as the API knows it after authentication (ADR-0025). Issuer
+// Principal is the caller of a call, as the API knows it after authentication (ADR-0026). Issuer
 // and Subject together identify it; an email never does, because emails change and two issuers
 // can vouch for the same one.
 type Principal struct {
@@ -27,11 +27,11 @@ type Principal struct {
 	Kind    PrincipalKind
 	// Name is for logs and the console, never for decisions.
 	Name string
-	// Staff marks the people who run the platform (ADR-0027). Staff manage organizations; they
+	// Staff marks the people who run the platform (ADR-0028). Staff manage organizations; they
 	// have no permission inside one without a grant.
 	Staff bool
 	// Organizations lists the aliases of the organizations the identity provider says the
-	// principal belongs to (Keycloak's organization claim, ADR-0026).
+	// principal belongs to (Keycloak's organization claim, ADR-0027).
 	Organizations []string
 }
 

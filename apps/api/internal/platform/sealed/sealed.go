@@ -1,4 +1,4 @@
-// Package sealed encrypts small values with AES-256-GCM (ADR-0029): the tokens a console session
+// Package sealed encrypts small values with AES-256-GCM (ADR-0030): the tokens a console session
 // stores in Postgres, and the short-lived cookie that carries the state of a sign-in. A sealed
 // value cannot be read or changed without the key; tampering makes Open fail.
 //

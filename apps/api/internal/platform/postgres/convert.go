@@ -128,7 +128,7 @@ func DecodeMetadata(raw []byte) (map[string]string, error) {
 }
 
 // TenantOf returns the organization of the call, as the uuid every tenant query filters on
-// (ADR-0026). A context without a tenant fails instead of reading across organizations.
+// (ADR-0027). A context without a tenant fails instead of reading across organizations.
 func TenantOf(ctx context.Context) (pgtype.UUID, error) {
 	t, err := ledger.RequireTenant(ctx)
 	if err != nil {

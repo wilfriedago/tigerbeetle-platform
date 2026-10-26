@@ -6,13 +6,13 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
-// Authorizer decides whether the caller of a call may do something (ADR-0027).
+// Authorizer decides whether the caller of a call may do something (ADR-0028).
 type Authorizer interface {
 	Require(ctx context.Context, perm ledger.Permission, ledgerName string) error
 	VisibleLedgers(ctx context.Context) (all bool, names []string, err error)
 }
 
-// Sessions are the console's sign-in through the backend-for-frontend (ADR-0029).
+// Sessions are the console's sign-in through the backend-for-frontend (ADR-0030).
 type Sessions interface {
 	Begin(returnTo string) (authURL, cookie string)
 	Complete(ctx context.Context, cookie, code, state string) (sessionID, returnTo string, err error)

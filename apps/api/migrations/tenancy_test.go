@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// tenantTables are the tables whose rows belong to one organization (ADR-0026). Every query that
+// tenantTables are the tables whose rows belong to one organization (ADR-0027). Every query that
 // touches one must filter or write by organization_id, so no query can read or change another
 // tenant's rows.
 var tenantTables = []string{

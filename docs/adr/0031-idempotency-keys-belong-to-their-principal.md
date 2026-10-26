@@ -1,4 +1,4 @@
-# 30. Idempotency keys belong to the principal that used them
+# 31. Idempotency keys belong to the principal that used them
 
 Status: Accepted
 Date: 2026-10-26
@@ -9,7 +9,7 @@ ADR-0007 keys idempotency records by `(ledger, idempotency_key)`, and ADR-0024 c
 on every transport. A retry with the same key and body replays the stored answer. That was safe
 while every caller was the same anonymous caller.
 
-With authentication (ADR-0025) several principals write to the same ledger: people in the
+With authentication (ADR-0026) several principals write to the same ledger: people in the
 console, API keys, machine clients. A principal that reuses another principal's key would get
 that principal's stored answer, with its transaction or hold, which is a read it may not be
 allowed, and could believe its own write succeeded.

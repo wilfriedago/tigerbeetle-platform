@@ -28,7 +28,7 @@ generate-sql:
     cd {{ api }} && sqlc generate
 
 # Step 2: the REST spec, the GraphQL schema and the problem type catalogue from the Go
-# registrations, built without cgo (ADR-0018, ADR-0020, ADR-0025).
+# registrations, built without cgo (ADR-0018, ADR-0020, ADR-0026).
 [group('generate')]
 generate-contracts:
     cd {{ api }} && CGO_ENABLED=0 go run ./cmd/openapi -out ../../packages/openapi/openapi.yaml

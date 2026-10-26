@@ -1,4 +1,4 @@
--- Owned by the access module (ADR-0029).
+-- Owned by the access module (ADR-0030).
 -- +goose Up
 -- A console session of the backend-for-frontend. The browser holds a random session ID in an
 -- HttpOnly cookie; only its SHA-256 is stored, so a leaked table cannot be replayed as cookies.

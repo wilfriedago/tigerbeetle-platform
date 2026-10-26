@@ -9,7 +9,7 @@ ADR-0015 to ADR-0024) has landed, all seven phases; the layout, commands and wor
 describe the result. The plan stays as the record of why.
 
 Authentication, authorization and multi-tenancy are being added on docs/plans/auth/plan.md
-(ADR-0025 to ADR-0031), in phases. This file changes in the commit that makes each statement
+(ADR-0026 to ADR-0032), in phases. This file changes in the commit that makes each statement
 true; until then it describes the code as it is.
 
 ## Project
@@ -26,7 +26,7 @@ true; until then it describes the code as it is.
   - `cmd/api/main.go`: entrypoint. `internal/bootstrap` wires everything by hand and runs the
     servers and workers. No DI framework, no globals, no `init()`.
   - `internal/kernel/ledger`: the shared kernel, pure types and rules, no I/O imports. It holds
-    the `Tenant` and the `Principal` a call carries in its context (ADR-0025, ADR-0026).
+    the `Tenant` and the `Principal` a call carries in its context (ADR-0026, ADR-0027).
   - `internal/modules/<module>`: one bounded context each, in layers `domain` (rules, the ports
     infrastructure implements), `application` (commands and queries, exported as interfaces in
     `usecases.go`; `ports.go` declares what it needs from other modules), `infrastructure`
@@ -99,13 +99,13 @@ true; until then it describes the code as it is.
   TigerBeetle or Postgres error text to clients.
 - `GET /healthz` is liveness only. `GET /readyz` probes Postgres and TigerBeetle with a short
   timeout and reports each one; its 503 is a `not-ready` problem.
-- Authentication is always on (ADR-0025): every call except liveness and readiness carries
+- Authentication is always on (ADR-0026): every call except liveness and readiness carries
   `Authorization: Bearer <token>`, verified by `internal/platform/oidc` and resolved to a
   principal and a tenant by `internal/platform/authn` on every transport. A person names the
   organization with `X-Organization` (`x-organization` gRPC metadata, the `organization` broker
   header). Ledger names are unique per organization; every tenant query filters by
   `organization_id`, and `apps/api/migrations/tenancy_test.go` fails when one does not.
-- Authorization (ADR-0027): roles and permissions are in `kernel/ledger/permission.go`, grants in
+- Authorization (ADR-0028): roles and permissions are in `kernel/ledger/permission.go`, grants in
   the access module. Each module wraps every use case in `application/authorize.go`, and
   `TestEveryUseCaseIsChecked` fails when a method has no check. No role on a ledger answers 404,
   a role without the permission 403. Request bodies must be `application/json` (415 otherwise).
@@ -132,7 +132,7 @@ true; until then it describes the code as it is.
 - Console: amounts are integer strings and bigint, never `number`. Colours come from the
   tokens in `src/styles/globals.css`, never raw values. URL state goes in the route's search
   schema. Writes use `useIdempotencyKey` and renew the key only after a final answer.
-- Console sign-in is the API's backend-for-frontend (ADR-0029): `src/lib/auth` holds the session
+- Console sign-in is the API's backend-for-frontend (ADR-0030): `src/lib/auth` holds the session
   query, `requireSession`, `useSession` and `useCan`; the console holds no token. Pages of an
   organization are under `src/routes/_console/$org/`; links pass `org` from `useOrganization()`
   (or `activeOrganization()` outside components), and the clients send it as `X-Organization`.

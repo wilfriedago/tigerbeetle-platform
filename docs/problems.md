@@ -210,6 +210,70 @@ Postgres or TigerBeetle did not answer in time. Retry later; a write keeps its o
 
 A dependency the service needs is down, so this instance should not receive traffic. `dependencies` reports each one.
 
+## unauthenticated
+
+- Type: `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#unauthenticated`
+- Title: Unauthenticated
+- Status: 401 Unauthorized
+
+The call carries no access token or API key, or one that is not valid: expired, for another audience, or revoked. Send `Authorization: Bearer <token>` (ADR-0026).
+
+## sign-in-failed
+
+- Type: `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#sign-in-failed`
+- Title: Sign-in failed
+- Status: 401 Unauthorized
+
+The console's sign-in could not be completed: it took too long, or its answer did not match the request. Start again (ADR-0030).
+
+## forbidden
+
+- Type: `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#forbidden`
+- Title: Forbidden
+- Status: 403 Forbidden
+
+The caller is known but its role does not allow this. `detail` names the permission it lacks (ADR-0028).
+
+## cross-site-request
+
+- Type: `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#cross-site-request`
+- Title: Cross-site request
+- Status: 403 Forbidden
+
+A request that changes state came with the console's session cookie but not from the console's own origin (ADR-0030).
+
+## organization-required
+
+- Type: `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#organization-required`
+- Title: Organization required
+- Status: 400 Bad Request
+
+A call about a ledger named no organization. Send the organization's alias in `X-Organization` (gRPC `x-organization` metadata, broker `organization` header) (ADR-0027).
+
+## organization-not-found
+
+- Type: `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#organization-not-found`
+- Title: Organization not found
+- Status: 404 Not Found
+
+The organization does not exist, or the caller is not one of its members (ADR-0027).
+
+## organization-suspended
+
+- Type: `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#organization-suspended`
+- Title: Organization suspended
+- Status: 403 Forbidden
+
+The organization is suspended: no call can act for it until staff lift the suspension (ADR-0027).
+
+## unsupported-media-type
+
+- Type: `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#unsupported-media-type`
+- Title: Unsupported media type
+- Status: 415 Unsupported Media Type
+
+The request body is not sent as `application/json` (ADR-0032).
+
 ## unknown-method
 
 - Type: `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#unknown-method`

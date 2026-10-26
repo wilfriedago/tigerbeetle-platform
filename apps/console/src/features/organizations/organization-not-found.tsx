@@ -8,7 +8,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 
 /**
  * An organization URL the person does not belong to. The API answers it as if the organization did
- * not exist (ADR-0026), and so does the console.
+ * not exist (ADR-0027), and so does the console.
  */
 export function OrganizationNotFound() {
   const { org } = useParams({ strict: false })

@@ -1,6 +1,6 @@
 # 14. Console architecture: TanStack, feature slices and a shadcn design system
 
-Status: Accepted, amended by [ADR-0023](0023-console-on-graphql.md), [ADR-0029](0029-console-sessions-through-a-backend-for-frontend.md)
+Status: Accepted, amended by [ADR-0023](0023-console-on-graphql.md), [ADR-0030](0030-console-sessions-through-a-backend-for-frontend.md)
 Date: 2026-10-25
 
 ## Context and Problem Statement

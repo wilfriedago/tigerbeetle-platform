@@ -1,6 +1,6 @@
 # 21. Transports over one application layer: gRPC, AMQP RPC, NATS RPC
 
-Status: Accepted, amended by [ADR-0025](0025-problem-details-per-rfc-9457.md), [ADR-0031](0031-authenticated-transports-and-strict-request-bodies.md)
+Status: Accepted, amended by [ADR-0025](0025-problem-details-per-rfc-9457.md), [ADR-0032](0032-authenticated-transports-and-strict-request-bodies.md)
 Date: 2026-10-25
 
 ## Context and Problem Statement

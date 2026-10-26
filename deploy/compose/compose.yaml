@@ -104,11 +104,11 @@ services:
       KAFKA_BROKERS: kafka:9092
       CDC_AMQP_URL: amqp://guest:guest@rabbitmq:5672/
       # Tokens name the issuer browsers see; the API reads discovery and keys inside the network
-      # (ADR-0025). Keycloak's backchannel URLs follow the address it is called on.
+      # (ADR-0026). Keycloak's backchannel URLs follow the address it is called on.
       AUTH_ISSUER_URL: http://localhost:${KEYCLOAK_PORT:-18080}/realms/tbp
       AUTH_DISCOVERY_URL: http://keycloak:8080/realms/tbp
       AUTH_AUDIENCE: tbp-api
-      # The console's sign-in (ADR-0029). The secret and the session key are for this local stack
+      # The console's sign-in (ADR-0030). The secret and the session key are for this local stack
       # only; generate your own anywhere else (openssl rand -base64 32).
       AUTH_CLIENT_ID: tbp-console
       AUTH_CLIENT_SECRET: tbp-console-dev-secret
@@ -171,7 +171,7 @@ services:
         condition: service_healthy
     restart: 'no'
 
-  # Keycloak keeps its data in its own database on the same Postgres server (ADR-0025).
+  # Keycloak keeps its data in its own database on the same Postgres server (ADR-0026).
   keycloak-db:
     image: postgres:18.6-trixie
     environment:
@@ -187,7 +187,7 @@ services:
         condition: service_healthy
     restart: 'no'
 
-  # The identity provider (ADR-0025): realm tbp, imported at start from keycloak/realm.json and
+  # The identity provider (ADR-0026): realm tbp, imported at start from keycloak/realm.json and
   # skipped when it exists. Admin console at http://localhost:18080 (admin / admin). Every dev
   # user's password is "password".
   keycloak:

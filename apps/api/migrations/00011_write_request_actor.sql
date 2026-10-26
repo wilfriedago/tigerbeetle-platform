@@ -1,4 +1,4 @@
--- Owned by the bookkeeping module (ADR-0030).
+-- Owned by the bookkeeping module (ADR-0031).
 -- +goose Up
 -- The principal that made the write. A key replays only for it; records written before this
 -- column existed have no actor and replay to no one.

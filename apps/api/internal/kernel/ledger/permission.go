@@ -1,6 +1,6 @@
 package ledger
 
-// Permission is what a use case checks before it runs (ADR-0027). Ledger permissions apply to one
+// Permission is what a use case checks before it runs (ADR-0028). Ledger permissions apply to one
 // ledger; organization permissions to the organization a call acts for.
 type Permission string
 

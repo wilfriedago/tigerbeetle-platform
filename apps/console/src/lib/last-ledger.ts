@@ -2,7 +2,7 @@ import { activeOrganization } from './organization'
 
 /**
  * The ledger last opened in this browser, per organization, so "/" can land there
- * (docs/console.md, Sitemap). Ledger names are unique only within an organization (ADR-0026).
+ * (docs/console.md, Sitemap). Ledger names are unique only within an organization (ADR-0027).
  */
 function key(): string {
   return `tbp.last-ledger.${activeOrganization() ?? ''}`

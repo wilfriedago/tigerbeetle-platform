@@ -2,7 +2,7 @@
 
 Date: 2026-10-26. Written against `feat/console` at 5667331.
 Status: approved by the owner on 2026-10-26, with the answers of section 12; the assumptions O1
-to O5 and the recommendation of O6 stand. ADR-0025 to ADR-0031 record the decisions (phase 0).
+to O5 and the recommendation of O6 stand. ADR-0026 to ADR-0032 record the decisions (phase 0).
 
 How to read it. Section 1 is the design in one page. Section 2 lists the facts in the code that
 the design depends on. Sections 3 and 4 answer "build or buy" and "which provider". Section 5 is
@@ -212,7 +212,7 @@ anyone else, and the grant shows in its member list.
 
 ### 5.5 Ledgers inside an organization
 
-- Deviation, decided in phase 1 (ADR-0026): a ledger is (organization, name). `ledgers` and the
+- Deviation, decided in phase 1 (ADR-0027): a ledger is (organization, name). `ledgers` and the
   eight tables of F9 gain `organization_id`, and their primary, unique and foreign keys lead with
   it. The repositories read the tenant from the context and every query filters by it; use cases
   keep their ledger-name signatures. The first version of this section resolved the name to a

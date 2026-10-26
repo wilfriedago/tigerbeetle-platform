@@ -35,7 +35,7 @@ type modules struct {
 func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options) modules {
 	clock := ledger.ClockFunc(time.Now)
 
-	// Access comes first: every other module checks its permissions through it (ADR-0027).
+	// Access comes first: every other module checks its permissions through it (ADR-0028).
 	accessStore := accesspg.NewStore(r.db)
 	accessDeps := accessapp.Deps{Organizations: accessStore, Grants: accessStore, Sessions: accessStore, Clock: clock}
 	ac := accessapp.New(accessDeps)
