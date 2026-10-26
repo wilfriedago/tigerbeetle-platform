@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { getRouteApi, Link } from '@tanstack/react-router'
 
-import { type Operation, type RequestStatus, type WriteRequest, type WriteRequestDetail } from '@tigerbeetle-platform/api-client'
+import { type Operation, problemReason, type RequestStatus, type WriteRequest, type WriteRequestDetail } from '@tigerbeetle-platform/api-client'
 import { InfoIcon } from 'lucide-react'
 
 import { columnHelper, DataTable } from '~/components/data-table/data-table'
@@ -80,7 +80,7 @@ function Outcome({ ledger, request }: { ledger: string; request: WriteRequest })
   if (request.status === 'committed') {
     return <TargetLink ledger={ledger} request={request} />
   }
-  return <span className="font-mono text-danger-fg">{request.problemType?.split('/').pop() ?? request.status}</span>
+  return <span className="font-mono text-danger-fg">{problemReason(request.problemType) ?? request.status}</span>
 }
 
 const column = columnHelper<WriteRequest>()

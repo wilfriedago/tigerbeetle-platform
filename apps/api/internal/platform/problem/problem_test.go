@@ -46,7 +46,7 @@ func TestFromSentinels(t *testing.T) {
 		{
 			name: "anything else",
 			err:  errors.New("something else"),
-			want: Problem{Kind: KindInternal, Title: "Internal server error", Status: 500, Posting: -1},
+			want: Problem{Kind: KindInternal, Title: "Internal Server Error", Status: 500, Posting: -1},
 		},
 	}
 	for _, tt := range tests {
@@ -63,7 +63,7 @@ func TestFromKeepsOnlyTheDomainDetail(t *testing.T) {
 	t.Parallel()
 	err := fmt.Errorf("create ledger %q: %w", "Bad", fmt.Errorf("%w: ledger name %q must match the pattern", ledger.ErrInvalid, "Bad"))
 	p := From(err)
-	if p.Status != 400 || p.Type() != "/problems/invalid-request" {
+	if p.Status != 400 || p.Type() != TypeOf("invalid-request") {
 		t.Fatalf("status %d type %q, want 400 /problems/invalid-request", p.Status, p.Type())
 	}
 	if want := `ledger name "Bad" must match the pattern`; p.Detail != want {
@@ -90,7 +90,7 @@ func TestFromDomainProblem(t *testing.T) {
 
 	inFlight := &ledger.Problem{Kind: ledger.ErrConflict, Reason: "request-in-flight", Posting: -1, RetryAfter: 1500 * time.Millisecond}
 	got := From(inFlight)
-	if got.Status != 409 || got.RetryAfter != 1500*time.Millisecond || got.Posting != -1 || got.Type() != "/problems/request-in-flight" {
+	if got.Status != 409 || got.RetryAfter != 1500*time.Millisecond || got.Posting != -1 || got.Type() != TypeOf("request-in-flight") {
 		t.Fatalf("in flight: %+v", got)
 	}
 }
@@ -113,11 +113,32 @@ func TestTitleFor(t *testing.T) {
 
 func TestBlank(t *testing.T) {
 	t.Parallel()
-	p := Blank(405, "Method not allowed")
-	if p.Type() != TypeBlank || p.Kind != KindInvalid || p.Status != 405 || p.Posting != -1 {
-		t.Fatalf("Blank(405) = %+v", p)
+	tests := []struct {
+		status    int
+		wantKind  Kind
+		wantTitle string
+	}{
+		{status: 404, wantKind: KindNotFound, wantTitle: "Not Found"},
+		{status: 405, wantKind: KindInvalid, wantTitle: "Method Not Allowed"},
+		{status: 413, wantKind: KindInvalid, wantTitle: "Request Entity Too Large"},
+		{status: 500, wantKind: KindInternal, wantTitle: "Internal Server Error"},
+		{status: 503, wantKind: KindUnavailable, wantTitle: "Service Unavailable"},
 	}
-	if TypeOf("") != "" || TypeOf("exceeds-credits") != "/problems/exceeds-credits" {
+	for _, tt := range tests {
+		p := Blank(tt.status)
+		if p.Type() != TypeBlank || p.Kind != tt.wantKind || p.Title != tt.wantTitle || p.Status != tt.status || p.Posting != -1 {
+			t.Errorf("Blank(%d) = %+v", tt.status, p)
+		}
+	}
+}
+
+func TestTypeOf(t *testing.T) {
+	t.Parallel()
+	const want = "https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#exceeds-credits"
+	if TypeOf("") != "" || TypeOf("exceeds-credits") != want {
 		t.Fatalf("TypeOf: %q %q", TypeOf(""), TypeOf("exceeds-credits"))
+	}
+	if got := From(ledger.NewProblem(ledger.ErrRejected, "exceeds-credits", "")).Type(); got != want {
+		t.Fatalf("Type() = %q, want %q", got, want)
 	}
 }

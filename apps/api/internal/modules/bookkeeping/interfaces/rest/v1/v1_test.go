@@ -13,6 +13,7 @@ import (
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 )
 
@@ -90,7 +91,7 @@ func TestWritesCheckTheRequestFirst(t *testing.T) {
 			name: "transaction without Idempotency-Key",
 			path: "/v1/ledgers/eu/transactions", body: `{"postings":[]}`,
 			want: problemBody{
-				Type: "/problems/missing-idempotency-key", Status: 400,
+				Type: problem.TypeOf("missing-idempotency-key"), Status: 400,
 				Detail: "every write that moves money requires an Idempotency-Key header; reuse it to retry safely",
 			},
 		},
@@ -98,7 +99,7 @@ func TestWritesCheckTheRequestFirst(t *testing.T) {
 			name: "revert without Idempotency-Key and without body",
 			path: "/v1/ledgers/eu/transactions/0192f3a1b7c94e2a8d5f6c0b1e2d7c2e/revert",
 			want: problemBody{
-				Type: "/problems/missing-idempotency-key", Status: 400,
+				Type: problem.TypeOf("missing-idempotency-key"), Status: 400,
 				Detail: "every write that moves money requires an Idempotency-Key header; reuse it to retry safely",
 			},
 		},
@@ -106,7 +107,7 @@ func TestWritesCheckTheRequestFirst(t *testing.T) {
 			name: "void without Idempotency-Key",
 			path: "/v1/ledgers/eu/holds/0192f3a1b7c94e2a8d5f6c0b1e2d7c2e/void",
 			want: problemBody{
-				Type: "/problems/missing-idempotency-key", Status: 400,
+				Type: problem.TypeOf("missing-idempotency-key"), Status: 400,
 				Detail: "every write that moves money requires an Idempotency-Key header; reuse it to retry safely",
 			},
 		},
@@ -114,14 +115,14 @@ func TestWritesCheckTheRequestFirst(t *testing.T) {
 			name: "hold with a timeout out of range",
 			path: "/v1/ledgers/eu/holds", key: "k2",
 			body: `{"source":"a","destination":"b","asset":"EUR/2","amount":"1","timeoutSeconds":4294967296}`,
-			want: problemBody{Type: "/problems/invalid-request", Status: 400, Detail: "timeoutSeconds must be between 0 and 4294967295"},
+			want: problemBody{Type: problem.TypeOf("invalid-request"), Status: 400, Detail: "timeoutSeconds must be between 0 and 4294967295"},
 		},
 		{
 			name: "posting that does not parse names its index",
 			path: "/v1/ledgers/eu/transactions", key: "k1",
 			body: `{"postings":[{"source":"world","destination":"a","asset":"EUR/2","amount":"1"},` +
 				`{"source":"world","destination":"a b","asset":"EUR/2","amount":"1"}]}`,
-			want:    problemBody{Type: "/problems/invalid-request", Status: 400, Posting: &posting},
+			want:    problemBody{Type: problem.TypeOf("invalid-request"), Status: 400, Posting: &posting},
 			wantSub: "posting 2: ",
 		},
 	}

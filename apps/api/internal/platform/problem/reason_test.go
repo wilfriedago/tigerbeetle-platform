@@ -15,8 +15,8 @@ func TestErrorReason(t *testing.T) {
 	}{
 		{name: "typed", p: From(ledger.NewProblem(ledger.ErrRejected, "exceeds-credits", "")), want: "EXCEEDS_CREDITS"},
 		{name: "sentinel", p: From(ledger.ErrNotFound), want: "NOT_FOUND"},
-		{name: "blank uses the kind", p: Blank(500, "Internal server error"), want: "INTERNAL"},
-		{name: "blank not found", p: Blank(404, "Not Found"), want: "NOT_FOUND"},
+		{name: "blank uses the kind", p: Blank(500), want: "INTERNAL"},
+		{name: "blank not found", p: Blank(404), want: "NOT_FOUND"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -33,11 +33,11 @@ func TestErrorReason(t *testing.T) {
 func TestKnownReasonsFollowAIP193(t *testing.T) {
 	t.Parallel()
 	reasons := KnownReasons()
-	if len(reasons) < len(titles) {
-		t.Fatalf("KnownReasons() = %d reasons, want at least %d", len(reasons), len(titles))
+	if len(reasons) < len(catalog) {
+		t.Fatalf("KnownReasons() = %d reasons, want at least %d", len(reasons), len(catalog))
 	}
 	for _, reason := range reasons {
-		got := ErrorReasonOf(TypeOf(reason))
+		got := ErrorReasonFor(reason)
 		if !ValidErrorReason(got) {
 			t.Errorf("reason %q gives ErrorInfo reason %q, which breaks AIP-193", reason, got)
 		}

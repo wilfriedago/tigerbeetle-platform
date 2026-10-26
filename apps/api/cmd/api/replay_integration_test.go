@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
+
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -76,27 +78,27 @@ func TestReplayPinsTheWire(t *testing.T) {
 		{name: "create the ledger", method: http.MethodPost, path: base, body: `{}`, wantStatus: 201},
 		{
 			name: "empty body", method: http.MethodPost, path: base, wantStatus: 400,
-			wantProblem: &wireProblem{Type: "/problems/invalid-request", Title: "Invalid request", Status: 400, Detail: "request body is required"},
+			wantProblem: &wireProblem{Type: problem.TypeOf("invalid-request"), Title: "Invalid request", Status: 400, Detail: "request body is required"},
 		},
 		{
 			name: "name taken", method: http.MethodPost, path: base, body: `{}`, wantStatus: 409,
-			wantProblem: &wireProblem{Type: "/problems/already-exists", Title: "Already exists", Status: 409},
+			wantProblem: &wireProblem{Type: problem.TypeOf("already-exists"), Title: "Already exists", Status: 409},
 		},
 		{
 			name: "unknown ledger", method: http.MethodGet, path: "/v1/ledgers/nope", wantStatus: 404,
-			wantProblem: &wireProblem{Type: "/problems/not-found", Title: "Not found", Status: 404},
+			wantProblem: &wireProblem{Type: problem.TypeOf("not-found"), Title: "Not found", Status: 404},
 		},
 		{
 			name: "undecodable limit", method: http.MethodGet, path: base + "/transactions?limit=abc", wantStatus: 400,
-			wantProblem: &wireProblem{Type: "/problems/invalid-request", Title: "Invalid request", Status: 400, Detail: "query.limit: invalid integer"},
+			wantProblem: &wireProblem{Type: problem.TypeOf("invalid-request"), Title: "Invalid request", Status: 400, Detail: "query.limit: invalid integer"},
 		},
 		{
 			name: "bad cursor", method: http.MethodGet, path: base + "/transactions?cursor=not-a-cursor", wantStatus: 400,
-			wantProblem: &wireProblem{Type: "/problems/invalid-request", Title: "Invalid request", Status: 400, Detail: "cursor is not one returned by this API"},
+			wantProblem: &wireProblem{Type: problem.TypeOf("invalid-request"), Title: "Invalid request", Status: 400, Detail: "cursor is not one returned by this API"},
 		},
 		{
 			name: "write without Idempotency-Key", method: http.MethodPost, path: base + "/transactions", body: fund, wantStatus: 400,
-			wantProblem: &wireProblem{Type: "/problems/missing-idempotency-key", Title: "Idempotency-Key required", Status: 400, Detail: missingKey},
+			wantProblem: &wireProblem{Type: problem.TypeOf("missing-idempotency-key"), Title: "Idempotency-Key required", Status: 400, Detail: missingKey},
 		},
 		{
 			name: "fund, with a form Content-Type as curl -d sends", method: http.MethodPost, path: base + "/transactions", body: fund,
@@ -107,7 +109,7 @@ func TestReplayPinsTheWire(t *testing.T) {
 			name: "declined chain", method: http.MethodPost, path: base + "/transactions", body: declined,
 			headers: map[string]string{"Idempotency-Key": "declined-1"}, wantStatus: 422,
 			wantProblem: &wireProblem{
-				Type: "/problems/exceeds-credits", Title: "Declined: exceeds credits", Status: 422, Posting: posting(1),
+				Type: problem.TypeOf("exceeds-credits"), Title: "Declined: exceeds credits", Status: 422, Posting: posting(1),
 				Results: []string{"linked_event_failed", "exceeds_credits"},
 			},
 		},
@@ -116,7 +118,7 @@ func TestReplayPinsTheWire(t *testing.T) {
 			method: http.MethodPost, path: base + "/transactions", body: lost,
 			headers: map[string]string{"Idempotency-Key": "lost-1"}, wantStatus: 503, wantRetryAfter: true,
 			wantProblem: &wireProblem{
-				Type: "/problems/write-pending", Title: "Write pending", Status: 503,
+				Type: problem.TypeOf("write-pending"), Title: "Write pending", Status: 503,
 				Detail: "TigerBeetle or Postgres did not answer in time. The write is recorded and will be completed or settled " +
 					"by the reconciler; retry with the same Idempotency-Key to get its outcome",
 			},
@@ -125,17 +127,17 @@ func TestReplayPinsTheWire(t *testing.T) {
 			name: "retry while pending", method: http.MethodPost, path: base + "/transactions", body: lost,
 			headers: map[string]string{"Idempotency-Key": "lost-1"}, wantStatus: 409, wantRetryAfter: true,
 			wantProblem: &wireProblem{
-				Type: "/problems/request-in-flight", Title: "Request in flight", Status: 409,
+				Type: problem.TypeOf("request-in-flight"), Title: "Request in flight", Status: 409,
 				Detail: "a write with this Idempotency-Key is still in progress; retry after the delay to get its outcome",
 			},
 		},
 		{
 			name: "unknown route", method: http.MethodGet, path: "/v1/nope", wantStatus: 404,
-			wantProblem: &wireProblem{Type: "about:blank", Title: "Not found", Status: 404},
+			wantProblem: &wireProblem{Type: "about:blank", Title: "Not Found", Status: 404},
 		},
 		{
 			name: "wrong method", method: http.MethodDelete, path: "/healthz", wantStatus: 405, wantAllow: "GET",
-			wantProblem: &wireProblem{Type: "about:blank", Title: "Method not allowed", Status: 405},
+			wantProblem: &wireProblem{Type: "about:blank", Title: "Method Not Allowed", Status: 405},
 		},
 	}
 	for i, s := range steps {
@@ -179,7 +181,7 @@ func TestReplayPinsTheWire(t *testing.T) {
 		want := *s.wantProblem
 		want.RequestID = requestID
 		want.Instance, _, _ = strings.Cut(s.path, "?")
-		if want.Detail == "" && got.Detail != "" && want.Type == "/problems/exceeds-credits" {
+		if want.Detail == "" && got.Detail != "" && want.Type == problem.TypeOf("exceeds-credits") {
 			// The decline names the account and asset in prose; the members above pin the rest.
 			want.Detail = got.Detail
 		}

@@ -62,6 +62,7 @@ func NewAPI(mux *http.ServeMux) huma.API {
 	cfg.Tags = specTags()
 	cfg.Components.Schemas.RegisterTypeAlias(reflect.TypeFor[int](), reflect.TypeFor[integer]())
 	cfg.Transformers = append(cfg.Transformers, problemHeaders)
+	cfg.Formats = map[string]huma.Format{"application/json": jsonFormat, "json": jsonFormat}
 
 	api := humago.New(mux, cfg)
 	registerComponents(api.OpenAPI())
@@ -98,5 +99,8 @@ in flight answers 409 with ` + "`Retry-After`" + `. A declined write stays decli
 with a new key (ADR-0007).
 
 Errors use RFC 9457 problem details with the ` + "`application/problem+json`" + ` media type. The
-` + "`type`" + ` is a stable URI such as ` + "`/problems/exceeds-credits`" + `.
+` + "`type`" + ` is a stable absolute URI, the same in every deployment, that opens the problem's entry in
+the catalogue (` + "`docs/problems.md`" + `): for example
+` + "`" + `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#exceeds-credits` + "`" + `.
+A problem the HTTP status describes on its own has the type ` + "`about:blank`" + `.
 `

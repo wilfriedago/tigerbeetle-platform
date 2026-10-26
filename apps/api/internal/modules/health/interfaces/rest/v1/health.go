@@ -9,17 +9,18 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 )
 
 // Deps is what the health operations read.
 type Deps = dto.Source
 
-// readinessAnswer carries its status: 200 when every dependency answers, 503 otherwise.
-type readinessAnswer struct {
-	Status int
-	Body   dto.Readiness
+// notReady holds the extension members of the 503 problem of /readyz.
+type notReady struct {
+	Dependencies dto.Dependencies `json:"dependencies"`
 }
 
 type handlers struct {
@@ -37,13 +38,15 @@ func Register(api huma.API, deps Deps) {
 		Responses:   restapi.Success(http.StatusOK, "The process is alive."),
 	}, h.getLiveness)
 
-	responses := restapi.Success(http.StatusOK, "Every dependency is reachable.")
-	responses["503"] = restapi.JSON[dto.Readiness](api, "At least one dependency is unreachable.")
+	responses := restapi.Success(http.StatusOK, "Every required dependency is reachable.")
+	responses["503"] = restapi.ProblemWith[notReady](api,
+		"A required dependency is unreachable: a `not-ready` problem whose `dependencies` reports each one.")
 	restapi.Register(api, huma.Operation{
 		OperationID: "getReadiness", Method: http.MethodGet, Path: "/readyz", Tags: tags,
 		Summary: "Readiness probe",
-		Description: "Checks Postgres and TigerBeetle with a short timeout and reports each one. Returns 503 when\n" +
-			"any dependency is down so load balancers stop routing traffic to this instance.\n",
+		Description: "Checks Postgres and TigerBeetle with a short timeout and reports each one. Returns a\n" +
+			"503 `not-ready` problem when any required dependency is down, so load balancers stop routing\n" +
+			"traffic to this instance.\n",
 		Responses: responses,
 	}, h.getReadiness)
 
@@ -62,14 +65,17 @@ func (*handlers) getLiveness(context.Context, *struct{}) (*restapi.Body[dto.Live
 	return &restapi.Body[dto.Liveness]{Body: dto.Liveness{Status: "ok"}}, nil
 }
 
-// getReadiness probes the dependencies and answers 503 when a required one is down.
-func (h *handlers) getReadiness(ctx context.Context, _ *struct{}) (*readinessAnswer, error) {
+// getReadiness probes the dependencies and answers a 503 problem when a required one is down. The
+// problem is the contract of the operation, not a failure of it, so it is not logged as one.
+func (h *handlers) getReadiness(ctx context.Context, _ *struct{}) (*restapi.Body[dto.Readiness], error) {
 	ready, ok := h.source.ReadinessNow(ctx)
-	out := &readinessAnswer{Status: http.StatusOK, Body: ready}
 	if !ok {
-		out.Status = http.StatusServiceUnavailable
+		e := restapi.NewError(ctx, problem.From(ledger.NewProblem(ledger.ErrUnavailable, "not-ready",
+			"a required dependency is unreachable; dependencies reports each one")))
+		e.Extensions = map[string]any{"dependencies": ready.Dependencies}
+		return nil, e
 	}
-	return out, nil
+	return &restapi.Body[dto.Readiness]{Body: ready}, nil
 }
 
 // getInfo reports the service version, runtime versions and dependency reachability. Unlike

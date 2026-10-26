@@ -4,9 +4,12 @@
 package graphql
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -18,9 +21,11 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/logging"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/transport/graphql/exec"
 )
 
@@ -47,27 +52,62 @@ func NewHandler(resolvers exec.ResolverRoot) http.Handler {
 		return fmt.Errorf("panic: %v", v)
 	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+		body, ok := requestBody(w, r)
+		if !ok {
+			return
+		}
+		r.Body = io.NopCloser(bytes.NewReader(body))
 		srv.ServeHTTP(w, r)
 	})
 }
 
-// presentError renders an error with the members of plan section 9.2 in its extensions: code,
-// reason, type, title, status, detail, requestId, retryAfter, posting and results, the names REST
-// uses, so one client parser reads both. Errors gqlgen raises itself, such as a parse or
-// validation error, keep their code. No driver text reaches the client: problem.From never copies
-// the text of a wrapped error.
+// requestBody reads the body and answers an RFC 9457 problem itself when it is no GraphQL request
+// at all: larger than the limit (413), unreadable, or not a JSON object. gqlgen would answer those
+// with a GraphQL error that quotes the whole body back; a request that is one goes on to gqlgen,
+// whose errors follow the GraphQL format.
+func requestBody(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBodyBytes))
+	var tooLarge *http.MaxBytesError
+	switch {
+	case errors.As(err, &tooLarge):
+		p := problem.Blank(http.StatusRequestEntityTooLarge)
+		p.Detail = fmt.Sprintf("the body is larger than %d bytes", maxBodyBytes)
+		restapi.WriteProblem(w, r, p)
+		return nil, false
+	case err != nil:
+		restapi.WriteProblem(w, r, invalidRequest("the body could not be read"))
+		return nil, false
+	case !isJSONObject(body):
+		restapi.WriteProblem(w, r, invalidRequest("the body is not a GraphQL request: a JSON object with a query member"))
+		return nil, false
+	}
+	return body, true
+}
+
+func invalidRequest(detail string) problem.Problem {
+	return problem.From(ledger.NewProblem(ledger.ErrInvalid, "invalid-request", detail))
+}
+
+// isJSONObject reports whether body is one well-formed JSON object.
+func isJSONObject(body []byte) bool {
+	trimmed := bytes.TrimSpace(body)
+	return len(trimmed) > 0 && trimmed[0] == '{' && json.Valid(trimmed)
+}
+
+// presentError renders an error with the RFC 9457 members in its extensions (plan section 9.2):
+// code, reason, type, title, status, detail, requestId, retryAfter, posting and results, the names
+// REST uses, so one client parser reads both. Errors gqlgen raises itself, such as a parse,
+// validation or complexity error, are invalid-request problems that keep their code and message.
+// No driver text reaches the client: problem.From never copies the text of a wrapped error.
 func presentError(ctx context.Context, err error) *gqlerror.Error {
 	var gqlErr *gqlerror.Error
 	if errors.As(err, &gqlErr) && gqlErr.Err == nil {
 		out := *gqlErr
-		if out.Extensions == nil {
-			out.Extensions = map[string]any{}
+		ext := extensionsOf(ctx, invalidRequest(out.Message))
+		for k, v := range out.Extensions {
+			ext[k] = v
 		}
-		if _, ok := out.Extensions["code"]; !ok {
-			out.Extensions["code"] = string(problem.KindInvalid)
-		}
-		out.Extensions["requestId"] = requestid.From(ctx)
+		out.Extensions = ext
 		return &out
 	}
 	path := graphql.GetPath(ctx)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 
-import { ApiError, parseRetryAfter, problemFrom } from './errors'
+import { ApiError, parseRetryAfter, PROBLEM_TYPE_BASE, problemFrom, problemReason, problemTypeOf } from './errors'
 
 describe('parseRetryAfter', () => {
   const now = Date.parse('2026-10-25T12:00:00Z')
@@ -28,14 +28,14 @@ describe('problemFrom', () => {
       results: ['linked_event_failed', 'exceeds_credits'],
       status: 422,
       title: 'Declined',
-      type: '/problems/exceeds-credits'
+      type: problemTypeOf('exceeds-credits')
     })
     expect(problemFrom(text)).toEqual({
       posting: 1,
       results: ['linked_event_failed', 'exceeds_credits'],
       status: 422,
       title: 'Declined',
-      type: '/problems/exceeds-credits'
+      type: problemTypeOf('exceeds-credits')
     })
   })
 
@@ -50,9 +50,25 @@ describe('problemFrom', () => {
 
 describe('ApiError', () => {
   it('carries the problem, its status and type, and the request ID', () => {
-    const error = new ApiError({ detail: 'retry later', status: 503, title: 'Write pending', type: '/problems/write-pending' }, 'req-1', 2)
+    const error = new ApiError({ detail: 'retry later', status: 503, title: 'Write pending', type: problemTypeOf('write-pending') }, 'req-1', 2)
     expect(error).toBeInstanceOf(Error)
     expect(error.message).toBe('Write pending: retry later')
-    expect([error.status, error.type, error.requestId, error.retryAfter]).toEqual([503, '/problems/write-pending', 'req-1', 2])
+    expect([error.status, error.type, error.requestId, error.retryAfter]).toEqual([503, problemTypeOf('write-pending'), 'req-1', 2])
+  })
+})
+
+describe('problem types', () => {
+  it('turns a reason into its type and back', () => {
+    expect(problemTypeOf('exceeds-credits')).toBe('https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#exceeds-credits')
+    expect(problemReason(problemTypeOf('exceeds-credits'))).toBe('exceeds-credits')
+  })
+
+  it.each(['about:blank', '/problems/exceeds-credits', PROBLEM_TYPE_BASE, undefined])('has no reason for %j', (type) => {
+    expect(problemReason(type)).toBeUndefined()
+  })
+
+  it('gives an ApiError the reason of its type', () => {
+    expect(new ApiError({ status: 409, title: 'Request in flight', type: problemTypeOf('request-in-flight') }).reason).toBe('request-in-flight')
+    expect(new ApiError({ status: 404, title: 'Not Found', type: 'about:blank' }).reason).toBeUndefined()
   })
 })

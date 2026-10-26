@@ -9,6 +9,8 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
+
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -109,7 +111,7 @@ func TestGRPCEndToEnd(t *testing.T) {
 			},
 		})
 		info := errorInfo(t, err, codes.FailedPrecondition)
-		if info.GetReason() != "EXCEEDS_CREDITS" || info.GetMetadata()["posting"] != "1" || info.GetMetadata()["type"] != "/problems/exceeds-credits" {
+		if info.GetReason() != "EXCEEDS_CREDITS" || info.GetMetadata()["posting"] != "1" || info.GetMetadata()["type"] != problem.TypeOf("exceeds-credits") {
 			t.Fatalf("decline: %v", info)
 		}
 	})

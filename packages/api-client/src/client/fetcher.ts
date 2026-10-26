@@ -23,9 +23,12 @@ export async function fetcher<T>(url: string, init: RequestInit = {}): Promise<T
   return send<T>(url, init, { answers: [] })
 }
 
-/** The mutator of GET /readyz, whose 503 is an answer with the same body as its 200, not retried. */
+/**
+ * The mutator of GET /readyz. Its 503 is a not-ready problem, rejected as ApiError with the
+ * dependencies in its extension members, and never retried: the caller wants the state now.
+ */
 export async function readinessFetcher<T>(url: string, init: RequestInit = {}): Promise<T> {
-  return send<T>(url, init, { answers: [503], retries: 0 })
+  return send<T>(url, init, { answers: [], retries: 0 })
 }
 
 async function send<T>(url: string, init: RequestInit, policy: Policy): Promise<T> {

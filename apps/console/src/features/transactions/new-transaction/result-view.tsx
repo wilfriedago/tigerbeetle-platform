@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 
-import { ApiError, type CreateTransactionRequest, type Transaction } from '@tigerbeetle-platform/api-client'
+import { ApiError, type CreateTransactionRequest, problemReason, type Transaction } from '@tigerbeetle-platform/api-client'
 import { ArrowDownToLineIcon, CheckIcon, InfoIcon, KeyRoundIcon, LoaderCircleIcon, LockOpenIcon, PencilIcon, XIcon } from 'lucide-react'
 
 import { Address } from '~/components/ledger/address'
@@ -68,7 +68,7 @@ export function isUnresolved(error: unknown): boolean {
   if (!(error instanceof ApiError)) {
     return true
   }
-  return error.status >= 500 || error.type.endsWith('/request-in-flight') || error.type.endsWith('/write-pending')
+  return error.status >= 500 || error.reason === 'request-in-flight' || error.reason === 'write-pending'
 }
 
 function problemExtensions(error: unknown): { posting: number | undefined; results: string[] } {
@@ -488,7 +488,7 @@ function Declined({ ledger, submission, error }: { ledger: string; submission: S
   const problem = toProblem(error)
   const { posting: failedIndex, results } = problemExtensions(error)
   const failed = failedIndex === undefined ? undefined : submission.body.postings[failedIndex]
-  const reason = results[failedIndex ?? -1] ?? problem.type?.split('/').pop() ?? 'declined'
+  const reason = results[failedIndex ?? -1] ?? problemReason(problem.type) ?? 'declined'
   const tbDeclined = failedIndex !== undefined
   const steps = submission.body.postings.map((_, index) => {
     if (failedIndex === undefined) {

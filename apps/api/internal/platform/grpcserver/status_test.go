@@ -15,6 +15,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 )
 
 func TestStatus(t *testing.T) {
@@ -39,7 +40,7 @@ func TestStatus(t *testing.T) {
 			name: "declined chain", err: declined, wantCode: codes.FailedPrecondition,
 			wantMsg: "posting 2 would take a below zero", wantReason: "EXCEEDS_CREDITS",
 			wantMeta: map[string]string{
-				"type": "/problems/exceeds-credits", "code": "REJECTED", "title": "Declined: exceeds credits",
+				"type": problem.TypeOf("exceeds-credits"), "code": "REJECTED", "title": "Declined: exceeds credits",
 				"status": "422", "detail": "posting 2 would take a below zero", "requestId": "req-1",
 				"posting": "1", "results": "linked_event_failed,exceeds_credits",
 			},
@@ -47,14 +48,14 @@ func TestStatus(t *testing.T) {
 		{
 			name: "write in flight", err: inFlight, wantCode: codes.Aborted, wantMsg: "Request in flight",
 			wantReason: "REQUEST_IN_FLIGHT", wantRetry: 2 * time.Second,
-			wantMeta: map[string]string{"type": "/problems/request-in-flight", "code": "CONFLICT", "title": "Request in flight", "status": "409", "requestId": "req-1"},
+			wantMeta: map[string]string{"type": problem.TypeOf("request-in-flight"), "code": "CONFLICT", "title": "Request in flight", "status": "409", "requestId": "req-1"},
 		},
 		{
 			name: "missing key", err: ledger.NewProblem(ledger.ErrInvalid, "missing-idempotency-key", "every write needs one"),
 			wantCode: codes.InvalidArgument, wantMsg: "every write needs one", wantReason: "MISSING_IDEMPOTENCY_KEY",
 			wantField: "idempotency_key",
 			wantMeta: map[string]string{
-				"type": "/problems/missing-idempotency-key", "code": "INVALID", "title": "Idempotency-Key required",
+				"type": problem.TypeOf("missing-idempotency-key"), "code": "INVALID", "title": "Idempotency-Key required",
 				"status": "400", "detail": "every write needs one", "requestId": "req-1",
 			},
 		},
@@ -62,23 +63,23 @@ func TestStatus(t *testing.T) {
 			name: "invalid posting", err: badPosting, wantCode: codes.InvalidArgument, wantMsg: "posting 3: amount must be positive",
 			wantReason: "INVALID_REQUEST", wantField: "postings[2]",
 			wantMeta: map[string]string{
-				"type": "/problems/invalid-request", "code": "INVALID", "title": "Invalid request", "status": "400",
+				"type": problem.TypeOf("invalid-request"), "code": "INVALID", "title": "Invalid request", "status": "400",
 				"detail": "posting 3: amount must be positive", "requestId": "req-1", "posting": "2",
 			},
 		},
 		{
 			name: "not found", err: fmt.Errorf("postgres: get ledger: %w", ledger.ErrNotFound), wantCode: codes.NotFound,
 			wantMsg: "Not found", wantReason: "NOT_FOUND",
-			wantMeta: map[string]string{"type": "/problems/not-found", "code": "NOT_FOUND", "title": "Not found", "status": "404", "requestId": "req-1"},
+			wantMeta: map[string]string{"type": problem.TypeOf("not-found"), "code": "NOT_FOUND", "title": "Not found", "status": "404", "requestId": "req-1"},
 		},
 		{
 			name: "already exists", err: ledger.ErrAlreadyExists, wantCode: codes.AlreadyExists, wantMsg: "Already exists",
 			wantReason: "ALREADY_EXISTS",
-			wantMeta:   map[string]string{"type": "/problems/already-exists", "code": "ALREADY_EXISTS", "title": "Already exists", "status": "409", "requestId": "req-1"},
+			wantMeta:   map[string]string{"type": problem.TypeOf("already-exists"), "code": "ALREADY_EXISTS", "title": "Already exists", "status": "409", "requestId": "req-1"},
 		},
 		{
 			name: "internal", err: errors.New("boom"), wantCode: codes.Internal, wantMsg: "internal error", wantReason: "INTERNAL",
-			wantMeta: map[string]string{"type": "about:blank", "code": "INTERNAL", "title": "Internal server error", "status": "500", "requestId": "req-1"},
+			wantMeta: map[string]string{"type": "about:blank", "code": "INTERNAL", "title": "Internal Server Error", "status": "500", "requestId": "req-1"},
 		},
 	}
 	for _, tt := range tests {

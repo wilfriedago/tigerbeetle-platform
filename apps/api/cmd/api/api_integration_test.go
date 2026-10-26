@@ -21,6 +21,7 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 )
 
 // faultyLedger wraps the TigerBeetle port to simulate the two crash windows of ADR-0007: a
@@ -210,12 +211,12 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		}
 		reused := h.do(http.MethodPost, base+"/transactions", "fund-1", map[string]any{"postings": []any{posting("world", "users:1:wallet", "EUR/2", "1")}})
 		h.expect(reused, 422, "key reused")
-		if reused.str("type") != "/problems/idempotency-key-reused" {
+		if reused.str("type") != problem.TypeOf("idempotency-key-reused") {
 			t.Fatalf("type = %s", reused.str("type"))
 		}
 		missing := h.do(http.MethodPost, base+"/transactions", "", body)
 		h.expect(missing, 400, "missing key")
-		if missing.str("type") != "/problems/missing-idempotency-key" {
+		if missing.str("type") != problem.TypeOf("missing-idempotency-key") {
 			t.Fatalf("type = %s", missing.str("type"))
 		}
 		if b, _, _ := h.balance("users:1:wallet", "EUR/2"); b != "100000" {
@@ -230,7 +231,7 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		}}
 		r := h.do(http.MethodPost, base+"/transactions", "declined-1", body)
 		h.expect(r, 422, "declined")
-		if r.str("type") != "/problems/exceeds-credits" || r.str("posting") != "1" || r.str("results", "0") != "linked_event_failed" {
+		if r.str("type") != problem.TypeOf("exceeds-credits") || r.str("posting") != "1" || r.str("results", "0") != "linked_event_failed" {
 			t.Fatalf("decline problem = %v", r.body)
 		}
 		if b, _, _ := h.balance("users:1:wallet", "EUR/2"); b != "100000" {
@@ -238,7 +239,7 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		}
 		h.expect(h.do(http.MethodPost, base+"/transactions", "declined-1", body), 422, "a declined key stays declined")
 		rec := h.do(http.MethodGet, base+"/requests/declined-1", "", nil)
-		if rec.str("status") != "declined" || rec.str("problemType") != "/problems/exceeds-credits" {
+		if rec.str("status") != "declined" || rec.str("problemType") != problem.TypeOf("exceeds-credits") {
 			t.Fatalf("record = %v", rec.body)
 		}
 	})
@@ -325,7 +326,7 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		time.Sleep(time.Second)
 		late := h.do(http.MethodPost, base+"/holds/"+short.str("id")+"/capture", "cap-expired", map[string]any{})
 		h.expect(late, 409, "capture after expiry")
-		if late.str("type") != "/problems/hold-expired" {
+		if late.str("type") != problem.TypeOf("hold-expired") {
 			t.Fatalf("type = %s", late.str("type"))
 		}
 		list := h.do(http.MethodGet, base+"/holds", "", nil)
@@ -380,7 +381,7 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		body := map[string]any{"postings": []any{posting("world", "users:4:wallet", "EUR/2", "700")}}
 		r := h.do(http.MethodPost, base+"/transactions", "lost-request", body)
 		h.expect(r, 503, "lost request")
-		if r.str("type") != "/problems/write-pending" {
+		if r.str("type") != problem.TypeOf("write-pending") {
 			t.Fatalf("type = %s", r.str("type"))
 		}
 		inFlight := h.do(http.MethodPost, base+"/transactions", "lost-request", body)

@@ -1,4 +1,4 @@
-import { ApiError, type Problem, type WriteRequestDetail } from '@tigerbeetle-platform/api-client'
+import { ApiError, type Problem, problemTypeOf, type WriteRequestDetail } from '@tigerbeetle-platform/api-client'
 
 const TITLES: Record<string, string> = {
   capture: 'Capture declined',
@@ -23,7 +23,7 @@ export function storedProblem(record: WriteRequestDetail): ApiError | undefined 
     ...response,
     status: record.responseStatus ?? (typeof response.status === 'number' ? response.status : 422),
     title: typeof response.title === 'string' ? response.title : (TITLES[record.operation] ?? 'Write declined'),
-    type: typeof response.type === 'string' ? response.type : (record.problemType ?? (reason ? `/problems/${reason}` : 'about:blank'))
+    type: typeof response.type === 'string' ? response.type : (record.problemType ?? (reason ? problemTypeOf(reason) : 'about:blank'))
   }
   if (typeof response.detail === 'string') {
     problem.detail = response.detail

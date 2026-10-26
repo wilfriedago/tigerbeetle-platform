@@ -28,7 +28,8 @@ func Handler(mux *http.ServeMux, logger *slog.Logger) http.Handler {
 	return h
 }
 
-// pathKey carries the request path, the instance of a problem, to errors built from a context.
+// pathKey carries the request path, the instance of a problem, to errors built from a context. The
+// path identifies the resource the failed request addressed; requestId identifies the occurrence.
 type pathKey struct{}
 
 func pathFrom(ctx context.Context) string {
@@ -48,7 +49,8 @@ func requestID(base *slog.Logger) func(http.Handler) http.Handler {
 			w.Header().Set(requestid.Header, id)
 			ctx := requestid.With(r.Context(), id)
 			ctx = logging.With(ctx, base.With(slog.String("request_id", id)))
-			ctx = context.WithValue(ctx, pathKey{}, r.URL.Path)
+			// The escaped form, so instance stays a valid URI reference for a path such as /a%20b.
+			ctx = context.WithValue(ctx, pathKey{}, r.URL.EscapedPath())
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -111,7 +113,7 @@ func recoverPanic(next http.Handler) http.Handler {
 				logging.From(r.Context()).ErrorContext(r.Context(), "panic",
 					slog.Any("panic", rec),
 					slog.String("stack", string(debug.Stack())))
-				writeProblem(w, r, problem.Blank(http.StatusInternalServerError, "Internal server error"))
+				WriteProblem(w, r, problem.Blank(http.StatusInternalServerError))
 			}
 		}()
 		next.ServeHTTP(w, r)
@@ -152,9 +154,9 @@ func unknownRoutes(mux *http.ServeMux) http.Handler {
 		mux.ServeHTTP(rec, r)
 		switch rec.status {
 		case http.StatusNotFound:
-			writeProblem(w, r, problem.Blank(http.StatusNotFound, "Not found"))
+			WriteProblem(w, r, problem.Blank(http.StatusNotFound))
 		case http.StatusMethodNotAllowed:
-			writeProblem(w, r, problem.Blank(http.StatusMethodNotAllowed, "Method not allowed"))
+			WriteProblem(w, r, problem.Blank(http.StatusMethodNotAllowed))
 		default:
 			// Redirects for path cleaning carry only headers, which are already on w.
 			w.WriteHeader(rec.status)
@@ -184,9 +186,10 @@ func (h *headerOnlyRecorder) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// writeProblem answers with a problem the middleware made itself, outside Huma.
-func writeProblem(w http.ResponseWriter, r *http.Request, p problem.Problem) {
-	e := newError(r.Context(), p)
+// WriteProblem answers with a problem made outside Huma: by the middleware, or by a handler on the
+// same mux such as POST /graphql when the body is not a GraphQL request at all.
+func WriteProblem(w http.ResponseWriter, r *http.Request, p problem.Problem) {
+	e := NewError(r.Context(), p)
 	for k, v := range e.GetHeaders() {
 		w.Header()[k] = v
 	}

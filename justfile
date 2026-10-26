@@ -27,12 +27,13 @@ generate: generate-sql generate-contracts generate-servers generate-ts
 generate-sql:
     cd {{ api }} && sqlc generate
 
-# Step 2: the REST spec and the GraphQL schema from the Go registrations, built without cgo
-# (ADR-0018, ADR-0020).
+# Step 2: the REST spec, the GraphQL schema and the problem type catalogue from the Go
+# registrations, built without cgo (ADR-0018, ADR-0020, ADR-0025).
 [group('generate')]
 generate-contracts:
     cd {{ api }} && CGO_ENABLED=0 go run ./cmd/openapi -out ../../packages/openapi/openapi.yaml
     cd {{ api }} && CGO_ENABLED=0 go run ./cmd/graphqlschema -out ../../packages/graphql/schema.graphql
+    cd {{ api }} && CGO_ENABLED=0 go run ./cmd/problemdocs -out ../../docs/problems.md
 
 # Step 3: the GraphQL executor, from the schema step 2 wrote, and the protobuf code from
 # packages/proto (buf runs the pinned protoc plugins from PATH).

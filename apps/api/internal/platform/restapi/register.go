@@ -47,13 +47,17 @@ func Success(status int, description string) map[string]*huma.Response {
 	return map[string]*huma.Response{strconv.Itoa(status): {Description: description}}
 }
 
-// JSON documents an additional JSON answer whose body is a T, such as the 503 of /readyz, which
-// carries the same body as its 200.
-func JSON[T any](api huma.API, description string) *huma.Response {
-	schema := api.OpenAPI().Components.Schemas.Schema(reflect.TypeFor[T](), true, "")
+// ProblemWith documents an answer that is a problem with the extension members of T, such as the
+// 503 of /readyz, which adds the dependencies to the Problem schema.
+func ProblemWith[T any](api huma.API, description string) *huma.Response {
+	registry := api.OpenAPI().Components.Schemas
+	members := registry.Schema(reflect.TypeFor[T](), true, "")
 	return &huma.Response{
 		Description: description,
-		Content:     map[string]*huma.MediaType{"application/json": {Schema: schema}},
+		Headers:     map[string]*huma.Param{requestid.Header: requestIDResponseHeader()},
+		Content: map[string]*huma.MediaType{problemMediaType: {Schema: &huma.Schema{
+			AllOf: []*huma.Schema{(*Error)(nil).Schema(registry), members},
+		}}},
 	}
 }
 

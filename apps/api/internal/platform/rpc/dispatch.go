@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"runtime/debug"
 	"strconv"
 	"time"
@@ -79,7 +80,7 @@ func (d *Dispatcher) Answer(ctx context.Context, c Call) Answer {
 	if encErr != nil {
 		// A handler returned something JSON cannot hold: a bug, answered as one.
 		logging.From(ctx).ErrorContext(ctx, "encode reply", slog.Any("error", encErr))
-		reply = Reply{Error: ErrorOf(problem.Blank(500, "Internal server error"), id)}
+		reply = Reply{Error: ErrorOf(problem.Blank(http.StatusInternalServerError), id)}
 		body, _ = json.Marshal(reply)
 	}
 	code := "OK"

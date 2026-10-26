@@ -1,5 +1,21 @@
 import { type Problem } from '../gen/model'
 
+/**
+ * The base of every problem type the API names: the entry of the problem in the catalogue,
+ * docs/problems.md, the same in every deployment (ADR-0025). The reason follows it.
+ */
+export const PROBLEM_TYPE_BASE = 'https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#'
+
+/** The problem type of a reason: problemTypeOf('exceeds-credits'). */
+export function problemTypeOf(reason: string): string {
+  return PROBLEM_TYPE_BASE + reason
+}
+
+/** The reason of a problem type the API names, such as "exceeds-credits"; undefined for about:blank or any other type. */
+export function problemReason(type: string | undefined): string | undefined {
+  return type?.startsWith(PROBLEM_TYPE_BASE) ? type.slice(PROBLEM_TYPE_BASE.length) || undefined : undefined
+}
+
 /** Thrown when the API answers with an RFC 9457 problem. */
 export class ApiError extends Error {
   readonly problem: Problem
@@ -17,9 +33,14 @@ export class ApiError extends Error {
     this.retryAfter = retryAfter
   }
 
-  /** The problem type, such as "/problems/exceeds-credits". */
+  /** The problem type, an absolute URI such as problemTypeOf('exceeds-credits'), or "about:blank". */
   get type(): string {
     return this.problem.type
+  }
+
+  /** The reason the problem type names, such as "exceeds-credits"; undefined for about:blank. */
+  get reason(): string | undefined {
+    return problemReason(this.problem.type)
   }
 }
 

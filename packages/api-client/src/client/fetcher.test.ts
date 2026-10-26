@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { configureClient } from './config'
-import { ApiError, HttpStatusError } from './errors'
+import { ApiError, HttpStatusError, problemTypeOf } from './errors'
 import { fetcher, readinessFetcher } from './fetcher'
 
 interface Call {
@@ -40,7 +40,7 @@ function json(status: number, body: unknown): Response {
 
 function problem(status: number, type: string, headers: Record<string, string> = {}): Response {
   return Response.json(
-    { status, title: type, type: `/problems/${type}` },
+    { status, title: type, type: problemTypeOf(type) },
     { headers: { 'Content-Type': 'application/problem+json', 'X-Request-Id': 'srv-1', ...headers }, status }
   )
 }
@@ -101,7 +101,7 @@ describe('fetcher', () => {
     configure(fetch)
     const error = await rejection(fetcher('/v1/ledgers/eu/transactions', { method: 'POST' }))
     expect(error).toBeInstanceOf(ApiError)
-    expect(error).toMatchObject({ requestId: 'srv-1', retryAfter: 2, status: 409, type: '/problems/request-in-flight' })
+    expect(error).toMatchObject({ requestId: 'srv-1', retryAfter: 2, status: 409, type: problemTypeOf('request-in-flight') })
   })
 
   it('rejects any other failed status with HttpStatusError', async () => {
@@ -184,10 +184,24 @@ describe('fetcher', () => {
 })
 
 describe('readinessFetcher', () => {
-  it('resolves the body of a 503 without retrying', async () => {
-    const { calls, fetch } = fakeFetch(json(503, { status: 'not_ready' }))
+  it('rejects the not-ready problem of a 503 without retrying', async () => {
+    const dependencies = { postgres: { latencyMs: 1, status: 'up' }, tigerbeetle: { error: 'unreachable', latencyMs: 2, status: 'down' } }
+    const { calls, fetch } = fakeFetch(
+      Response.json(
+        { dependencies, status: 503, title: 'Not ready', type: problemTypeOf('not-ready') },
+        { headers: { 'Content-Type': 'application/problem+json' }, status: 503 }
+      )
+    )
     configure(fetch)
-    await expect(readinessFetcher('/readyz')).resolves.toEqual({ status: 'not_ready' })
+    const error = await rejection(readinessFetcher('/readyz'))
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({ problem: { dependencies }, reason: 'not-ready', status: 503 })
     expect(calls).toHaveLength(1)
+  })
+
+  it('resolves the body of a 200', async () => {
+    const { fetch } = fakeFetch(json(200, { status: 'ready' }))
+    configure(fetch)
+    await expect(readinessFetcher('/readyz')).resolves.toEqual({ status: 'ready' })
   })
 })
