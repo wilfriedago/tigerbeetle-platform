@@ -37,8 +37,15 @@ func TestSealOpenAndRotate(t *testing.T) {
 	if _, err := before.OpenString(fresh); !errors.Is(err, sealed.ErrOpen) {
 		t.Fatalf("a value sealed with the new key opened with the old one: %v", err)
 	}
+	// Change a character in the middle: the last one of an unpadded base64 string can carry bits
+	// that decoding ignores, which made this test pass the value through unchanged now and then.
 	tampered := []byte(value)
-	tampered[len(tampered)-1] ^= 1
+	mid := len(tampered) / 2
+	if tampered[mid] == 'A' {
+		tampered[mid] = 'B'
+	} else {
+		tampered[mid] = 'A'
+	}
 	if _, err := after.OpenString(string(tampered)); !errors.Is(err, sealed.ErrOpen) {
 		t.Fatalf("tampered value = %v, want ErrOpen", err)
 	}
