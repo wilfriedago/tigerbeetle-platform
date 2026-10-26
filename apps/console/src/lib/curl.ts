@@ -1,3 +1,5 @@
+import { activeOrganization } from './organization'
+
 /**
  * "Copy as curl" (docs/console.md, New transaction): the exact request the console sends, written
  * against the API's public address rather than the development proxy.
@@ -14,10 +16,18 @@ interface CurlRequest {
   path: string
   body?: unknown
   idempotencyKey?: string
+  /** The organization the request acts for; the current one when left out (ADR-0026). */
+  organization?: string
 }
 
-export function curlCommand({ method, path, body, idempotencyKey }: CurlRequest): string {
+export function curlCommand({ method, path, body, idempotencyKey, organization = activeOrganization() }: CurlRequest): string {
   const lines = [`curl -X ${method} ${shellQuote(`${PUBLIC_API_URL}${path}`)}`]
+  // The console's own requests use its session cookie; a script brings an access token or an API
+  // key (ADR-0025, ADR-0028). Double quotes let the shell expand $TOKEN.
+  lines.push(`  -H "Authorization: Bearer $TOKEN"`)
+  if (organization) {
+    lines.push(`  -H ${shellQuote(`X-Organization: ${organization}`)}`)
+  }
   if (body !== undefined) {
     lines.push(`  -H 'Content-Type: application/json'`)
   }

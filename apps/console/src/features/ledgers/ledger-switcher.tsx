@@ -16,6 +16,10 @@ import {
   DropdownMenuTrigger
 } from '~/components/ui/dropdown-menu'
 
+import { canCreateLedgers } from '~/lib/auth/session'
+import { useSession } from '~/lib/auth/use-session'
+import { useOrganization } from '~/lib/organization'
+
 import { ledgerQueries } from './api'
 import { NewLedgerDialog } from './new-ledger-dialog'
 
@@ -23,6 +27,8 @@ import { NewLedgerDialog } from './new-ledger-dialog'
 // up-down chevrons. The menu lists the ledgers, links to the ledger list and opens "New ledger".
 
 export function LedgerSwitcher({ current }: { current: string | undefined }) {
+  const org = useOrganization()
+  const session = useSession()
   const [creating, setCreating] = useState(false)
   const { data } = useQuery(ledgerQueries.list())
   const ledgers = data?.data ?? []
@@ -47,21 +53,23 @@ export function LedgerSwitcher({ current }: { current: string | undefined }) {
             <DropdownMenuLabel>Ledgers</DropdownMenuLabel>
             {ledgers.length === 0 ? <div className="px-2 py-1.5 text-small text-muted-foreground">No ledgers yet.</div> : null}
             {ledgers.map((ledger) => (
-              <DropdownMenuLinkItem key={ledger.name} render={<Link to="/ledgers/$ledger" params={{ ledger: ledger.name }} />}>
+              <DropdownMenuLinkItem key={ledger.name} render={<Link to="/$org/ledgers/$ledger" params={{ ledger: ledger.name, org }} />}>
                 <span className="flex-1 truncate font-mono">{ledger.name}</span>
                 {ledger.name === current ? <CheckIcon className="text-primary-text" /> : null}
               </DropdownMenuLinkItem>
             ))}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuLinkItem render={<Link to="/ledgers" />}>
+          <DropdownMenuLinkItem render={<Link to="/$org/ledgers" params={{ org }} />}>
             <LibraryIcon />
             All ledgers
           </DropdownMenuLinkItem>
-          <DropdownMenuItem onClick={() => setCreating(true)}>
-            <PlusIcon />
-            New ledger
-          </DropdownMenuItem>
+          {canCreateLedgers(session) ? (
+            <DropdownMenuItem onClick={() => setCreating(true)}>
+              <PlusIcon />
+              New ledger
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
       <NewLedgerDialog open={creating} onOpenChange={setCreating} />

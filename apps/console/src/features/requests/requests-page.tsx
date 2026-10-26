@@ -26,6 +26,7 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { systemQueries } from '~/features/system/api'
 
 import { shortId } from '~/lib/ids'
+import { useOrganization } from '~/lib/organization'
 import { formatTime } from '~/lib/time'
 import { useNow } from '~/lib/use-now'
 
@@ -36,7 +37,7 @@ import { storedProblem } from './stored-problem'
 // in-flight writes are visible. A pending record older than the reconciler's grace period is
 // highlighted: the API lost its answer and the reconciler is settling it.
 
-const route = getRouteApi('/_console/ledgers/$ledger/requests')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/requests')
 
 const OPERATIONS: readonly Operation[] = ['transaction', 'revert', 'hold', 'capture', 'void']
 const STATUSES: readonly RequestStatus[] = ['pending', 'committed', 'declined', 'failed']
@@ -51,17 +52,18 @@ const ENDPOINT: Record<Operation, string> = {
 
 /** Where the record's target lives: transactions and reverts create transactions, the rest act on holds. */
 function TargetLink({ ledger, request }: { ledger: string; request: WriteRequest }) {
+  const org = useOrganization()
   const isTransaction = request.operation === 'transaction' || request.operation === 'revert'
   const label = shortId(request.targetId)
   if (request.status !== 'committed') {
     return <span className="font-mono text-subtle-foreground">{label}</span>
   }
   return isTransaction ? (
-    <Link to="/ledgers/$ledger/transactions/$txId" params={{ ledger, txId: request.targetId }} className="font-mono hover:underline">
+    <Link to="/$org/ledgers/$ledger/transactions/$txId" params={{ ledger, org, txId: request.targetId }} className="font-mono hover:underline">
       {label}
     </Link>
   ) : (
-    <Link to="/ledgers/$ledger/holds/$holdId" params={{ holdId: request.targetId, ledger }} className="font-mono hover:underline">
+    <Link to="/$org/ledgers/$ledger/holds/$holdId" params={{ holdId: request.targetId, ledger, org }} className="font-mono hover:underline">
       {label}
     </Link>
   )
@@ -90,7 +92,7 @@ function requestColumns(ledger: string) {
     column.accessor('key', {
       cell: (info) => (
         <Link
-          from="/ledgers/$ledger/requests"
+          from="/$org/ledgers/$ledger/requests"
           to="."
           search={(prev) => ({ ...prev, key: info.getValue() })}
           className="block max-w-[260px] truncate font-mono outline-none hover:underline focus-visible:ring-3 focus-visible:ring-focus-ring"

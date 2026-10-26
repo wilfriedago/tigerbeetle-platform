@@ -30,6 +30,7 @@ import { holdQueries } from '~/features/holds/api'
 import { transactionQueries } from '~/features/transactions/api'
 
 import { shortId } from '~/lib/ids'
+import { activeOrganization, useOrganization } from '~/lib/organization'
 import { formatDate } from '~/lib/time'
 
 import { accountQueries, useReplaceAccountMetadata } from './api'
@@ -37,7 +38,7 @@ import { accountQueries, useReplaceAccountMetadata } from './api'
 // docs/console.md, Account: one balance card per asset, the flags frozen at creation (ADR-0006),
 // this account's postings and holds, and the balance history when the account keeps it.
 
-const route = getRouteApi('/_console/ledgers/$ledger/accounts/$address')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/accounts/$address')
 
 const LIMIT_TEXT = {
   credits_must_not_exceed_debits: 'credits must not exceed debits',
@@ -74,13 +75,14 @@ function movementsOf(transactions: readonly Transaction[], address: string): Mov
 const movement = columnHelper<Movement>()
 
 function movementColumns(ledger: string) {
+  const org = activeOrganization() ?? ''
   return [
     movement.display({ cell: ({ row }) => <Timestamp value={row.original.transaction.committedAt} />, header: 'Committed', id: 'committed' }),
     movement.display({
       cell: ({ row }) => (
         <Link
-          to="/ledgers/$ledger/transactions/$txId"
-          params={{ ledger, txId: row.original.transaction.id }}
+          to="/$org/ledgers/$ledger/transactions/$txId"
+          params={{ ledger, org, txId: row.original.transaction.id }}
           className="font-mono outline-none hover:underline focus-visible:ring-3 focus-visible:ring-focus-ring"
         >
           {shortId(row.original.transaction.id)}
@@ -115,10 +117,11 @@ function movementColumns(ledger: string) {
 const hold = columnHelper<Hold>()
 
 function holdColumns(ledger: string, address: string) {
+  const org = activeOrganization() ?? ''
   return [
     hold.accessor('id', {
       cell: (info) => (
-        <Link to="/ledgers/$ledger/holds/$holdId" params={{ holdId: info.getValue(), ledger }} className="font-mono hover:underline">
+        <Link to="/$org/ledgers/$ledger/holds/$holdId" params={{ holdId: info.getValue(), ledger, org }} className="font-mono hover:underline">
           {shortId(info.getValue())}
         </Link>
       ),
@@ -141,6 +144,7 @@ function holdColumns(ledger: string, address: string) {
 }
 
 export function AccountPage() {
+  const org = useOrganization()
   const { ledger, address } = route.useParams()
   const { tab = 'transactions' } = route.useSearch()
   const navigate = route.useNavigate()
@@ -163,11 +167,11 @@ export function AccountPage() {
         }
         actions={
           <>
-            <Button variant="secondary" render={<Link to="/ledgers/$ledger/holds/new" params={{ ledger }} search={{ source: address }} />}>
+            <Button variant="secondary" render={<Link to="/$org/ledgers/$ledger/holds/new" params={{ ledger, org }} search={{ source: address }} />}>
               <LockIcon />
               New hold
             </Button>
-            <Button render={<Link to="/ledgers/$ledger/transactions/new" params={{ ledger }} search={{ source: address }} />}>
+            <Button render={<Link to="/$org/ledgers/$ledger/transactions/new" params={{ ledger, org }} search={{ source: address }} />}>
               <ArrowLeftRightIcon />
               New transaction
             </Button>
@@ -215,7 +219,7 @@ export function AccountPage() {
             <Card>
               <CardContent className="text-small text-muted-foreground">
                 This account does not keep balance history. The flag is set when an account is created and never changes; set{' '}
-                <Link to="/ledgers/$ledger/settings/rules" params={{ ledger }} className="text-primary-text hover:underline">
+                <Link to="/$org/ledgers/$ledger/settings/rules" params={{ ledger, org }} className="text-primary-text hover:underline">
                   history on its rule
                 </Link>{' '}
                 for accounts created later.

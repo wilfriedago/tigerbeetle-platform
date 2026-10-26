@@ -36,7 +36,7 @@ import { RuleDialog } from './components/rule-dialog'
 // built-in * and world rules apply until a stored rule replaces them; deleting that rule restores
 // the default. "Which rule wins?" asks the API, so the console never re-implements the matching.
 
-const route = getRouteApi('/_console/ledgers/$ledger/settings/rules')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/settings/rules')
 
 const LIMIT_SHORT = {
   credits_must_not_exceed_debits: 'credits <= debits',

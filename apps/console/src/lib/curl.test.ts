@@ -8,11 +8,14 @@ describe('curlCommand', () => {
       body: { reference: "it's", postings: [] },
       idempotencyKey: 'idem_1',
       method: 'POST',
+      organization: 'acme',
       path: '/v1/ledgers/eu/transactions'
     })
     expect(command).toBe(
       [
         "curl -X POST 'http://localhost:8080/v1/ledgers/eu/transactions'",
+        '  -H "Authorization: Bearer $TOKEN"',
+        "  -H 'X-Organization: acme'",
         "  -H 'Content-Type: application/json'",
         "  -H 'Idempotency-Key: idem_1'",
         String.raw`  -d '{"reference":"it'\''s","postings":[]}'`
@@ -21,7 +24,9 @@ describe('curlCommand', () => {
   })
 
   it('omits the body headers on a GET', () => {
-    expect(curlCommand({ method: 'GET', path: '/v1/ledgers' })).toBe("curl -X GET 'http://localhost:8080/v1/ledgers'")
+    expect(curlCommand({ method: 'GET', path: '/v1/ledgers' })).toBe(
+      ["curl -X GET 'http://localhost:8080/v1/ledgers'", '  -H "Authorization: Bearer $TOKEN"'].join(' \\\n')
+    )
   })
 })
 

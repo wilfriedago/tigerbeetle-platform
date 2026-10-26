@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 
 import { accountQueries } from '~/features/accounts/api'
 
+import { useOrganization } from '~/lib/organization'
 import { formatTime } from '~/lib/time'
 
 import { getRecentPrefixes, rememberPrefix } from './recent-prefixes'
@@ -28,7 +29,7 @@ import { getRecentPrefixes, rememberPrefix } from './recent-prefixes'
 // account IDs and the API reads them in chunks. The answer says when it was read and in how many
 // chunks, because chunks are not one consistent snapshot.
 
-const route = getRouteApi('/_console/ledgers/$ledger/balances')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/balances')
 
 const PREFIX_PATTERN = /^[a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)*:?$/
 
@@ -38,6 +39,7 @@ function displayPrefix(prefix: string): string {
 }
 
 export function BalancesPage() {
+  const org = useOrganization()
   const { ledger } = route.useParams()
   const { prefix } = route.useSearch()
   const navigate = route.useNavigate()
@@ -90,8 +92,8 @@ export function BalancesPage() {
             {recent.map((item) => (
               <Link
                 key={item}
-                to="/ledgers/$ledger/balances"
-                params={{ ledger }}
+                to="/$org/ledgers/$ledger/balances"
+                params={{ ledger, org }}
                 search={{ prefix: item }}
                 className="rounded-sm border border-border bg-surface-sunken px-1.5 font-mono text-caption hover:bg-surface-hover"
               >
@@ -210,11 +212,12 @@ function NextSegments({ ledger, prefix, assets }: { ledger: string; prefix: stri
 }
 
 function SegmentRow({ ledger, prefix, accounts, assets }: { ledger: string; prefix: string; accounts: number; assets: readonly string[] }) {
+  const org = useOrganization()
   const sum = useQuery(accountQueries.aggregate(ledger, prefix))
   return (
     <TableRow>
       <TableCell>
-        <Link to="/ledgers/$ledger/balances" params={{ ledger }} search={{ prefix }} className="font-mono hover:underline">
+        <Link to="/$org/ledgers/$ledger/balances" params={{ ledger, org }} search={{ prefix }} className="font-mono hover:underline">
           {displayPrefix(prefix)}
         </Link>
       </TableCell>

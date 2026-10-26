@@ -27,6 +27,7 @@ import { ledgerQueries } from '~/features/ledgers/api'
 
 import { shortId } from '~/lib/ids'
 import { KEY_GLYPHS } from '~/lib/key-glyphs'
+import { useOrganization } from '~/lib/organization'
 import { formatTimestamp } from '~/lib/time'
 
 // 14 Overlays, Command palette: one box for every identifier the ledger knows. A 32-hex ID opens a
@@ -78,6 +79,7 @@ export function CommandPalette({ ledger }: { ledger: string | undefined }) {
 }
 
 function PaletteBody({ ledger, onClose }: { ledger: string | undefined; onClose: () => void }) {
+  const org = useOrganization()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [debounced] = useDebouncedValue(query, { wait: 180 })
@@ -128,7 +130,7 @@ function PaletteBody({ ledger, onClose }: { ledger: string | undefined; onClose:
                 value={`account:${account.address}`}
                 onSelect={() => {
                   onClose()
-                  void navigate({ params: { address: account.address, ledger }, to: '/ledgers/$ledger/accounts/$address' })
+                  void navigate({ params: { address: account.address, ledger, org }, to: '/$org/ledgers/$ledger/accounts/$address' })
                 }}
               >
                 <WalletIcon />
@@ -146,7 +148,7 @@ function PaletteBody({ ledger, onClose }: { ledger: string | undefined; onClose:
                 value={`tx:${tx.id}`}
                 onSelect={() => {
                   onClose()
-                  void navigate({ params: { ledger, txId: tx.id }, to: '/ledgers/$ledger/transactions/$txId' })
+                  void navigate({ params: { ledger, org, txId: tx.id }, to: '/$org/ledgers/$ledger/transactions/$txId' })
                 }}
               >
                 <ArrowLeftRightIcon />
@@ -165,7 +167,7 @@ function PaletteBody({ ledger, onClose }: { ledger: string | undefined; onClose:
                 value={`hold:${hold.id}`}
                 onSelect={() => {
                   onClose()
-                  void navigate({ params: { holdId: hold.id, ledger }, to: '/ledgers/$ledger/holds/$holdId' })
+                  void navigate({ params: { holdId: hold.id, ledger, org }, to: '/$org/ledgers/$ledger/holds/$holdId' })
                 }}
               >
                 <LockIcon />
@@ -185,7 +187,7 @@ function PaletteBody({ ledger, onClose }: { ledger: string | undefined; onClose:
                 value={`request:${request.key}`}
                 onSelect={() => {
                   onClose()
-                  void navigate({ params: { ledger }, search: { key: request.key }, to: '/ledgers/$ledger/requests' })
+                  void navigate({ params: { ledger, org }, search: { key: request.key }, to: '/$org/ledgers/$ledger/requests' })
                 }}
               >
                 <InboxIcon />
@@ -203,7 +205,7 @@ function PaletteBody({ ledger, onClose }: { ledger: string | undefined; onClose:
               value={`balances:${prefix}`}
               onSelect={() => {
                 onClose()
-                void navigate({ params: { ledger }, search: { prefix }, to: '/ledgers/$ledger/balances' })
+                void navigate({ params: { ledger, org }, search: { prefix }, to: '/$org/ledgers/$ledger/balances' })
               }}
             >
               <ScaleIcon />
@@ -218,7 +220,7 @@ function PaletteBody({ ledger, onClose }: { ledger: string | undefined; onClose:
             value="action:new-transaction"
             onSelect={() => {
               onClose()
-              void navigate({ params: { ledger }, to: '/ledgers/$ledger/transactions/new' })
+              void navigate({ params: { ledger, org }, to: '/$org/ledgers/$ledger/transactions/new' })
             }}
           >
             <PlusIcon />
@@ -228,7 +230,7 @@ function PaletteBody({ ledger, onClose }: { ledger: string | undefined; onClose:
             value="action:new-hold"
             onSelect={() => {
               onClose()
-              void navigate({ params: { ledger }, to: '/ledgers/$ledger/holds/new' })
+              void navigate({ params: { ledger, org }, to: '/$org/ledgers/$ledger/holds/new' })
             }}
           >
             <LockIcon />

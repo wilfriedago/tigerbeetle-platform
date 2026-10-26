@@ -24,6 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
+import { useOrganization } from '~/lib/organization'
 import { cn } from '~/lib/utils'
 
 import { accountQueries } from './api'
@@ -32,7 +33,7 @@ import { accountQueries } from './api'
 // of accounts by segment where a balance is a prefix sum computed on demand. Accounts are created
 // by their first transaction (ADR-0006), so the page offers "Fund an account" instead of "Create".
 
-const route = getRouteApi('/_console/ledgers/$ledger/accounts/')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/accounts/')
 
 const LIMIT_TEXT = {
   credits_must_not_exceed_debits: 'credits cannot exceed debits',
@@ -112,6 +113,7 @@ function accountColumns(ledger: string) {
 }
 
 export function AccountsPage() {
+  const org = useOrganization()
   const { ledger } = route.useParams()
   const search = route.useSearch()
   const navigate = route.useNavigate()
@@ -122,7 +124,10 @@ export function AccountsPage() {
         title="Accounts"
         description="Accounts are created by their first transaction. The tree groups them by address segment."
         actions={
-          <Button variant="secondary" render={<Link to="/ledgers/$ledger/transactions/new" params={{ ledger }} search={{ source: 'world' }} />}>
+          <Button
+            variant="secondary"
+            render={<Link to="/$org/ledgers/$ledger/transactions/new" params={{ ledger, org }} search={{ source: 'world' }} />}
+          >
             <ArrowDownToLineIcon />
             Fund an account
           </Button>
@@ -174,6 +179,7 @@ export function AccountsPage() {
 }
 
 function AccountList({ ledger }: { ledger: string }) {
+  const org = useOrganization()
   const search = route.useSearch()
   const navigate = route.useNavigate()
   const params = { asset: search.asset, cursor: search.cursor, limit: 25, prefix: search.prefix, search: search.search }
@@ -194,7 +200,7 @@ function AccountList({ ledger }: { ledger: string }) {
         data={list.data?.data}
         getRowId={(account) => account.address}
         loading={list.isPending}
-        onRowClick={(account) => void navigate({ params: { address: account.address, ledger }, to: '/ledgers/$ledger/accounts/$address' })}
+        onRowClick={(account) => void navigate({ params: { address: account.address, ledger, org }, to: '/$org/ledgers/$ledger/accounts/$address' })}
         empty={
           search.prefix ? (
             <>
@@ -269,6 +275,7 @@ interface TreeRowsProps {
 }
 
 function TreeRows({ ledger, segment, depth, open, onToggle }: TreeRowsProps) {
+  const org = useOrganization()
   const expanded = open.has(segment.prefix)
   const children = useQuery({ ...accountQueries.segments(ledger, segment.prefix), enabled: expanded && segment.hasChildren })
   const isWorld = segment.prefix === 'world'
@@ -294,8 +301,8 @@ function TreeRows({ ledger, segment, depth, open, onToggle }: TreeRowsProps) {
             <Icon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
             {segment.isAccount ? (
               <Link
-                to="/ledgers/$ledger/accounts/$address"
-                params={{ address: segment.prefix, ledger }}
+                to="/$org/ledgers/$ledger/accounts/$address"
+                params={{ address: segment.prefix, ledger, org }}
                 className={cn('font-mono text-small hover:underline', segment.hasChildren && 'font-medium')}
               >
                 {segment.segment}
@@ -359,6 +366,7 @@ function LeafBalance({ ledger, address }: { ledger: string; address: string }) {
 
 /** A folder's balance is a prefix sum: computed when asked, because it reads every account below. */
 function PrefixSum({ ledger, prefix, accounts }: { ledger: string; prefix: string; accounts: number }) {
+  const org = useOrganization()
   const [asked, setAsked] = useState(false)
   const sum = useQuery({ ...accountQueries.aggregate(ledger, prefix), enabled: asked })
   if (!asked) {
@@ -380,8 +388,8 @@ function PrefixSum({ ledger, prefix, accounts }: { ledger: string; prefix: strin
   }
   return (
     <Link
-      to="/ledgers/$ledger/balances"
-      params={{ ledger }}
+      to="/$org/ledgers/$ledger/balances"
+      params={{ ledger, org }}
       search={{ prefix }}
       className="flex flex-col items-end gap-1 hover:underline"
       title={`Open the sum under ${prefix}:`}

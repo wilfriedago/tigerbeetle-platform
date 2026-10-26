@@ -18,6 +18,7 @@ import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 
 import { subtractAmounts } from '~/lib/money'
+import { useOrganization } from '~/lib/organization'
 import { formatRelative, formatTimestamp } from '~/lib/time'
 import { useNow } from '~/lib/use-now'
 
@@ -28,7 +29,7 @@ import { VoidDialog } from './components/void-dialog'
 // docs/console.md, Hold: the pending transfer, a timeline from creation to capture, void or expiry,
 // and the transfers behind it (ADR-0010).
 
-const route = getRouteApi('/_console/ledgers/$ledger/holds/$holdId')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/holds/$holdId')
 
 function HoldTimeline({ hold, now }: { hold: Hold; now: Date }) {
   const created = (
@@ -88,6 +89,7 @@ function HoldTimeline({ hold, now }: { hold: Hold; now: Date }) {
 }
 
 export function HoldPage() {
+  const org = useOrganization()
   const { ledger, holdId } = route.useParams()
   const { data: hold } = useSuspenseQuery(holdQueries.detail(ledger, holdId))
   const now = useNow(15_000)
@@ -185,8 +187,8 @@ export function HoldPage() {
                 </DescriptionItem>
                 <DescriptionItem term="Idempotency-Key" mono termWidth="sm">
                   <Link
-                    to="/ledgers/$ledger/requests"
-                    params={{ ledger }}
+                    to="/$org/ledgers/$ledger/requests"
+                    params={{ ledger, org }}
                     search={{ key: hold.idempotencyKey }}
                     className="break-all hover:text-primary-text hover:underline"
                   >

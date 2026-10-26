@@ -22,7 +22,7 @@ import { settingsQueries, useCreateEventType } from './api'
 // docs/console.md, Event types: a name for the code written to every transfer (ADR-0007). Add only:
 // a code never changes meaning, so there is no edit and no delete. Event types are per ledger.
 
-const route = getRouteApi('/_console/ledgers/$ledger/settings/event-types')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/settings/event-types')
 
 /** Mirrors eventTypeNamePattern in apps/api/internal/kernel/ledger/event.go. */
 const NAME_PATTERN = /^[a-z][a-z0-9_.-]{0,62}$/

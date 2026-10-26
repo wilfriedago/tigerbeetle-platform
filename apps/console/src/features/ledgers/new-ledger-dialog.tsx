@@ -10,6 +10,7 @@ import { Dialog, DialogBody, DialogClose, DialogContent, DialogDescription, Dial
 import { Field, FieldLabel } from '~/components/ui/field'
 
 import { setLastLedger } from '~/lib/last-ledger'
+import { useOrganization } from '~/lib/organization'
 
 import { useCreateLedger } from './api'
 
@@ -46,6 +47,7 @@ interface NewLedgerDialogProps {
 }
 
 export function NewLedgerDialog({ open, onOpenChange }: NewLedgerDialogProps) {
+  const org = useOrganization()
   const navigate = useNavigate()
   const create = useCreateLedger()
   const form = useAppForm({
@@ -60,7 +62,7 @@ export function NewLedgerDialog({ open, onOpenChange }: NewLedgerDialogProps) {
       }
       setLastLedger(ledger.name)
       onOpenChange(false)
-      await navigate({ params: { ledger: ledger.name }, to: '/ledgers/$ledger' })
+      await navigate({ params: { ledger: ledger.name, org }, to: '/$org/ledgers/$ledger' })
     }
   })
   return (

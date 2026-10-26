@@ -22,23 +22,25 @@ import { ledgerQueries } from '~/features/ledgers/api'
 import { settingsQueries } from '~/features/settings/api'
 
 import { shortId } from '~/lib/ids'
+import { activeOrganization, useOrganization } from '~/lib/organization'
 
 import { transactionQueries } from './api'
 import { PostingsSummary } from './components/postings-summary'
 import { rangeStart, TIME_RANGE_KEYS, TIME_RANGES } from './time-range'
 
-const route = getRouteApi('/_console/ledgers/$ledger/transactions/')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/transactions/')
 
 const column = columnHelper<Transaction>()
 
 function transactionColumns(ledger: string) {
+  const org = activeOrganization() ?? ''
   return [
     column.accessor('id', {
       cell: ({ row }) => (
         <span className="inline-flex items-center gap-2">
           <Link
-            to="/ledgers/$ledger/transactions/$txId"
-            params={{ ledger, txId: row.original.id }}
+            to="/$org/ledgers/$ledger/transactions/$txId"
+            params={{ ledger, org, txId: row.original.id }}
             className="font-mono outline-none hover:underline focus-visible:ring-3 focus-visible:ring-focus-ring"
           >
             {shortId(row.original.id)}
@@ -86,6 +88,7 @@ function transactionColumns(ledger: string) {
 }
 
 export function TransactionsPage() {
+  const org = useOrganization()
   const { ledger } = route.useParams()
   const search = route.useSearch()
   const navigate = route.useNavigate()
@@ -114,7 +117,7 @@ export function TransactionsPage() {
           </>
         }
         actions={
-          <Button render={<Link to="/ledgers/$ledger/transactions/new" params={{ ledger }} />}>
+          <Button render={<Link to="/$org/ledgers/$ledger/transactions/new" params={{ ledger, org }} />}>
             <PlusIcon />
             New transaction
           </Button>
@@ -165,7 +168,7 @@ export function TransactionsPage() {
         data={list.data?.data}
         getRowId={(tx) => tx.id}
         loading={list.isPending}
-        onRowClick={(tx) => void navigate({ params: { ledger, txId: tx.id }, to: '/ledgers/$ledger/transactions/$txId' })}
+        onRowClick={(tx) => void navigate({ params: { ledger, org, txId: tx.id }, to: '/$org/ledgers/$ledger/transactions/$txId' })}
         empty={
           filtered ? (
             'No transaction matches these filters. Declined writes are not transactions: they are listed under Requests.'
@@ -173,8 +176,8 @@ export function TransactionsPage() {
             <>
               No transactions yet.{' '}
               <Link
-                to="/ledgers/$ledger/transactions/new"
-                params={{ ledger }}
+                to="/$org/ledgers/$ledger/transactions/new"
+                params={{ ledger, org }}
                 search={{ source: 'world' }}
                 className="text-primary-text hover:underline"
               >

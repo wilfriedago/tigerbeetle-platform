@@ -15,6 +15,7 @@ import {
   WalletIcon
 } from 'lucide-react'
 
+import { useOrganization } from '~/lib/organization'
 import { cn } from '~/lib/utils'
 
 // 13 Navigation, Sidebar: 240 px on the sidebar surface, ledger switcher on top, navigation scoped
@@ -51,6 +52,7 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ ledger, switcher, versions, className, onNavigate }: AppSidebarProps) {
+  const org = useOrganization()
   return (
     <nav
       aria-label="Console"
@@ -61,23 +63,35 @@ export function AppSidebar({ ledger, switcher, versions, className, onNavigate }
       <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto pt-3">
         {ledger ? (
           <>
-            <NavItem icon={LayoutDashboardIcon} label="Overview" to="/ledgers/$ledger" params={{ ledger }} activeOptions={{ exact: true }} />
+            <NavItem
+              icon={LayoutDashboardIcon}
+              label="Overview"
+              to="/$org/ledgers/$ledger"
+              params={{ ledger, org }}
+              activeOptions={{ exact: true }}
+            />
             <NavSection label="Activity">
-              <NavItem icon={ArrowLeftRightIcon} label="Transactions" to="/ledgers/$ledger/transactions" params={{ ledger }} />
-              <NavItem icon={LockIcon} label="Holds" to="/ledgers/$ledger/holds" params={{ ledger }} />
+              <NavItem icon={ArrowLeftRightIcon} label="Transactions" to="/$org/ledgers/$ledger/transactions" params={{ ledger, org }} />
+              <NavItem icon={LockIcon} label="Holds" to="/$org/ledgers/$ledger/holds" params={{ ledger, org }} />
             </NavSection>
             <NavSection label="Money">
-              <NavItem icon={WalletIcon} label="Accounts" to="/ledgers/$ledger/accounts" params={{ ledger }} />
-              <NavItem icon={ScaleIcon} label="Balances" to="/ledgers/$ledger/balances" params={{ ledger }} />
-              <NavItem icon={CoinsIcon} label="Assets" to="/ledgers/$ledger/assets" params={{ ledger }} />
+              <NavItem icon={WalletIcon} label="Accounts" to="/$org/ledgers/$ledger/accounts" params={{ ledger, org }} />
+              <NavItem icon={ScaleIcon} label="Balances" to="/$org/ledgers/$ledger/balances" params={{ ledger, org }} />
+              <NavItem icon={CoinsIcon} label="Assets" to="/$org/ledgers/$ledger/assets" params={{ ledger, org }} />
             </NavSection>
             <NavSection label="Operations">
-              <NavItem icon={InboxIcon} label="Requests" to="/ledgers/$ledger/requests" params={{ ledger }} />
+              <NavItem icon={InboxIcon} label="Requests" to="/$org/ledgers/$ledger/requests" params={{ ledger, org }} />
             </NavSection>
             <NavSection label="Settings">
-              <NavItem icon={SettingsIcon} label="Ledger" to="/ledgers/$ledger/settings" params={{ ledger }} activeOptions={{ exact: true }} />
-              <NavItem icon={ListChecksIcon} label="Account rules" to="/ledgers/$ledger/settings/rules" params={{ ledger }} />
-              <NavItem icon={TagIcon} label="Event types" to="/ledgers/$ledger/settings/event-types" params={{ ledger }} />
+              <NavItem
+                icon={SettingsIcon}
+                label="Ledger"
+                to="/$org/ledgers/$ledger/settings"
+                params={{ ledger, org }}
+                activeOptions={{ exact: true }}
+              />
+              <NavItem icon={ListChecksIcon} label="Account rules" to="/$org/ledgers/$ledger/settings/rules" params={{ ledger, org }} />
+              <NavItem icon={TagIcon} label="Event types" to="/$org/ledgers/$ledger/settings/event-types" params={{ ledger, org }} />
             </NavSection>
           </>
         ) : (
@@ -85,7 +99,7 @@ export function AppSidebar({ ledger, switcher, versions, className, onNavigate }
         )}
       </div>
       <div className="flex flex-col gap-0.5 border-t border-sidebar-border pt-2">
-        <NavItem icon={ActivityIcon} label="System" to="/system" />
+        <NavItem icon={ActivityIcon} label="System" to="/$org/system" params={{ org }} />
         <NavItem icon={SlidersHorizontalIcon} label="Preferences" to="/preferences" />
         {versions ? <div className="flex gap-3 px-0 pt-1 font-mono text-[11px] text-subtle-foreground">{versions}</div> : null}
       </div>

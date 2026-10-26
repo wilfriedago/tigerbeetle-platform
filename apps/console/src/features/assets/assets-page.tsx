@@ -16,7 +16,7 @@ import { ledgerQueries } from '~/features/ledgers/api'
 // docs/console.md, Assets: read-only. An asset is CODE/SCALE and gets its own TigerBeetle ledger
 // number in this ledger the first time a write uses it (ADR-0005).
 
-const route = getRouteApi('/_console/ledgers/$ledger/assets')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/assets')
 
 const column = columnHelper<AssetSummary>()
 

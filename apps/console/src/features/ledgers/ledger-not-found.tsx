@@ -9,9 +9,11 @@ import { Button } from '~/components/ui/button'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '~/components/ui/empty'
 
 import { forgetLastLedger, getLastLedger } from '~/lib/last-ledger'
+import { useOrganization } from '~/lib/organization'
 
 /** A ledger URL that names no ledger: offer the list, and stop "/" from landing here again. */
 export function LedgerNotFound() {
+  const org = useOrganization()
   const { ledger } = useParams({ strict: false })
   useEffect(() => {
     if (ledger && getLastLedger() === ledger) {
@@ -33,7 +35,7 @@ export function LedgerNotFound() {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button render={<Link to="/ledgers" />}>All ledgers</Button>
+          <Button render={<Link to="/$org/ledgers" params={{ org }} />}>All ledgers</Button>
         </EmptyContent>
       </Empty>
     </Page>

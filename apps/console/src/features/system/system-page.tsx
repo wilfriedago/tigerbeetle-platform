@@ -12,6 +12,7 @@ import { Button } from '~/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
+import { useOrganization } from '~/lib/organization'
 import { formatRelative, formatTime } from '~/lib/time'
 import { useNow } from '~/lib/use-now'
 import { cn } from '~/lib/utils'
@@ -83,6 +84,7 @@ function LatencyBars({ samples }: { samples: readonly ProbeSample[] }) {
 }
 
 export function SystemPage() {
+  const org = useOrganization()
   const info = useQuery(systemQueries.info())
   const reconciler = useQuery(systemQueries.reconciler())
   const history = useProbeHistory()
@@ -186,7 +188,7 @@ export function SystemPage() {
               <CardTitle>Reconciler</CardTitle>
               <CardDescription>Settles pending write records older than {reconciler.data?.gracePeriodSeconds ?? 30} s.</CardDescription>
               <CardAction>
-                <Button variant="link" size="sm" render={<Link to="/system/reconciler" />}>
+                <Button variant="link" size="sm" render={<Link to="/$org/system/reconciler" params={{ org }} />}>
                   Open
                 </Button>
               </CardAction>

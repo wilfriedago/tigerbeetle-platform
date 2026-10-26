@@ -13,6 +13,7 @@ import { Timestamp } from '~/components/ledger/timestamp'
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 
+import { useOrganization } from '~/lib/organization'
 import { formatRelative } from '~/lib/time'
 import { useNow } from '~/lib/use-now'
 
@@ -24,26 +25,31 @@ import { systemQueries } from './api'
 
 const column = columnHelper<StuckRequest>()
 
+function LedgerLink({ ledger }: { ledger: string }) {
+  const org = useOrganization()
+  return (
+    <Link to="/$org/ledgers/$ledger" params={{ ledger, org }} className="font-mono hover:underline">
+      {ledger}
+    </Link>
+  )
+}
+
+function RequestLink({ ledger, requestKey }: { ledger: string; requestKey: string }) {
+  const org = useOrganization()
+  return (
+    <Link to="/$org/ledgers/$ledger/requests" params={{ ledger, org }} search={{ key: requestKey }} className="font-mono hover:underline">
+      {requestKey}
+    </Link>
+  )
+}
+
 const columns = [
   column.accessor('ledger', {
-    cell: (info) => (
-      <Link to="/ledgers/$ledger" params={{ ledger: info.getValue() }} className="font-mono hover:underline">
-        {info.getValue()}
-      </Link>
-    ),
+    cell: (info) => <LedgerLink ledger={info.getValue()} />,
     header: 'Ledger'
   }),
   column.accessor('key', {
-    cell: ({ row }) => (
-      <Link
-        to="/ledgers/$ledger/requests"
-        params={{ ledger: row.original.ledger }}
-        search={{ key: row.original.key }}
-        className="font-mono hover:underline"
-      >
-        {row.original.key}
-      </Link>
-    ),
+    cell: ({ row }) => <RequestLink ledger={row.original.ledger} requestKey={row.original.key} />,
     header: 'Idempotency-Key'
   }),
   column.accessor('operation', { header: 'Operation' }),

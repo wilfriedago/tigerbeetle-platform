@@ -4,6 +4,7 @@ import { Link } from '@tanstack/react-router'
 
 import { GlobeIcon } from 'lucide-react'
 
+import { useOrganization } from '~/lib/organization'
 import { cn } from '~/lib/utils'
 
 // 20 Money and identity, Address: keeps its colon-separated segments, separators in a quieter tone
@@ -37,6 +38,7 @@ function Segments({ value }: { value: string }) {
 }
 
 export function Address({ value, ledger, className, size = 'sm' }: AddressProps) {
+  const org = useOrganization()
   const isWorld = value === WORLD
   const content = (
     <>
@@ -53,8 +55,8 @@ export function Address({ value, ledger, className, size = 'sm' }: AddressProps)
   if (ledger) {
     return (
       <Link
-        to="/ledgers/$ledger/accounts/$address"
-        params={{ address: value, ledger }}
+        to="/$org/ledgers/$ledger/accounts/$address"
+        params={{ address: value, ledger, org }}
         className={cn(classes, 'rounded-xs underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-focus-ring')}
       >
         {content}
@@ -69,6 +71,7 @@ export function Address({ value, ledger, className, size = 'sm' }: AddressProps)
  * Account), so `users` opens the sum of every account under `users:`.
  */
 export function AddressPrefixLinks({ value, ledger, className }: { value: string; ledger: string; className?: string }) {
+  const org = useOrganization()
   const segments = value.split(':')
   return (
     <span className={cn('inline-flex flex-wrap items-baseline font-mono', className)}>
@@ -83,8 +86,8 @@ export function AddressPrefixLinks({ value, ledger, className }: { value: string
               <span>{segment}</span>
             ) : (
               <Link
-                to="/ledgers/$ledger/balances"
-                params={{ ledger }}
+                to="/$org/ledgers/$ledger/balances"
+                params={{ ledger, org }}
                 search={{ prefix }}
                 title={`Sum balances under ${prefix}:`}
                 className="rounded-xs outline-none hover:text-primary-text hover:underline hover:underline-offset-4 focus-visible:ring-3 focus-visible:ring-focus-ring"

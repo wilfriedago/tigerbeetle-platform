@@ -1,4 +1,4 @@
-import { ApiError, HttpStatusError, problemFrom, problemTypeOf, randomRequestId, REQUEST_ID_HEADER } from '@tigerbeetle-platform/api-client'
+import { ApiError, HttpStatusError, ORGANIZATION_HEADER, problemFrom, problemTypeOf, randomRequestId, REQUEST_ID_HEADER } from '@tigerbeetle-platform/api-client'
 
 import { type TypedDocumentString } from '~/graphql/gen/graphql'
 
@@ -8,10 +8,16 @@ import { type GraphQLErrorEntry, GraphQLProblemError } from './errors'
 const TIMEOUT_MS = 15_000
 
 let endpoint = '/api/graphql'
+let organization: string | undefined
 
 /** Points the client at the API; the endpoint is POST {baseUrl}/graphql. */
 export function configureGraphQL(baseUrl: string): void {
   endpoint = `${baseUrl.replace(/\/+$/, '')}/graphql`
+}
+
+/** Names the organization every request acts for, sent as X-Organization (ADR-0026). */
+export function setGraphQLOrganization(alias: string | undefined): void {
+  organization = alias
 }
 
 export interface RequestOptions {
@@ -31,9 +37,19 @@ export async function request<TResult, TVariables>(
   options: RequestOptions = {}
 ): Promise<TResult> {
   const timeout = AbortSignal.timeout(TIMEOUT_MS)
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    [REQUEST_ID_HEADER]: randomRequestId()
+  }
+  if (organization) {
+    headers[ORGANIZATION_HEADER] = organization
+  }
+  // The session cookie authenticates the request (ADR-0029); the console holds no token.
   const response = await globalThis.fetch(endpoint, {
     body: JSON.stringify({ query: document.toString(), variables }),
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json', [REQUEST_ID_HEADER]: randomRequestId() },
+    credentials: 'same-origin',
+    headers,
     method: 'POST',
     signal: options.signal ? AbortSignal.any([options.signal, timeout]) : timeout
   })

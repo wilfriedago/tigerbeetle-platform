@@ -26,6 +26,7 @@ import { systemQueries } from '~/features/system/api'
 
 import { shortId } from '~/lib/ids'
 import { assetScale, formatAmount, formatSignedAmount, sumAmounts } from '~/lib/money'
+import { useOrganization } from '~/lib/organization'
 import { type Effect, type Simulation } from '~/lib/preflight'
 import { toProblem } from '~/lib/problem'
 import { formatClock, formatTime } from '~/lib/time'
@@ -214,6 +215,7 @@ export function ResultView({ ledger, submission, onResolved }: ResultViewProps) 
 }
 
 function Pending({ ledger, submission, onResolved }: ResultViewProps) {
+  const org = useOrganization()
   const sending = submission.outcome.kind === 'sending'
   const error = submission.outcome.kind === 'pending' ? submission.outcome.error : undefined
   const request = useQuery({ ...requestQueries.detail(ledger, submission.key), enabled: !sending })
@@ -321,7 +323,7 @@ function Pending({ ledger, submission, onResolved }: ResultViewProps) {
             <AlertTitle>Safe to leave this page</AlertTitle>
             <AlertDescription>
               The write keeps going without you. If this page closes, the reconciler settles it{grace ? ` after ${grace} s` : ''}. Find it under{' '}
-              <Link to="/ledgers/$ledger/requests" params={{ ledger }} search={{ key: submission.key }}>
+              <Link to="/$org/ledgers/$ledger/requests" params={{ ledger, org }} search={{ key: submission.key }}>
                 Requests
               </Link>
               .
@@ -361,6 +363,7 @@ function ActivityLog({ entries }: { entries: readonly LogEntry[] }) {
 }
 
 function Committed({ ledger, submission, transaction }: { ledger: string; submission: Submission; transaction: Transaction }) {
+  const org = useOrganization()
   return (
     <div className="flex flex-col gap-6">
       <Banner
@@ -443,7 +446,11 @@ function Committed({ ledger, submission, transaction }: { ledger: string; submis
               <p>
                 A revert is a new transaction with every posting reversed. TigerBeetle can decline it like any other, and there is no force option.
               </p>
-              <Link to="/ledgers/$ledger/transactions/$txId" params={{ ledger, txId: transaction.id }} className="text-primary-text hover:underline">
+              <Link
+                to="/$org/ledgers/$ledger/transactions/$txId"
+                params={{ ledger, org, txId: transaction.id }}
+                className="text-primary-text hover:underline"
+              >
                 Open the transaction to revert it
               </Link>
             </CardContent>
@@ -608,6 +615,7 @@ function WaysForward({
   address: string
   asset: string
 }) {
+  const org = useOrganization()
   const account = useQuery(accountQueries.detail(ledger, address))
   const balance = account.data?.balances.find((entry) => entry.asset === asset)
   const spendable = submission.simulation.spendable[index]
@@ -634,8 +642,8 @@ function WaysForward({
             Add {failure ? <>at least {shortText}</> : 'funds'} to <span className="font-mono">{address}</span>, then retry.
           </p>
           <Link
-            to="/ledgers/$ledger/transactions/new"
-            params={{ ledger }}
+            to="/$org/ledgers/$ledger/transactions/new"
+            params={{ ledger, org }}
             search={{ asset, destination: address, source: 'world' }}
             className="text-primary-text hover:underline"
           >
@@ -647,7 +655,12 @@ function WaysForward({
             <p>
               {holds} open {holds === 1 ? 'hold reserves' : 'holds reserve'} {reservedText} on this account.
             </p>
-            <Link to="/ledgers/$ledger/holds" params={{ ledger }} search={{ address, status: 'open' }} className="text-primary-text hover:underline">
+            <Link
+              to="/$org/ledgers/$ledger/holds"
+              params={{ ledger, org }}
+              search={{ address, status: 'open' }}
+              className="text-primary-text hover:underline"
+            >
               Open holds
             </Link>
           </WayCard>
