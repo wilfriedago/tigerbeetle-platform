@@ -30,6 +30,7 @@ func transactionView(row domain.TransactionRow, postings []domain.Posting) Trans
 		IdempotencyKey: row.IdempotencyKey,
 		RequestID:      row.RequestID,
 	}
+
 	for i := range row.Legs {
 		leg := &row.Legs[i]
 		v.Postings = append(v.Postings, PostingView{
@@ -41,6 +42,7 @@ func transactionView(row domain.TransactionRow, postings []domain.Posting) Trans
 			TBLedger:    leg.Source.TBLedger,
 		})
 	}
+
 	return v
 }
 
