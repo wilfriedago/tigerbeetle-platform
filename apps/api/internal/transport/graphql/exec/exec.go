@@ -167,6 +167,7 @@ type ComplexityRoot struct {
 
 	Dependencies struct {
 		Kafka       func(childComplexity int) int
+		Keycloak    func(childComplexity int) int
 		NATS        func(childComplexity int) int
 		Postgres    func(childComplexity int) int
 		RabbitMQ    func(childComplexity int) int
@@ -1061,6 +1062,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Dependencies.Kafka(childComplexity), true
+	case "Dependencies.keycloak":
+		if e.ComplexityRoot.Dependencies.Keycloak == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Dependencies.Keycloak(childComplexity), true
 	case "Dependencies.nats":
 		if e.ComplexityRoot.Dependencies.NATS == nil {
 			break
@@ -3261,6 +3268,8 @@ type Dependencies {
   nats: DependencyCheck
   "Present when the Kafka ledger event relay is enabled."
   kafka: DependencyCheck
+  "The identity provider (ADR-0026). When it does not answer, tokens already issued still verify, but nobody can sign in."
+  keycloak: DependencyCheck
 }
 
 "The result of probing one dependency."
@@ -4189,6 +4198,8 @@ func (ec *executionContext) childFields_Dependencies(ctx context.Context, field 
 		return ec.fieldContext_Dependencies_nats(ctx, field)
 	case "kafka":
 		return ec.fieldContext_Dependencies_kafka(ctx, field)
+	case "keycloak":
+		return ec.fieldContext_Dependencies_keycloak(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Dependencies", field.Name)
 }
@@ -7722,6 +7733,38 @@ func (ec *executionContext) _Dependencies_kafka(ctx context.Context, field graph
 	)
 }
 func (ec *executionContext) fieldContext_Dependencies_kafka(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Dependencies",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_DependencyCheck(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Dependencies_keycloak(ctx context.Context, field graphql.CollectedField, obj *dto3.Dependencies) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Dependencies_keycloak(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Keycloak, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto3.DependencyCheck) graphql.Marshaler {
+			return ec.marshalODependencyCheck2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋhealthᚋinterfacesᚋdtoᚐDependencyCheck(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Dependencies_keycloak(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Dependencies",
 		Field:      field,
@@ -18379,6 +18422,11 @@ func (ec *executionContext) _Dependencies(ctx context.Context, sel ast.Selection
 			}
 		case "kafka":
 			out.Values[i] = ec._Dependencies_kafka(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "keycloak":
+			out.Values[i] = ec._Dependencies_keycloak(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}

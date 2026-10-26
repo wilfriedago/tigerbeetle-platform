@@ -45,34 +45,53 @@ type Config struct {
 	GraphQLEnabled bool `env:"GRAPHQL_ENABLED" envDefault:"true"`
 	// ReconcilerEnabled runs the reconciler in this process (plan section 13.1).
 	ReconcilerEnabled bool `env:"RECONCILER_ENABLED" envDefault:"true"`
-	// GRPCEnabled serves gRPC on GRPCAddr. Off by default: like the broker transports it stays
-	// development-only until authentication is decided (ADR-0021).
+	// GRPCEnabled serves gRPC on GRPCAddr (ADR-0021), authenticated like REST; off by default
+	// (ADR-0032).
 	GRPCEnabled bool `env:"GRPC_ENABLED" envDefault:"false"`
 	// GRPCAddr is the listen address of the gRPC server.
 	GRPCAddr string `env:"GRPC_ADDR" envDefault:":9090"`
-	// AMQPRPCEnabled serves the RPC methods over RabbitMQ (ADR-0021); off by default, development
-	// only until authentication is decided. It needs AMQPURL.
+	// GRPCTLSCertFile and GRPCTLSKeyFile make gRPC serve TLS with that certificate (PEM). Without
+	// them it serves plaintext, for a proxy that terminates TLS.
+	GRPCTLSCertFile string `env:"GRPC_TLS_CERT_FILE"`
+	GRPCTLSKeyFile  string `env:"GRPC_TLS_KEY_FILE"`
+	// AMQPRPCEnabled serves the RPC methods over RabbitMQ (ADR-0021) for the platform's own
+	// services; off by default. It needs AMQPURL.
 	AMQPRPCEnabled bool `env:"AMQP_RPC_ENABLED" envDefault:"false"`
-	// AMQPURL is the RabbitMQ URL, amqp://user:password@host:5672/vhost.
+	// AMQPURL is the RabbitMQ URL, amqp://user:password@host:5672/vhost; amqps:// for TLS.
 	AMQPURL string `env:"AMQP_URL"`
+	// AMQPTLSCAFile is the CA (PEM) that signed RabbitMQ's certificate, for AMQP_URL and
+	// CDC_AMQP_URL with amqps://; empty trusts the system's CAs.
+	AMQPTLSCAFile string `env:"AMQP_TLS_CA_FILE"`
 	// AMQPRPCQueue is the durable request queue every replica consumes.
 	AMQPRPCQueue string `env:"AMQP_RPC_QUEUE" envDefault:"tbp.rpc.v1"`
 	// NATSRPCEnabled serves the RPC methods over NATS; off by default, like AMQP RPC. It needs
 	// NATSURL.
 	NATSRPCEnabled bool `env:"NATS_RPC_ENABLED" envDefault:"false"`
-	// NATSURL is the NATS URL, nats://host:4222.
+	// NATSURL is the NATS URL, nats://user:password@host:4222; tls:// for TLS.
 	NATSURL string `env:"NATS_URL"`
+	// NATSTLSCAFile is the CA (PEM) that signed the NATS server's certificate; setting it turns
+	// TLS on.
+	NATSTLSCAFile string `env:"NATS_TLS_CA_FILE"`
 	// NATSRPCQueueGroup is the queue group every replica joins, so each request runs once.
 	NATSRPCQueueGroup string `env:"NATS_RPC_QUEUE_GROUP" envDefault:"tbp-api"`
 	// RPCConcurrency bounds the requests each broker server runs at once.
 	RPCConcurrency int `env:"RPC_CONCURRENCY" envDefault:"16"`
 	// RPCTimeoutMax bounds every broker request, whatever deadline the client sends.
 	RPCTimeoutMax time.Duration `env:"RPC_TIMEOUT_MAX" envDefault:"30s"`
-	// KafkaEventsEnabled relays TigerBeetle change events to Kafka (ADR-0022); off by default,
-	// development only until authentication is decided. It needs KafkaBrokers and CDCAMQPURL.
+	// KafkaEventsEnabled relays TigerBeetle change events to Kafka (ADR-0022), for the platform's
+	// own consumers; off by default. It needs KafkaBrokers and CDCAMQPURL.
 	KafkaEventsEnabled bool `env:"KAFKA_EVENTS_ENABLED" envDefault:"false"`
 	// KafkaBrokers lists the seed brokers, host:port.
 	KafkaBrokers []string `env:"KAFKA_BROKERS" envSeparator:","`
+	// KafkaTLS connects to the brokers with TLS; KafkaTLSCAFile (PEM) replaces the system's CAs
+	// and turns TLS on.
+	KafkaTLS       bool   `env:"KAFKA_TLS" envDefault:"false"`
+	KafkaTLSCAFile string `env:"KAFKA_TLS_CA_FILE"`
+	// KafkaSASLMechanism is PLAIN, SCRAM-SHA-256 or SCRAM-SHA-512, with KafkaSASLUsername and
+	// KafkaSASLPassword; empty for no SASL.
+	KafkaSASLMechanism string `env:"KAFKA_SASL_MECHANISM"`
+	KafkaSASLUsername  string `env:"KAFKA_SASL_USERNAME"`
+	KafkaSASLPassword  string `env:"KAFKA_SASL_PASSWORD"`
 	// KafkaEventsTopic is the topic of ledger events.
 	KafkaEventsTopic string `env:"KAFKA_EVENTS_TOPIC" envDefault:"tbp.ledger-events.v1"`
 	// CDCAMQPURL is the RabbitMQ the TigerBeetle CDC job publishes to.
@@ -178,6 +197,18 @@ func (c *Config) validate() error {
 	}
 	if c.AuthClientID != "" && (c.AuthClientSecret == "" || c.AuthRedirectURL == "" || c.AuthConsoleOrigin == "" || c.AuthSessionKey == "") {
 		return fmt.Errorf("config: AUTH_CLIENT_ID needs AUTH_CLIENT_SECRET, AUTH_REDIRECT_URL, AUTH_CONSOLE_ORIGIN and AUTH_SESSION_KEY")
+	}
+	if (c.GRPCTLSCertFile == "") != (c.GRPCTLSKeyFile == "") {
+		return fmt.Errorf("config: GRPC_TLS_CERT_FILE and GRPC_TLS_KEY_FILE go together")
+	}
+	switch c.KafkaSASLMechanism {
+	case "":
+	case "PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512":
+		if c.KafkaSASLUsername == "" {
+			return fmt.Errorf("config: KAFKA_SASL_MECHANISM needs KAFKA_SASL_USERNAME and KAFKA_SASL_PASSWORD")
+		}
+	default:
+		return fmt.Errorf("config: KAFKA_SASL_MECHANISM must be PLAIN, SCRAM-SHA-256 or SCRAM-SHA-512")
 	}
 	if _, err := c.APIKeyPepper(); err != nil {
 		return err

@@ -311,6 +311,8 @@ type Dependencies {
   nats: DependencyCheck
   "Present when the Kafka ledger event relay is enabled."
   kafka: DependencyCheck
+  "The identity provider (ADR-0026). When it does not answer, tokens already issued still verify, but nobody can sign in."
+  keycloak: DependencyCheck
 }
 
 "The result of probing one dependency."

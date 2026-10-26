@@ -83,6 +83,17 @@ func dial(t *testing.T, lis *bufconn.Listener) *grpc.ClientConn {
 	return conn
 }
 
+// dialAddr connects in plaintext to a server on a real listener.
+func dialAddr(t *testing.T, addr string) *grpc.ClientConn {
+	t.Helper()
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+	return conn
+}
+
 func TestInterceptors(t *testing.T) {
 	t.Parallel()
 	srv, lis, _ := newTestServer(t, time.Second)

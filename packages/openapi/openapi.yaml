@@ -526,6 +526,9 @@ components:
         kafka:
           $ref: "#/components/schemas/DependencyCheck"
           description: Present when the Kafka ledger event relay is enabled.
+        keycloak:
+          $ref: "#/components/schemas/DependencyCheck"
+          description: The identity provider (ADR-0026). When it does not answer, tokens already issued still verify, but nobody can sign in.
         nats:
           $ref: "#/components/schemas/DependencyCheck"
           description: Present when NATS RPC is enabled.

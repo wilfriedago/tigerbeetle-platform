@@ -2,11 +2,14 @@ package bootstrap
 
 import (
 	"context"
+	"crypto/tls"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
 	"strconv"
 	"time"
+
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/tlsconfig"
 
 	accessv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/rest/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/web"
@@ -98,13 +101,18 @@ func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *
 	return restapi.Handler(mux, logger, opts)
 }
 
-// grpcServer builds the gRPC server with every module's services and server reflection.
-func grpcServer(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger, auth *authn.Authenticator) *grpcserver.Server {
+// grpcServer builds the gRPC server with every module's services and server reflection, with TLS
+// when a certificate is configured.
+func grpcServer(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger, auth *authn.Authenticator) (*grpcserver.Server, error) {
+	tlsConfig, err := tlsconfig.Server(cfg.GRPCTLSCertFile, cfg.GRPCTLSKeyFile)
+	if err != nil {
+		return nil, err
+	}
 	srv := grpcserver.New(grpcserver.Options{
-		Addr: cfg.GRPCAddr, ShutdownTimeout: cfg.ShutdownTimeout, Logger: logger, Reflection: true, Auth: auth,
+		Addr: cfg.GRPCAddr, ShutdownTimeout: cfg.ShutdownTimeout, Logger: logger, Reflection: true, Auth: auth, TLS: tlsConfig,
 	})
 	grpctransport.RegisterAll(srv, grpctransport.Modules{Health: health, Ledgers: m.ledgers, Bookkeeping: m.bookkeeping})
-	return srv
+	return srv, nil
 }
 
 // brokerServers builds what talks to a broker: the AMQP and NATS RPC servers on one router and
@@ -119,8 +127,13 @@ func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg
 			r.readiness.Optional(healthdto.ProbeRabbitMQ, allOf(rabbit))
 		}
 	}()
+	// An amqps:// URL turns TLS on; the CA file only replaces the system's CAs.
+	amqpTLS, err := tlsconfig.ClientWhen(false, cfg.AMQPTLSCAFile)
+	if err != nil {
+		return err
+	}
 	if cfg.KafkaEventsEnabled {
-		probe, err := a.kafkaRelay(r, m, cfg, logger)
+		probe, err := a.kafkaRelay(r, m, cfg, logger, amqpTLS)
 		if err != nil {
 			return err
 		}
@@ -134,14 +147,18 @@ func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg
 	if cfg.AMQPRPCEnabled {
 		a.amqp = amqprpc.New(amqprpc.Options{
 			URL: cfg.AMQPURL, Queue: cfg.AMQPRPCQueue, Concurrency: cfg.RPCConcurrency,
-			ShutdownTimeout: cfg.ShutdownTimeout, Dispatcher: dispatcher, Logger: logger,
+			ShutdownTimeout: cfg.ShutdownTimeout, Dispatcher: dispatcher, Logger: logger, TLS: amqpTLS,
 		})
 		rabbit = append(rabbit, a.amqp.Ready)
 	}
 	if cfg.NATSRPCEnabled {
+		natsTLS, err := tlsconfig.ClientWhen(false, cfg.NATSTLSCAFile)
+		if err != nil {
+			return err
+		}
 		srv, err := natsrpc.New(natsrpc.Options{
 			URL: cfg.NATSURL, QueueGroup: cfg.NATSRPCQueueGroup, Concurrency: cfg.RPCConcurrency,
-			ShutdownTimeout: cfg.ShutdownTimeout, Router: router, Dispatcher: dispatcher, Logger: logger,
+			ShutdownTimeout: cfg.ShutdownTimeout, Router: router, Dispatcher: dispatcher, Logger: logger, TLS: natsTLS,
 		})
 		if err != nil {
 			return err
@@ -155,15 +172,21 @@ func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg
 
 // kafkaRelay builds the ledger event relay (ADR-0022): the Kafka producer, the publisher, the
 // relay use case and the CDC consumer. It registers the Kafka probe and returns the RabbitMQ one.
-func (a *App) kafkaRelay(r resources, m modules, cfg config.Config, logger *slog.Logger) (readiness.Probe, error) {
-	producer, err := kafka.New(cfg.KafkaBrokers, "tbp-api", 30*time.Second)
+func (a *App) kafkaRelay(r resources, m modules, cfg config.Config, logger *slog.Logger, amqpTLS *tls.Config) (readiness.Probe, error) {
+	kafkaTLS, err := tlsconfig.ClientWhen(cfg.KafkaTLS, cfg.KafkaTLSCAFile)
+	if err != nil {
+		return nil, err
+	}
+	producer, err := kafka.New(cfg.KafkaBrokers, "tbp-api", 30*time.Second, kafka.Security{
+		TLS: kafkaTLS, SASLMechanism: cfg.KafkaSASLMechanism, Username: cfg.KafkaSASLUsername, Password: cfg.KafkaSASLPassword,
+	})
 	if err != nil {
 		return nil, err
 	}
 	a.closers = append(a.closers, producer.Close)
 	r.readiness.Optional(healthdto.ProbeKafka, producer.Ping)
 	relay := bookkeepingapp.NewLedgerEventRelay(m.bookkeepingAccounts, bookkeepingkafka.NewEventPublisher(producer, cfg.KafkaEventsTopic))
-	a.relay = cdc.NewConsumer(cdc.Options{URL: cfg.CDCAMQPURL, Queue: cfg.CDCQueue, Relay: relay, Logger: logger})
+	a.relay = cdc.NewConsumer(cdc.Options{URL: cfg.CDCAMQPURL, Queue: cfg.CDCQueue, Relay: relay, Logger: logger, TLS: amqpTLS})
 	return a.relay.Ready, nil
 }
 

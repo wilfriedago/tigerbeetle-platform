@@ -77,6 +77,7 @@ func Build(ctx context.Context, cfg config.Config, svc Service, logger *slog.Log
 	if err != nil {
 		return nil, err
 	}
+	r.readiness.Optional(healthdto.ProbeKeycloak, verifier.Ready)
 	signIn, err := consoleSignIn(cfg, verifier, m)
 	if err != nil {
 		return nil, err
@@ -84,7 +85,9 @@ func Build(ctx context.Context, cfg config.Config, svc Service, logger *slog.Log
 	health := healthSource(r, cfg, svc)
 	a.handler = httpHandler(health, m, cfg, logger, auth, signIn)
 	if cfg.GRPCEnabled {
-		a.grpc = grpcServer(health, m, cfg, logger, auth)
+		if a.grpc, err = grpcServer(health, m, cfg, logger, auth); err != nil {
+			return nil, err
+		}
 	}
 	if err := a.brokerServers(r, health, m, cfg, logger, auth); err != nil {
 		return nil, err

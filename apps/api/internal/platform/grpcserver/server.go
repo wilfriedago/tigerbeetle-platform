@@ -5,11 +5,14 @@ package grpcserver
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"time"
+
+	"google.golang.org/grpc/credentials"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -24,6 +27,8 @@ type Options struct {
 	Reflection bool
 	// Auth authenticates every call except health and reflection (ADR-0032).
 	Auth Authenticator
+	// TLS serves TLS with its certificate; nil serves plaintext, for a TLS-terminating proxy.
+	TLS *tls.Config
 }
 
 // Server is a grpc.Server with the platform's interceptors. Services register on it before Run.
@@ -36,14 +41,18 @@ type Server struct {
 // error mapping, panic recovery, authentication; so a panic becomes an error, a refused credential
 // and any other error become a status with details, and the log line sees the final code.
 func New(opts Options) *Server {
-	srv := grpc.NewServer(
+	var serverOpts []grpc.ServerOption
+	if opts.TLS != nil {
+		serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(opts.TLS)))
+	}
+	srv := grpc.NewServer(append(serverOpts,
 		grpc.ChainUnaryInterceptor(
 			unaryRequestID(opts.Logger), unaryAccessLog, unaryErrors, unaryRecover, unaryAuth(opts.Auth),
 		),
 		grpc.ChainStreamInterceptor(
 			streamRequestID(opts.Logger), streamAccessLog, streamErrors, streamRecover, streamAuth(opts.Auth),
 		),
-	)
+	)...)
 	return &Server{srv: srv, opts: opts}
 }
 

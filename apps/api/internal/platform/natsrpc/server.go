@@ -7,6 +7,7 @@ package natsrpc
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -42,6 +43,8 @@ type Options struct {
 	Router          *rpc.Router
 	Dispatcher      *rpc.Dispatcher
 	Logger          *slog.Logger
+	// TLS secures the connection; nil keeps the URL's scheme (tls:// turns TLS on).
+	TLS *tls.Config
 }
 
 // Server is the micro service.
@@ -54,7 +57,12 @@ type Server struct {
 // New connects and registers every method of the router as an endpoint. The connection keeps
 // retrying, also when NATS is down at start-up; readiness reports it down meanwhile.
 func New(opts Options) (*Server, error) {
+	secure := func(*nats.Options) error { return nil }
+	if opts.TLS != nil {
+		secure = nats.Secure(opts.TLS)
+	}
 	nc, err := nats.Connect(opts.URL,
+		secure,
 		nats.Name("tbp-api rpc"),
 		nats.RetryOnFailedConnect(true),
 		nats.MaxReconnects(-1),

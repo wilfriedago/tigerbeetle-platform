@@ -19,7 +19,7 @@ func TestProduce(t *testing.T) {
 	broker := devstack.StartKafka(t)
 	t.Logf("kafka ready in %v", time.Since(start).Round(time.Millisecond))
 
-	p, err := New([]string{broker}, "test", 30*time.Second)
+	p, err := New([]string{broker}, "test", 30*time.Second, Security{})
 	if err != nil {
 		t.Fatal(err)
 	}

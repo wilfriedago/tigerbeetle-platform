@@ -50,6 +50,8 @@ type Verifier struct {
 	// ctx carries the HTTP client and the issuer override for later calls to the provider.
 	ctx context.Context
 	cfg Config
+	// discovery is the address the provider is read at, for the readiness probe.
+	discovery string
 }
 
 // New reads the provider's discovery document and returns a verifier. The keys are fetched on
@@ -81,7 +83,30 @@ func New(ctx context.Context, cfg Config) (*Verifier, error) {
 		SupportedSigningAlgs: []string{gooidc.RS256, gooidc.RS384, gooidc.RS512, gooidc.ES256, gooidc.ES384, gooidc.ES512, gooidc.PS256, gooidc.PS384, gooidc.PS512},
 		Now:                  func() time.Time { return time.Now().Add(-clockSkew) },
 	})
-	return &Verifier{verifier: v, provider: provider, ctx: ctx, cfg: cfg}, nil
+	return &Verifier{verifier: v, provider: provider, ctx: ctx, cfg: cfg, discovery: discovery}, nil
+}
+
+// Ready probes the provider's discovery document, for /readyz. When the provider does not
+// answer, tokens signed with keys already fetched still verify, but nobody can sign in and a new
+// signing key cannot be fetched, so it is reported, not fatal.
+func (v *Verifier) Ready(ctx context.Context) error {
+	client := v.cfg.HTTPClient
+	if client == nil {
+		client = http.DefaultClient
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimSuffix(v.discovery, "/")+"/.well-known/openid-configuration", http.NoBody)
+	if err != nil {
+		return fmt.Errorf("oidc: probe: %w", err)
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("oidc: probe: %w", err)
+	}
+	_ = res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("oidc: probe: status %d", res.StatusCode)
+	}
+	return nil
 }
 
 // Verify checks a raw access token and returns its principal. Every failure is ErrUnauthenticated;
