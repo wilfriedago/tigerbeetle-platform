@@ -191,11 +191,13 @@ of calling Keycloak on every request.
 
 ### 5.3 Members and invitations
 
-- An organization admin invites a person by email from the console. The API asks Keycloak to send
-  the invitation and records the roles the person will get (a pending grant keyed by the email).
-  How a person without an account gets one is question O6.
-- When the person accepts and signs in, the token shows the membership; the API binds the
-  pending grants to the person's subject, but only when the token's email is verified.
+- An organization admin invites a person by email from the console. A person with an account
+  gets Keycloak's invitation; a person without one gets an account created by the API, added to
+  the organization, and one email to verify the address and set a password (O6, settled in
+  ADR-0027).
+- Deviation: the API knows the person's Keycloak ID in both cases, so the roles are granted to
+  that subject at once instead of a pending grant keyed by the email. The grant does nothing until
+  the organization is in the person's token.
 - Removing a member removes them from the Keycloak organization and deletes their grants in that
   organization.
 - The members page lists Keycloak's members of the organization with the platform's roles next to
@@ -601,6 +603,9 @@ Assumed from the first proposal, accepted with the approval:
 
 Open, raised by section 4.3:
 
+- O6, settled by the phase 5 spike (ADR-0027): the API creates the account and Keycloak emails
+  the required actions; Keycloak's own registration link would have made a managed member. The
+  original question follows.
 - O6 Inviting a person who has no account yet. Keycloak's invitation then sends a registration
   link, which may need self-registration switched on for the whole realm (unverified). Either
   allow that (simplest; an account with no organization sees nothing), or have the API create the

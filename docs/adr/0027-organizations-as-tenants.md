@@ -70,6 +70,23 @@ Chosen option: 1.
 - TigerBeetle is unchanged: ledger numbers are allocated per (ledger, asset) from one sequence,
   so they are unique across the cluster, and transfers cannot cross TigerBeetle ledgers.
 - Pre-alpha data moves into an organization with the alias `default`.
+- Inviting a person (question O6 of the plan, settled by a spike against Keycloak 26.8.1 on
+  2026-10-26). The API looks the email up among Keycloak's users:
+  - When the person has an account, Keycloak's `invite-existing-user` sends the invitation. The
+    link in the email makes them a member when followed, without signing in, and the membership
+    is unmanaged. Until then Keycloak lists the invitation, which can be resent or deleted.
+  - When they have none, the API creates the account (the email as username, not yet verified),
+    adds it to the organization as an unmanaged member, and asks Keycloak to email the required
+    actions `VERIFY_EMAIL` and `UPDATE_PASSWORD`. Following that one link verifies the address
+    and sets the password. There is no public registration page.
+  - Keycloak's `invite-user` for an unknown email was rejected: its link opens registration even
+    with self-registration off, but the account it creates is a managed member (removing the
+    membership deletes the account), its email stays unverified, and the person picks their own
+    username.
+  - Either way the API knows the person's Keycloak ID, the subject of their tokens, so their roles
+    are granted to that subject at once, not kept as pending grants keyed by email. A grant does
+    nothing until the person is a member: the organization must be in their token's claim before
+    a call can name it.
 
 ### Consequences
 
