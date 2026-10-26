@@ -141,19 +141,23 @@ services:
       retries: 20
       start_period: 5s
 
-  # Pre-alpha seed of the platform's copies of the realm's organizations, until staff create
-  # organizations through the API (docs/plans/auth/plan.md, phase 5). "default" comes with
-  # migration 00009. Runs once the API has migrated the database.
+  # Pre-alpha seed, until staff create organizations and invite members through the API
+  # (docs/plans/auth/plan.md, phase 5): the platform's copies of the realm's organizations
+  # ("default" comes with migration 00009) and the organization roles of the dev users, whose
+  # Keycloak IDs are fixed in keycloak/realm.json. Runs once the API has migrated the database.
   organizations-seed:
     image: postgres:18.6-trixie
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD:-ledger}
+      ISSUER: http://localhost:${KEYCLOAK_PORT:-18080}/realms/tbp
     command:
-      - psql
-      - --host=postgres
-      - --username=${POSTGRES_USER:-ledger}
-      - --dbname=${POSTGRES_DB:-ledger}
-      - --command=INSERT INTO organizations (id, alias, name) VALUES ('00000000-0000-0000-0000-00000000ac3e', 'acme', 'Acme'), ('00000000-0000-0000-0000-0000000061b0', 'globex', 'Globex') ON CONFLICT DO NOTHING
+      - sh
+      - -c
+      - >-
+        psql --host=postgres --username=${POSTGRES_USER:-ledger} --dbname=${POSTGRES_DB:-ledger}
+        --set=ON_ERROR_STOP=1 --set=issuer="$$ISSUER" --file=/seed/dev-seed.sql
+    volumes:
+      - ./deploy/compose/dev-seed.sql:/seed/dev-seed.sql:ro
     depends_on:
       api:
         condition: service_healthy
