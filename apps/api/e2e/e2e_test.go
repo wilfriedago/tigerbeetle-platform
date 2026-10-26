@@ -46,8 +46,8 @@ func env(name, fallback string) string {
 var (
 	apiURL   = env("E2E_API_URL", "http://localhost:8080")
 	grpcAddr = env("E2E_GRPC_ADDR", "localhost:9090")
-	amqpURL  = env("E2E_AMQP_URL", "amqp://guest:guest@localhost:5672/")
-	natsURL  = env("E2E_NATS_URL", "nats://localhost:4222")
+	amqpURL  = env("E2E_AMQP_URL", "amqp://tbp-service:tbp-service-dev@localhost:5672/")
+	natsURL  = env("E2E_NATS_URL", "nats://tbp-service:tbp-service-dev@localhost:4222")
 	// keycloakURL is the realm of deploy/compose/keycloak/realm.json.
 	keycloakURL = env("E2E_KEYCLOAK_URL", "http://localhost:18080/realms/tbp")
 )
