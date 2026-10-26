@@ -1,0 +1,17 @@
+# Use this workspace to collaborate
+workspace:
+  id: 86298dac-d5db-4bb4-80bc-84ea56112a7a
+
+localResources:
+  specs:
+    - ../packages/graphql/schema.graphql
+    - ../packages/openapi/openapi.yaml
+    - ../packages/proto/tigerbeetle/platform/v1/accounts.proto
+    - ../packages/proto/tigerbeetle/platform/v1/holds.proto
+    - ../packages/proto/tigerbeetle/platform/v1/ledgers.proto
+    - ../packages/proto/tigerbeetle/platform/v1/operations.proto
+    - ../packages/proto/tigerbeetle/platform/v1/requests.proto
+    - ../packages/proto/tigerbeetle/platform/v1/settings.proto
+    - ../packages/proto/tigerbeetle/platform/v1/transactions.proto
+    - ../apps/api/internal/platform/graphqlschema/testdata/empty.graphql
+    - ../apps/api/internal/platform/graphqlschema/testdata/fixtures.graphql

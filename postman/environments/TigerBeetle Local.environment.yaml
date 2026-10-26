@@ -1,0 +1,26 @@
+name: TigerBeetle Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:8080'
+    enabled: true
+    description: Local dev server base URL
+  - key: ledger
+    value: main
+    enabled: true
+    description: Default ledger name
+  - key: address
+    value: 'users:1234:wallet'
+    enabled: true
+    description: Sample account address
+  - key: transactionId
+    value: ''
+    enabled: true
+    description: Filled by test scripts after creating a transaction
+  - key: holdId
+    value: ''
+    enabled: true
+    description: Filled by test scripts after creating a hold
+  - key: rulePattern
+    value: 'users:*'
+    enabled: true
+    description: Account address glob pattern for rules

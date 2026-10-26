@@ -1,0 +1,15 @@
+$kind: collection
+description: |-
+  REST API collection for the TigerBeetle Platform — a Go API in front of TigerBeetle with
+  Postgres for metadata. Covers ledgers, accounts, transactions, holds, rules, assets, event
+  types, write requests and system endpoints.
+
+  Base URL: [http://localhost:8080](http://localhost:8080)
+  OpenAPI spec: packages/openapi/openapi.yaml
+variables:
+  baseUrl: http://localhost:8080
+  ledger: main
+  address: users:1234:wallet
+  transactionId: ''
+  holdId: ''
+  rulePattern: users:*

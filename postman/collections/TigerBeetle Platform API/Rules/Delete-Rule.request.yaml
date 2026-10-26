@@ -1,0 +1,11 @@
+$kind: http-request
+name: Delete Rule
+order: 4000
+method: DELETE
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/rules/{{rulePattern}}'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+  - key: pattern
+    value: '{{rulePattern}}'
+    description: 'Address glob pattern, e.g. users:*'

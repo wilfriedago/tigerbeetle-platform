@@ -1,0 +1,11 @@
+$kind: http-request
+name: Get Transaction
+order: 3000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/transactions/{{transactionId}}'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+  - key: id
+    value: '{{transactionId}}'
+    description: The transaction UUID

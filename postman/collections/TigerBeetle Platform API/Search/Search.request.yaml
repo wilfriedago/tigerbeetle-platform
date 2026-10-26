@@ -1,0 +1,19 @@
+$kind: http-request
+name: Search Ledger
+order: 1000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/search'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+queryParams:
+  - key: q
+    value: ''
+    description: Free-text search query
+    disabled: true
+  - key: cursor
+    value: ''
+    disabled: true
+  - key: limit
+    value: '25'
+    disabled: true

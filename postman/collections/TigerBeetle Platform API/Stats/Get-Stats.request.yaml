@@ -1,0 +1,8 @@
+$kind: http-request
+name: Get Ledger Stats
+order: 1000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/stats'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'

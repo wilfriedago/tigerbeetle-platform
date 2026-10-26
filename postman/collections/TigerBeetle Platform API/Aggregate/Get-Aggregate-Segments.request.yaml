@@ -1,0 +1,17 @@
+$kind: http-request
+name: Get Aggregate Segments
+order: 2000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/aggregate/segments'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+queryParams:
+  - key: prefix
+    value: 'users:'
+    description: 'Address prefix to segment beneath'
+    disabled: true
+  - key: asset
+    value: 'EUR/2'
+    description: 'Filter by asset (CODE/SCALE)'
+    disabled: true

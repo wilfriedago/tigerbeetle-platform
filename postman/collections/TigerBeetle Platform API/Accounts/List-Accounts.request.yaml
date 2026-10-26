@@ -1,0 +1,25 @@
+$kind: http-request
+name: List Accounts
+order: 1000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/accounts'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+queryParams:
+  - key: prefix
+    value: 'users:'
+    description: Only addresses equal to or below this prefix (on whole segments)
+    disabled: true
+  - key: search
+    value: ''
+    description: Address prefix for autocompletion / picker
+    disabled: true
+  - key: cursor
+    value: ''
+    description: Opaque pagination cursor from `next`
+    disabled: true
+  - key: limit
+    value: '25'
+    description: 'Page size (1–100)'
+    disabled: true

@@ -1,0 +1,18 @@
+$kind: http-request
+name: Create Event Type
+order: 2000
+method: POST
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/event-types'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "transfer",
+      "code": 1000
+    }

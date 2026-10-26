@@ -1,0 +1,23 @@
+$kind: http-request
+name: List Holds
+order: 1000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/holds'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+queryParams:
+  - key: address
+    value: '{{address}}'
+    description: Filter by source or destination address prefix
+    disabled: true
+  - key: asset
+    value: 'EUR/2'
+    description: 'Filter by asset (CODE/SCALE)'
+    disabled: true
+  - key: cursor
+    value: ''
+    disabled: true
+  - key: limit
+    value: '25'
+    disabled: true

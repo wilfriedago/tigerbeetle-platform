@@ -1,0 +1,15 @@
+$kind: http-request
+name: List Write Requests
+order: 1000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/requests'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+queryParams:
+  - key: cursor
+    value: ''
+    disabled: true
+  - key: limit
+    value: '25'
+    disabled: true

@@ -1,0 +1,11 @@
+$kind: http-request
+name: Get Hold
+order: 3000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/holds/{{holdId}}'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+  - key: id
+    value: '{{holdId}}'
+    description: The hold UUID

@@ -1,0 +1,29 @@
+$kind: http-request
+name: Get Account History
+order: 3000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/accounts/{{address}}/history'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+  - key: address
+    value: '{{address}}'
+queryParams:
+  - key: asset
+    value: 'EUR/2'
+    description: 'Filter by asset (CODE/SCALE)'
+    disabled: true
+  - key: after
+    value: ''
+    description: Committed at or after this ISO-8601 datetime
+    disabled: true
+  - key: before
+    value: ''
+    description: Committed before this ISO-8601 datetime
+    disabled: true
+  - key: cursor
+    value: ''
+    disabled: true
+  - key: limit
+    value: '25'
+    disabled: true
