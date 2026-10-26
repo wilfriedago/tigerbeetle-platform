@@ -47,7 +47,9 @@ func serve(t *testing.T, f fakeLedgers, method, path, body string) *httptest.Res
 	Register(api, Deps{LedgerCommands: f, LedgerQueries: f, SettingsCommands: f})
 	h := restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), authntest.Default())
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(method, path, strings.NewReader(body)))
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	h.ServeHTTP(rec, req)
 	return rec
 }
 

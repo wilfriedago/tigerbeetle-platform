@@ -23,12 +23,13 @@ type Authenticator interface {
 }
 
 // Handler wraps mux, on which NewAPI registered the operations, with the standard-library
-// middleware every request goes through: request ID, access log, panic recovery, authentication,
-// JSON bodies and problem+json answers for unknown routes. Huma does no routing of its own; the
+// middleware every request goes through: request ID, access log, panic recovery, authentication
+// and problem+json answers for unknown routes. A body must say it is JSON: anything else answers
+// 415, which also keeps cross-site form posts away from cookie sessions (ADR-0031). Huma does no routing of its own; the
 // ServeMux does. The public paths, such as the health probes, need no credential.
 func Handler(mux *http.ServeMux, logger *slog.Logger, auth Authenticator, public ...string) http.Handler {
 	h := unknownRoutes(mux)
-	h = jsonBodies(h)
+	h = jsonOnly(h)
 	h = authenticate(auth, public)(h)
 	h = recoverPanic(h)
 	h = accessLog(h)
@@ -154,14 +155,17 @@ func recoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-// jsonBodies keeps today's handling of request bodies. Every body is JSON, and the previous
-// server decoded it as JSON whatever its Content-Type, so `curl -d '{...}'`, which sends
-// application/x-www-form-urlencoded, worked. Huma picks the decoder by Content-Type and would
-// answer 415 instead. A stricter answer waits for a new API minor version (plan, question 6).
-func jsonBodies(next http.Handler) http.Handler {
+// jsonOnly answers 415 to a request whose body does not say it is JSON. Every body of the API is
+// JSON; reading a form or text post as JSON would let a page on another site post to the API
+// with the console's session cookie (ADR-0031). It runs in front of REST and GraphQL alike.
+func jsonOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Body != nil && r.Body != http.NoBody && !isJSON(r.Header.Get("Content-Type")) {
-			r.Header.Set("Content-Type", "application/json")
+		if r.Body != nil && r.Body != http.NoBody && r.ContentLength != 0 && !isJSON(r.Header.Get("Content-Type")) {
+			writeProblem(w, r, problem.Problem{
+				Kind: problem.KindInvalid, Reason: "unsupported-media-type", Title: problem.TitleFor("unsupported-media-type"),
+				Status: http.StatusUnsupportedMediaType, Detail: "send the body as application/json", Posting: -1,
+			})
+			return
 		}
 		next.ServeHTTP(w, r)
 	})

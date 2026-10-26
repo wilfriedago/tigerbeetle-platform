@@ -1,6 +1,6 @@
 import { clientConfig } from './config'
 import { ApiError, HttpStatusError, parseRetryAfter, problemFrom } from './errors'
-import { REQUEST_ID_HEADER, requestHeaders } from './headers'
+import { ORGANIZATION_HEADER, REQUEST_ID_HEADER, requestHeaders } from './headers'
 
 const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 const RETRY_STATUSES = new Set([502, 503, 504])
@@ -38,6 +38,15 @@ async function send<T>(url: string, init: RequestInit, policy: Policy): Promise<
   const retries = IDEMPOTENT_METHODS.has(method) ? (policy.retries ?? config.retries) : 0
   // One request ID for the call, so the logs show its retries together.
   const headers = requestHeaders(init.headers, config.requestId())
+  if (config.organization && !headers.has(ORGANIZATION_HEADER)) {
+    headers.set(ORGANIZATION_HEADER, config.organization)
+  }
+  if (config.accessToken && !headers.has('Authorization')) {
+    const token = await config.accessToken()
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`)
+    }
+  }
   const target = config.baseUrl.replace(/\/+$/, '') + url
   for (let attempt = 0; ; attempt++) {
     const timeout = AbortSignal.timeout(config.timeoutMs)

@@ -1,6 +1,9 @@
 /** Header carried on every request and echoed back by the API. */
 export const REQUEST_ID_HEADER = 'X-Request-Id'
 
+/** Header that names the organization a call acts for (ADR-0026). */
+export const ORGANIZATION_HEADER = 'X-Organization'
+
 /** Header that makes a write that moves money safe to retry (ADR-0007). */
 export const IDEMPOTENCY_KEY_HEADER = 'Idempotency-Key'
 

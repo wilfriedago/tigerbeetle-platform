@@ -87,6 +87,9 @@ func do(t *testing.T, h http.Handler, method, path, body string, headers map[str
 		r = strings.NewReader(body)
 	}
 	req := httptest.NewRequest(method, path, r)
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
@@ -286,13 +289,21 @@ func TestValidationStaysInTheDomain(t *testing.T) {
 	}
 }
 
-func TestBodiesAreJSONWhateverTheContentType(t *testing.T) {
+// TestBodiesMustSayTheyAreJSON: a body sent as a form or as text is refused with 415 instead of
+// being read as JSON (ADR-0031), which keeps cross-site form posts away from cookie sessions.
+func TestBodiesMustSayTheyAreJSON(t *testing.T) {
 	t.Parallel()
 	h, _ := newTestHandler(t)
-	for _, ct := range []string{"", "application/x-www-form-urlencoded", "text/plain", "application/json; charset=utf-8"} {
+	tests := map[string]int{
+		"application/json":                  http.StatusCreated,
+		"application/json; charset=utf-8":   http.StatusCreated,
+		"application/x-www-form-urlencoded": http.StatusUnsupportedMediaType,
+		"text/plain":                        http.StatusUnsupportedMediaType,
+	}
+	for ct, want := range tests {
 		rec := do(t, h, http.MethodPost, "/things", `{"code":7}`, map[string]string{"Content-Type": ct})
-		if rec.Code != http.StatusCreated {
-			t.Errorf("Content-Type %q: status = %d, want 201: %s", ct, rec.Code, rec.Body.String())
+		if rec.Code != want {
+			t.Errorf("Content-Type %q: status = %d, want %d: %s", ct, rec.Code, want, rec.Body.String())
 		}
 	}
 }

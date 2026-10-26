@@ -5,3 +5,39 @@
 # that switches on the status must handle the new value.
 GET /readyz added the new `degraded` enum value to the `status` response property for the response status `200`
 GET /readyz added the new `degraded` enum value to the `status` response property for the response status `503`
+
+# ADR-0025, ADR-0031: every operation except the health probes needs a bearer token (SpecVersion
+# 0.2.0, pre-alpha); a client without one gets 401.
+GET /v1/_info the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/_reconciler the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger} the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+POST /v1/ledgers/{ledger} the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/accounts the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/accounts/{address} the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/accounts/{address}/history the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+PUT /v1/ledgers/{ledger}/accounts/{address}/metadata the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/aggregate/balances the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/aggregate/segments the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/assets the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/event-types the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+POST /v1/ledgers/{ledger}/event-types the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/holds the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+POST /v1/ledgers/{ledger}/holds the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/holds/{id} the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+POST /v1/ledgers/{ledger}/holds/{id}/capture the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+POST /v1/ledgers/{ledger}/holds/{id}/void the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+PUT /v1/ledgers/{ledger}/metadata the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/requests the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/requests/{key} the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/rules the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/rules/match the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+DELETE /v1/ledgers/{ledger}/rules/{pattern} the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+PUT /v1/ledgers/{ledger}/rules/{pattern} the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/search the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/stats the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/transactions the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+POST /v1/ledgers/{ledger}/transactions the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+GET /v1/ledgers/{ledger}/transactions/{id} the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+PUT /v1/ledgers/{ledger}/transactions/{id}/metadata the endpoint no longer allows anonymous access and now only accepts `bearerAuth`
+POST /v1/ledgers/{ledger}/transactions/{id}/revert the endpoint no longer allows anonymous access and now only accepts `bearerAuth`

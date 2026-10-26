@@ -90,6 +90,27 @@ describe('fetcher', () => {
     expect(header(calls[0], 'Accept')).toBe('application/json, application/problem+json')
   })
 
+  it('sends the access token and the organization of the configuration (ADR-0025, ADR-0026)', async () => {
+    const { calls, fetch } = fakeFetch(json(200, {}), json(200, {}))
+    let token = 'first'
+    configureClient({ accessToken: () => token, baseUrl: 'http://api.test', fetch, organization: 'acme' })
+    await fetcher('/v1/ledgers')
+    token = 'refreshed'
+    await fetcher('/v1/ledgers', { headers: { 'X-Organization': 'globex' } })
+    expect(header(calls[0], 'Authorization')).toBe('Bearer first')
+    expect(header(calls[0], 'X-Organization')).toBe('acme')
+    expect(header(calls[1], 'Authorization')).toBe('Bearer refreshed')
+    expect(header(calls[1], 'X-Organization')).toBe('globex')
+  })
+
+  it('sends no Authorization without an access token, as behind a cookie session', async () => {
+    const { calls, fetch } = fakeFetch(json(200, {}))
+    configure(fetch)
+    await fetcher('/v1/ledgers')
+    expect(header(calls[0], 'Authorization')).toBeNull()
+    expect(header(calls[0], 'X-Organization')).toBeNull()
+  })
+
   it('resolves an empty answer, such as a 204, with undefined', async () => {
     const { fetch } = fakeFetch(new Response(null, { status: 204 }))
     configure(fetch)

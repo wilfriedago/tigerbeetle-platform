@@ -31,7 +31,7 @@ type handlers struct {
 func Register(api huma.API, deps Deps) {
 	h := &handlers{source: deps}
 	tags := []string{"operations"}
-	restapi.Register(api, huma.Operation{
+	restapi.RegisterPublic(api, huma.Operation{
 		OperationID: "getLiveness", Method: http.MethodGet, Path: "/healthz", Tags: tags,
 		Summary:     "Liveness probe",
 		Description: "Returns 200 as soon as the process serves HTTP. It does not check dependencies.",
@@ -41,7 +41,7 @@ func Register(api huma.API, deps Deps) {
 	responses := restapi.Success(http.StatusOK, "Every required dependency is reachable.")
 	responses["503"] = restapi.ProblemWith[notReady](api,
 		"A required dependency is unreachable: a `not-ready` problem whose `dependencies` reports each one.")
-	restapi.Register(api, huma.Operation{
+	restapi.RegisterPublic(api, huma.Operation{
 		OperationID: "getReadiness", Method: http.MethodGet, Path: "/readyz", Tags: tags,
 		Summary: "Readiness probe",
 		Description: "Checks Postgres and TigerBeetle with a short timeout and reports each one. Returns a\n" +

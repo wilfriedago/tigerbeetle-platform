@@ -101,8 +101,17 @@ func TestReplayPinsTheWire(t *testing.T) {
 			wantProblem: &wireProblem{Type: problem.TypeOf("missing-idempotency-key"), Title: "Idempotency-Key required", Status: 400, Detail: missingKey},
 		},
 		{
-			name: "fund, with a form Content-Type as curl -d sends", method: http.MethodPost, path: base + "/transactions", body: fund,
-			headers:    map[string]string{"Idempotency-Key": "fund-1", "Content-Type": "application/x-www-form-urlencoded"},
+			name: "a form Content-Type, as curl -d sends without -H, is refused", method: http.MethodPost, path: base + "/transactions", body: fund,
+			headers:    map[string]string{"Idempotency-Key": "fund-0", "Content-Type": "application/x-www-form-urlencoded"},
+			wantStatus: 415,
+			wantProblem: &wireProblem{
+				Type: "/problems/unsupported-media-type", Title: "Unsupported media type", Status: 415,
+				Detail: "send the body as application/json",
+			},
+		},
+		{
+			name: "fund", method: http.MethodPost, path: base + "/transactions", body: fund,
+			headers:    map[string]string{"Idempotency-Key": "fund-1", "Content-Type": "application/json"},
 			wantStatus: 201,
 		},
 		{

@@ -19,6 +19,20 @@ import (
 // in the spec document what the domain checks. Huma still reports values it cannot decode, such
 // as limit=abc, and a missing required body.
 func Register[I, O any](api huma.API, op huma.Operation, handler func(context.Context, *I) (*O, error)) {
+	// Every operation needs a bearer token (ADR-0025) and may name the organization it acts for
+	// (ADR-0026), except the public ones registered with RegisterPublic.
+	op.Security = []map[string][]string{{SecurityScheme: {}}}
+	op.Parameters = append(op.Parameters, organizationParam())
+	register(api, op, handler)
+}
+
+// RegisterPublic adds an operation that needs no credential: the health probes, which
+// orchestrators and load balancers call. The middleware's public paths must list its path too.
+func RegisterPublic[I, O any](api huma.API, op huma.Operation, handler func(context.Context, *I) (*O, error)) {
+	register(api, op, handler)
+}
+
+func register[I, O any](api huma.API, op huma.Operation, handler func(context.Context, *I) (*O, error)) {
 	if op.Responses == nil {
 		op.Responses = map[string]*huma.Response{}
 	}
@@ -58,6 +72,18 @@ func ProblemWith[T any](api huma.API, description string) *huma.Response {
 		Content: map[string]*huma.MediaType{problemMediaType: {Schema: &huma.Schema{
 			AllOf: []*huma.Schema{(*Error)(nil).Schema(registry), members},
 		}}},
+	}
+}
+
+// organizationParam documents the X-Organization request header.
+func organizationParam() *huma.Param {
+	maxLength := 63
+	return &huma.Param{
+		Name: OrganizationHeader, In: "header",
+		Description: "The alias of the organization the call acts for. A person sends it on every call about a " +
+			"ledger and must be a member of the organization; an organization that is not one of theirs answers " +
+			"404. API keys and machine clients belong to one organization and need not send it.",
+		Schema: &huma.Schema{Type: huma.TypeString, MaxLength: &maxLength},
 	}
 }
 
