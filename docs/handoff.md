@@ -1,10 +1,35 @@
 # Handoff
 
-Updated on 2026-10-25 for the next coding agent. It records what exists, what was verified, what
+Updated on 2026-10-26 for the next coding agent. It records what exists, what was verified, what
 was decided along the way, and what to do next. Read AGENTS.md first for the conventions; read
 this file for the state of the work.
 
 ## Where things stand
+
+### Authentication, authorization and multi-tenancy (in progress)
+
+Planned in `docs/plans/auth/plan.md`, approved by the owner on 2026-10-26, on the branch
+`feat/auth` (worktree `../tigerbeetle-platform-worktrees/auth`, so the owner's uncommitted edits
+in the main checkout stay untouched). ADR-0025 to ADR-0031 record the decisions.
+
+- Phase 0 (documentation) is done: the plan, ADR-0025 to ADR-0031, the amended status lines, and
+  pointers in AGENTS.md and docs/architecture.md.
+- Phase 1 (tenancy in the data model) is done, from 1ff1797:
+  - Migration 00009: `organizations`, and `organization_id` leading the keys of `ledgers` and the
+    eight tables that name a ledger. Pre-alpha data is in the organization `default`
+    (`ledger.DefaultOrganizationID`, `00000000-0000-0000-0000-000000000001`).
+  - `ledger.Tenant` travels in the context; repositories read it with `platformpg.TenantOf` and
+    fail closed without one. Until phase 2, the HTTP middleware, the gRPC interceptors and the
+    RPC dispatcher put `ledger.DefaultTenant` in every context.
+  - Write records carry their organization; the reconciler settles each record inside it.
+  - `apps/api/migrations/tenancy_test.go` fails when a query touches a tenant table without
+    `organization_id`; `-- tenant-free:` comments mark the four queries that may cross.
+  - Deviation from the plan, recorded in ADR-0026: composite keys and the tenant from the
+    context, not a platform-wide ledger ID (that would have changed about 350 signatures).
+  - Verified: `just lint`, Go unit and integration tests (with an isolation test per store),
+    `just generate-check`. Not run: the e2e suite against the compose stack.
+  - Known gap for phase 3: the reconciler status (`getReconcilerStatus`) still counts pending
+    writes across every organization; it must be filtered by tenant once tenants are real.
 
 A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
 owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the
