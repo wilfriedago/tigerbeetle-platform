@@ -30,6 +30,30 @@ in the main checkout stay untouched). ADR-0025 to ADR-0031 record the decisions.
     `just generate-check`. Not run: the e2e suite against the compose stack.
   - Known gap for phase 3: the reconciler status (`getReconcilerStatus`) still counts pending
     writes across every organization; it must be filtered by tenant once tenants are real.
+- Phase 2 (authentication) is done, from 203e51d:
+  - Every call except liveness, readiness, gRPC health and reflection carries a bearer token,
+    verified by `internal/platform/oidc` (go-oidc v3.21.0) and turned into a principal and a
+    tenant by `internal/platform/authn`, on REST, GraphQL, gRPC, AMQP RPC and NATS RPC alike.
+    The tenant comes from `X-Organization` (gRPC `x-organization`, broker `organization`),
+    checked against the token's `organization` claim; anything else is 404
+    organization-not-found, a suspended organization 403, a ledger call without one 400.
+  - The access module resolves aliases to the platform's `organizations` rows.
+  - The local stack runs Keycloak 26.8.1 (port 18080, admin / admin, realm `tbp` from
+    `deploy/compose/keycloak/realm.json`, every user's password `password`) and Mailpit (18025).
+    Keycloak names `http://localhost:18080` in tokens; the API reads discovery at
+    `http://keycloak:8080` (`AUTH_DISCOVERY_URL`). Requesting the scope `organization:*` gives
+    the list of a person's organization aliases, verified against Keycloak on 2026-10-26.
+  - The one-shot `organizations-seed` service inserts the platform rows of acme and globex until
+    staff create organizations (phase 5).
+  - The e2e suite and `scripts/seed-demo.sh` sign in as ada through the development-only client
+    `tbp-cli` (password grant). Verified: `just lint`, Go unit and integration tests (with
+    `TestAuthenticationEndToEnd`), and `just test-e2e` against a second compose stack.
+  - Running a second stack next to the main one needs another subnet: the compose network pins
+    `172.30.231.0/24` for the CDC job. An override file with `172.30.232.0/24` for the network,
+    TigerBeetle and RabbitMQ, plus other host ports and `COMPOSE_PROJECT_NAME`, works.
+  - The console cannot sign in until phase 4: its calls now answer 401.
+  - Deferred to phase 7: `/readyz` reporting Keycloak (it changes the readiness payload of
+    REST, GraphQL and gRPC).
 
 A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
 owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the
