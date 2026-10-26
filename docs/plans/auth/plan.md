@@ -516,13 +516,13 @@ rows is required at startup.
 
 | ADR  | Title                                                                               | Relation                                                                             |
 | ---- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| 0025 | Identity from Keycloak through standard OpenID Connect                              | New. Sections 3 and 4; the vendor confined to one adapter.                           |
-| 0026 | Organizations as tenants, owned by Keycloak Organizations; ledgers per organization | New. Section 5. Amends 0002 (the platform's tables) and 0004 (ledger names).         |
-| 0027 | Authorization: platform grants enforced in the application layer                    | New. Section 6.4 to 6.6. Amends 0017 (the access module and its rules).              |
-| 0028 | Machine access: API keys and OAuth machine clients                                  | New. Section 6.8.                                                                    |
-| 0029 | Console sessions through a backend-for-frontend                                     | Amends 0014 and 0023 (sign-in, organization in the URL, permission-aware pages).     |
-| 0030 | Idempotency keys belong to the principal that used them                             | Amends 0007 and 0024.                                                                |
-| 0031 | Authenticated transports and stricter request bodies                                | Amends 0018 (security scheme, header, 415), 0021 (exposure) and 0022 (event fields). |
+| 0026 | Identity from Keycloak through standard OpenID Connect                              | New. Sections 3 and 4; the vendor confined to one adapter.                           |
+| 0027 | Organizations as tenants, owned by Keycloak Organizations; ledgers per organization | New. Section 5. Amends 0002 (the platform's tables) and 0004 (ledger names).         |
+| 0028 | Authorization: platform grants enforced in the application layer                    | New. Section 6.4 to 6.6. Amends 0017 (the access module and its rules).              |
+| 0029 | Machine access: API keys and OAuth machine clients                                  | New. Section 6.8.                                                                    |
+| 0030 | Console sessions through a backend-for-frontend                                     | Amends 0014 and 0023 (sign-in, organization in the URL, permission-aware pages).     |
+| 0031 | Idempotency keys belong to the principal that used them                             | Amends 0007 and 0024.                                                                |
+| 0032 | Authenticated transports and stricter request bodies                                | Amends 0018 (security scheme, header, 415), 0021 (exposure) and 0022 (event fields). |
 
 ## 10. Phases
 
