@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"strings"
 
 	accessapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/application"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/web"
@@ -36,7 +37,11 @@ func consoleSignIn(cfg config.Config, verifier *oidc.Verifier, m modules) (*cons
 	sessions := accessapp.NewSessions(m.accessDeps, accessapp.SessionDeps{
 		IdentityProvider: identityProvider{client: client}, Tokens: verifier, Sealer: box,
 	})
-	return &console{sessions: sessions, web: web.Config{Secure: cfg.AuthCookieSecure, ConsoleOrigin: cfg.AuthConsoleOrigin}}, nil
+	return &console{sessions: sessions, web: web.Config{
+		Secure: cfg.AuthCookieSecure, ConsoleOrigin: cfg.AuthConsoleOrigin,
+		// Keycloak's account console lives under the realm; another provider would be configured.
+		AccountURL: strings.TrimSuffix(cfg.AuthIssuerURL, "/") + "/account",
+	}}, nil
 }
 
 // identityProvider adapts the platform's OIDC client to the access module's port.

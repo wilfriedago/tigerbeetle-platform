@@ -29,6 +29,9 @@ type Config struct {
 	Secure bool
 	// ConsoleOrigin is where the console runs, such as http://localhost:5173.
 	ConsoleOrigin string
+	// AccountURL is the identity provider's page where people manage their own account:
+	// password, two-factor, sessions. The console links to it.
+	AccountURL string
 }
 
 // SessionCookie is the name of the session cookie.
@@ -98,7 +101,7 @@ func (h handlers) callback(w http.ResponseWriter, r *http.Request) {
 	id, to, err := h.sessions.Complete(r.Context(), cookie.Value, q.Get("code"), q.Get("state"))
 	if err != nil {
 		logging.From(r.Context()).InfoContext(r.Context(), "sign-in failed", slog.Any("error", err))
-		restapi.WriteProblem(w, r, problem.From(err))
+		restapi.WriteProblem(w, r, restapi.Fail(r.Context(), err).Problem)
 		return
 	}
 	h.setCookie(w, h.cfg.SessionCookie(), id, int(application.SessionLifetime.Seconds()))
@@ -115,7 +118,7 @@ func (h handlers) logout(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie(h.cfg.SessionCookie()); err == nil && c.Value != "" {
 		u, err := h.sessions.End(r.Context(), c.Value, h.cfg.ConsoleOrigin+"/")
 		if err != nil {
-			restapi.WriteProblem(w, r, problem.From(err))
+			restapi.WriteProblem(w, r, restapi.Fail(r.Context(), err).Problem)
 			return
 		}
 		logoutURL = u
@@ -129,6 +132,7 @@ type sessionView struct {
 	Subject       string                 `json:"subject"`
 	Name          string                 `json:"name"`
 	Email         string                 `json:"email,omitempty"`
+	AccountURL    string                 `json:"accountUrl,omitempty"`
 	Staff         bool                   `json:"staff"`
 	Organizations []organizationView     `json:"organizations"`
 	Role          ledger.Role            `json:"role,omitempty"`
@@ -136,10 +140,12 @@ type sessionView struct {
 }
 
 type organizationView struct {
-	Alias   string                 `json:"alias"`
-	Name    string                 `json:"name"`
-	Role    ledger.Role            `json:"role,omitempty"`
-	Ledgers map[string]ledger.Role `json:"ledgers"`
+	Alias            string                 `json:"alias"`
+	Name             string                 `json:"name"`
+	Status           string                 `json:"status"`
+	SuspensionReason string                 `json:"suspensionReason,omitempty"`
+	Role             ledger.Role            `json:"role,omitempty"`
+	Ledgers          map[string]ledger.Role `json:"ledgers"`
 }
 
 // session answers who is signed in. The middleware has already authenticated the request with
@@ -147,12 +153,14 @@ type organizationView struct {
 func (h handlers) session(w http.ResponseWriter, r *http.Request) {
 	v, err := h.viewer.Viewer(r.Context())
 	if err != nil {
-		restapi.WriteProblem(w, r, problem.From(err))
+		restapi.WriteProblem(w, r, restapi.Fail(r.Context(), err).Problem)
 		return
 	}
-	out := sessionView{Subject: v.Subject, Name: v.Name, Email: v.Email, Staff: v.Staff, Role: v.Role, Ledgers: v.Ledgers, Organizations: []organizationView{}}
+	out := sessionView{Subject: v.Subject, Name: v.Name, Email: v.Email, AccountURL: h.cfg.AccountURL, Staff: v.Staff, Role: v.Role, Ledgers: v.Ledgers, Organizations: []organizationView{}}
 	for _, o := range v.Organizations {
-		out.Organizations = append(out.Organizations, organizationView{Alias: o.Alias, Name: o.Name, Role: o.Role, Ledgers: o.Ledgers})
+		out.Organizations = append(out.Organizations, organizationView{
+			Alias: o.Alias, Name: o.Name, Status: string(o.Status), SuspensionReason: o.SuspensionReason, Role: o.Role, Ledgers: o.Ledgers,
+		})
 	}
 	writeJSON(w, out)
 }

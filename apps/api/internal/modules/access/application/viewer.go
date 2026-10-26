@@ -32,6 +32,9 @@ type ViewerOrganization struct {
 	Role ledger.Role
 	// Ledgers maps ledger names to the caller's role on them there.
 	Ledgers map[string]ledger.Role
+	// Suspended organizations are listed so the console can say why they refuse every call.
+	Status           domain.OrganizationStatus
+	SuspensionReason string
 }
 
 type viewerQueries struct {
@@ -57,10 +60,10 @@ func (q viewerQueries) Viewer(ctx context.Context) (Viewer, error) {
 		}
 		for i := range orgs {
 			o := &orgs[i]
-			if o.Status != domain.OrganizationActive {
-				continue
+			vo := ViewerOrganization{
+				Alias: o.Alias, Name: o.Name, Ledgers: map[string]ledger.Role{},
+				Status: o.Status, SuspensionReason: o.SuspensionReason,
 			}
-			vo := ViewerOrganization{Alias: o.Alias, Name: o.Name, Ledgers: map[string]ledger.Role{}}
 			for _, g := range across {
 				switch {
 				case g.Alias != o.Alias:
