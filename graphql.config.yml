@@ -1,0 +1,8 @@
+# Read by GraphQL editor tooling (the GraphQL extension for VS Code, the GraphQL plugin of JetBrains
+# IDEs): completion, hover and validation of the console's documents against the schema the API
+# generates. graphql-codegen keeps its own settings in apps/console/codegen.ts; keep the two
+# document globs in step.
+schema: packages/graphql/schema.graphql
+documents:
+  - apps/console/src/**/*.ts
+  - '!apps/console/src/graphql/gen/**'

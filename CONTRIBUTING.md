@@ -24,6 +24,10 @@ scripts/install-tools.sh  # just, golangci-lint, sqlc, govulncheck, oasdiff, buf
 just compose-up           # TigerBeetle, Postgres, API and console in Docker
 ```
 
+Editors complete and check the console's GraphQL documents against the generated schema through
+`graphql.config.yml`: VS Code with the GraphQL extensions `.vscode/extensions.json` recommends,
+JetBrains IDEs with their GraphQL plugin.
+
 ## Commands
 
 Every task is a `just` recipe at the root (ADR-0016); `just --list` prints them with a line each.
