@@ -41,6 +41,20 @@ type Address struct {
 	OrganizationID pgtype.UUID
 }
 
+type ApiKey struct {
+	ID               string
+	OrganizationID   pgtype.UUID
+	Name             string
+	SecretHash       []byte
+	ExpiresAt        pgtype.Timestamptz
+	LastUsedAt       pgtype.Timestamptz
+	RevokedAt        pgtype.Timestamptz
+	CreatedAt        pgtype.Timestamptz
+	CreatedByIssuer  *string
+	CreatedBySubject *string
+	CreatedByName    *string
+}
+
 type EventType struct {
 	Ledger         string
 	Name           string
@@ -95,6 +109,21 @@ type LedgerAsset struct {
 	TbLedger       *int32
 	CreatedAt      pgtype.Timestamptz
 	OrganizationID pgtype.UUID
+}
+
+type MachineClient struct {
+	ClientID         string
+	OrganizationID   pgtype.UUID
+	KeycloakID       pgtype.UUID
+	Subject          string
+	Name             string
+	SecretSetAt      pgtype.Timestamptz
+	LastTokenAt      pgtype.Timestamptz
+	DeletedAt        pgtype.Timestamptz
+	CreatedAt        pgtype.Timestamptz
+	CreatedByIssuer  *string
+	CreatedBySubject *string
+	CreatedByName    *string
 }
 
 type Organization struct {

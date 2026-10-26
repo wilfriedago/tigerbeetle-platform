@@ -21,7 +21,15 @@ type Deps struct {
 	Directory domain.Directory
 	// Ledgers counts ledgers for the staff's pages; without it the counts are zero.
 	Ledgers LedgerCounter
-	Clock   ledger.Clock
+	// APIKeys and MachineClients store the organizations' credentials (ADR-0029).
+	APIKeys        domain.APIKeyRepository
+	MachineClients domain.MachineClientRepository
+	// ClientAdmin creates machine clients in Keycloak; without it they answer 503.
+	ClientAdmin domain.Clients
+	// APIKeyPepper keys the HMAC of API key secrets (AUTH_API_KEY_PEPPER); without it API keys
+	// are off.
+	APIKeyPepper []byte
+	Clock        ledger.Clock
 }
 
 // SessionDeps are what the console's sign-in needs; without them the module has no Sessions.
@@ -40,6 +48,9 @@ type Application struct {
 	// PlatformOrganizations are the staff's.
 	PlatformOrganizations PlatformOrganizations
 	Members               Members
+	Credentials           Credentials
+	// CredentialResolver answers authentication's questions about API keys and machine clients.
+	CredentialResolver CredentialResolver
 }
 
 // New builds the module on its ports.
@@ -50,12 +61,18 @@ func New(d Deps) Application {
 	}
 	authz := authorizer{grants: d.Grants}
 	m := &members{authz: authz, orgs: d.Organizations, grants: d.Grants, dir: dir, clock: d.Clock}
+	c := &credentials{
+		authz: authz, grants: d.Grants, keys: d.APIKeys, clients: d.MachineClients, idp: d.ClientAdmin,
+		dir: dir, orgs: d.Organizations, pepper: d.APIKeyPepper, clock: d.Clock,
+	}
 	return Application{
 		OrganizationQueries:   organizationQueries{orgs: d.Organizations},
 		ViewerQueries:         viewerQueries{orgs: d.Organizations, grants: d.Grants},
 		Authorizer:            authz,
 		PlatformOrganizations: platformOrganizations{authz: authz, orgs: d.Organizations, grants: d.Grants, members: m, ledgers: d.Ledgers},
 		Members:               m,
+		Credentials:           c,
+		CredentialResolver:    credentialResolver{keys: d.APIKeys, clients: d.MachineClients, cred: c, clock: d.Clock},
 	}
 }
 
@@ -75,12 +92,8 @@ func (q organizationQueries) Tenant(ctx context.Context, alias string) (ledger.T
 	if err != nil {
 		return ledger.Tenant{}, fmt.Errorf("access: organization %q: %w", alias, err)
 	}
-	if org.Status == domain.OrganizationSuspended {
-		detail := "the organization " + alias + " is suspended"
-		if org.SuspensionReason != "" {
-			detail += ": " + org.SuspensionReason
-		}
-		return ledger.Tenant{}, ledger.NewProblem(ledger.ErrForbidden, "organization-suspended", detail)
+	if err := suspended(org); err != nil {
+		return ledger.Tenant{}, err
 	}
 	return org.Tenant(), nil
 }

@@ -17,12 +17,12 @@ import (
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 	dto2 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/dto"
-	graphql3 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/graphql"
+	graphql2 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/graphql"
 	dto1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/dto"
 	graphql1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/graphql"
 	dto3 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/dto"
-	graphql2 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/graphql"
+	graphql3 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/graphql"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/graphqlschema"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
@@ -46,6 +46,18 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	APIKey struct {
+		CreatedAt  func(childComplexity int) int
+		CreatedBy  func(childComplexity int) int
+		ExpiresAt  func(childComplexity int) int
+		ID         func(childComplexity int) int
+		LastUsedAt func(childComplexity int) int
+		Ledgers    func(childComplexity int) int
+		Name       func(childComplexity int) int
+		RevokedAt  func(childComplexity int) int
+		Status     func(childComplexity int) int
+	}
+
 	Account struct {
 		Address   func(childComplexity int) int
 		Balances  func(childComplexity int) int
@@ -126,6 +138,21 @@ type ComplexityRoot struct {
 		Debits    func(childComplexity int) int
 		Reserved  func(childComplexity int) int
 		Timestamp func(childComplexity int) int
+	}
+
+	ClientSecret struct {
+		Secret func(childComplexity int) int
+	}
+
+	CreatedAPIKey struct {
+		Key    func(childComplexity int) int
+		Secret func(childComplexity int) int
+	}
+
+	CreatedMachineClient struct {
+		Client   func(childComplexity int) int
+		Secret   func(childComplexity int) int
+		TokenURL func(childComplexity int) int
 	}
 
 	DeclinedReason struct {
@@ -261,6 +288,19 @@ type ComplexityRoot struct {
 		Holds         func(childComplexity int) int
 	}
 
+	MachineClient struct {
+		ClientID    func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		CreatedBy   func(childComplexity int) int
+		DeletedAt   func(childComplexity int) int
+		LastTokenAt func(childComplexity int) int
+		Ledgers     func(childComplexity int) int
+		Name        func(childComplexity int) int
+		SecretSetAt func(childComplexity int) int
+		Status      func(childComplexity int) int
+		Subject     func(childComplexity int) int
+	}
+
 	Member struct {
 		AddedAt       func(childComplexity int) int
 		AddedBy       func(childComplexity int) int
@@ -275,27 +315,34 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CaptureHold                func(childComplexity int, input graphql1.CaptureHoldInput) int
-		CreateEventType            func(childComplexity int, input graphql2.CreateEventTypeInput) int
-		CreateHold                 func(childComplexity int, input graphql1.CreateHoldInput) int
-		CreateLedger               func(childComplexity int, input graphql2.CreateLedgerInput) int
-		CreateOrganization         func(childComplexity int, input graphql3.CreateOrganizationInput) int
-		CreateTransaction          func(childComplexity int, input graphql1.CreateTransactionInput) int
-		DeleteInvitation           func(childComplexity int, input graphql3.InvitationInput) int
-		DeleteRule                 func(childComplexity int, input graphql2.DeleteRuleInput) int
-		InviteMember               func(childComplexity int, input graphql3.InviteMemberInput) int
-		PutRule                    func(childComplexity int, input graphql2.PutRuleInput) int
-		RemoveMember               func(childComplexity int, input graphql3.MemberInput) int
-		ReplaceAccountMetadata     func(childComplexity int, input graphql1.ReplaceAccountMetadataInput) int
-		ReplaceLedgerMetadata      func(childComplexity int, input graphql2.ReplaceLedgerMetadataInput) int
-		ReplaceTransactionMetadata func(childComplexity int, input graphql1.ReplaceTransactionMetadataInput) int
-		ResendInvitation           func(childComplexity int, input graphql3.InvitationInput) int
-		RevertTransaction          func(childComplexity int, input graphql1.RevertTransactionInput) int
-		RevokeLedgerRole           func(childComplexity int, input graphql3.RevokeLedgerRoleInput) int
-		SetLedgerRole              func(childComplexity int, input graphql3.SetLedgerRoleInput) int
-		SetMemberRole              func(childComplexity int, input graphql3.SetMemberRoleInput) int
-		UpdateOrganization         func(childComplexity int, input graphql3.UpdateOrganizationInput) int
-		VoidHold                   func(childComplexity int, input graphql1.VoidHoldInput) int
+		CaptureHold                   func(childComplexity int, input graphql1.CaptureHoldInput) int
+		CreateAPIKey                  func(childComplexity int, input graphql2.CreateAPIKeyInput) int
+		CreateEventType               func(childComplexity int, input graphql3.CreateEventTypeInput) int
+		CreateHold                    func(childComplexity int, input graphql1.CreateHoldInput) int
+		CreateLedger                  func(childComplexity int, input graphql3.CreateLedgerInput) int
+		CreateMachineClient           func(childComplexity int, input graphql2.CreateMachineClientInput) int
+		CreateOrganization            func(childComplexity int, input graphql2.CreateOrganizationInput) int
+		CreateTransaction             func(childComplexity int, input graphql1.CreateTransactionInput) int
+		DeleteInvitation              func(childComplexity int, input graphql2.InvitationInput) int
+		DeleteMachineClient           func(childComplexity int, input graphql2.MachineClientInput) int
+		DeleteRule                    func(childComplexity int, input graphql3.DeleteRuleInput) int
+		InviteMember                  func(childComplexity int, input graphql2.InviteMemberInput) int
+		PutRule                       func(childComplexity int, input graphql3.PutRuleInput) int
+		RegenerateMachineClientSecret func(childComplexity int, input graphql2.MachineClientInput) int
+		RemoveMember                  func(childComplexity int, input graphql2.MemberInput) int
+		ReplaceAccountMetadata        func(childComplexity int, input graphql1.ReplaceAccountMetadataInput) int
+		ReplaceLedgerMetadata         func(childComplexity int, input graphql3.ReplaceLedgerMetadataInput) int
+		ReplaceTransactionMetadata    func(childComplexity int, input graphql1.ReplaceTransactionMetadataInput) int
+		ResendInvitation              func(childComplexity int, input graphql2.InvitationInput) int
+		RevertTransaction             func(childComplexity int, input graphql1.RevertTransactionInput) int
+		RevokeAPIKey                  func(childComplexity int, input graphql2.APIKeyInput) int
+		RevokeCredentialRole          func(childComplexity int, input graphql2.RevokeCredentialRoleInput) int
+		RevokeLedgerRole              func(childComplexity int, input graphql2.RevokeLedgerRoleInput) int
+		SetCredentialRole             func(childComplexity int, input graphql2.SetCredentialRoleInput) int
+		SetLedgerRole                 func(childComplexity int, input graphql2.SetLedgerRoleInput) int
+		SetMemberRole                 func(childComplexity int, input graphql2.SetMemberRoleInput) int
+		UpdateOrganization            func(childComplexity int, input graphql2.UpdateOrganizationInput) int
+		VoidHold                      func(childComplexity int, input graphql1.VoidHoldInput) int
 	}
 
 	Organization struct {
@@ -340,12 +387,16 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Ledger        func(childComplexity int, name string) int
-		Ledgers       func(childComplexity int, first *int, after *string) int
-		Members       func(childComplexity int) int
-		Organization  func(childComplexity int, alias string) int
-		Organizations func(childComplexity int, first *int, after *string) int
-		ServiceInfo   func(childComplexity int) int
+		APIKey         func(childComplexity int, id string) int
+		APIKeys        func(childComplexity int) int
+		Ledger         func(childComplexity int, name string) int
+		Ledgers        func(childComplexity int, first *int, after *string) int
+		MachineClient  func(childComplexity int, clientID string) int
+		MachineClients func(childComplexity int) int
+		Members        func(childComplexity int) int
+		Organization   func(childComplexity int, alias string) int
+		Organizations  func(childComplexity int, first *int, after *string) int
+		ServiceInfo    func(childComplexity int) int
 	}
 
 	Rule struct {
@@ -482,40 +533,47 @@ type ComplexityRoot struct {
 // region    ************************** generated!.gotpl **************************
 
 type LedgerResolver interface {
-	Rules(ctx context.Context, obj *graphql2.Ledger) ([]dto.Rule, error)
-	RuleMatch(ctx context.Context, obj *graphql2.Ledger, address string) (*dto.RuleMatch, error)
-	EventTypes(ctx context.Context, obj *graphql2.Ledger) ([]dto.EventType, error)
-	Assets(ctx context.Context, obj *graphql2.Ledger) ([]dto1.AssetSummary, error)
-	Stats(ctx context.Context, obj *graphql2.Ledger) (*dto1.LedgerStats, error)
-	Accounts(ctx context.Context, obj *graphql2.Ledger, first *int, after *string, prefix *string, search *string, asset *string) (*graphql1.AccountConnection, error)
-	Account(ctx context.Context, obj *graphql2.Ledger, address string) (*dto1.Account, error)
-	AccountHistory(ctx context.Context, obj *graphql2.Ledger, address string, asset string, limit *int) (*dto1.BalanceHistory, error)
-	Segments(ctx context.Context, obj *graphql2.Ledger, prefix *string) ([]dto1.Segment, error)
-	AggregateBalances(ctx context.Context, obj *graphql2.Ledger, address string) (*dto1.AggregateBalances, error)
-	Transactions(ctx context.Context, obj *graphql2.Ledger, first *int, after *string, address *string, asset *string, reference *string, eventType *string, committedAfter *time.Time, committedBefore *time.Time) (*graphql1.TransactionConnection, error)
-	Transaction(ctx context.Context, obj *graphql2.Ledger, id scalar.ID) (*dto1.Transaction, error)
-	Holds(ctx context.Context, obj *graphql2.Ledger, first *int, after *string, status *scalar.HoldStatus, address *string) (*graphql1.HoldConnection, error)
-	HoldCounts(ctx context.Context, obj *graphql2.Ledger) (*dto1.HoldStats, error)
-	Hold(ctx context.Context, obj *graphql2.Ledger, id scalar.ID) (*dto1.Hold, error)
-	Requests(ctx context.Context, obj *graphql2.Ledger, first *int, after *string, status *scalar.RequestStatus, operation *scalar.Operation, search *string) (*graphql1.WriteRequestConnection, error)
-	Request(ctx context.Context, obj *graphql2.Ledger, key string) (*dto1.WriteRequestDetail, error)
-	Search(ctx context.Context, obj *graphql2.Ledger, q string) (*dto1.SearchResults, error)
+	Rules(ctx context.Context, obj *graphql3.Ledger) ([]dto.Rule, error)
+	RuleMatch(ctx context.Context, obj *graphql3.Ledger, address string) (*dto.RuleMatch, error)
+	EventTypes(ctx context.Context, obj *graphql3.Ledger) ([]dto.EventType, error)
+	Assets(ctx context.Context, obj *graphql3.Ledger) ([]dto1.AssetSummary, error)
+	Stats(ctx context.Context, obj *graphql3.Ledger) (*dto1.LedgerStats, error)
+	Accounts(ctx context.Context, obj *graphql3.Ledger, first *int, after *string, prefix *string, search *string, asset *string) (*graphql1.AccountConnection, error)
+	Account(ctx context.Context, obj *graphql3.Ledger, address string) (*dto1.Account, error)
+	AccountHistory(ctx context.Context, obj *graphql3.Ledger, address string, asset string, limit *int) (*dto1.BalanceHistory, error)
+	Segments(ctx context.Context, obj *graphql3.Ledger, prefix *string) ([]dto1.Segment, error)
+	AggregateBalances(ctx context.Context, obj *graphql3.Ledger, address string) (*dto1.AggregateBalances, error)
+	Transactions(ctx context.Context, obj *graphql3.Ledger, first *int, after *string, address *string, asset *string, reference *string, eventType *string, committedAfter *time.Time, committedBefore *time.Time) (*graphql1.TransactionConnection, error)
+	Transaction(ctx context.Context, obj *graphql3.Ledger, id scalar.ID) (*dto1.Transaction, error)
+	Holds(ctx context.Context, obj *graphql3.Ledger, first *int, after *string, status *scalar.HoldStatus, address *string) (*graphql1.HoldConnection, error)
+	HoldCounts(ctx context.Context, obj *graphql3.Ledger) (*dto1.HoldStats, error)
+	Hold(ctx context.Context, obj *graphql3.Ledger, id scalar.ID) (*dto1.Hold, error)
+	Requests(ctx context.Context, obj *graphql3.Ledger, first *int, after *string, status *scalar.RequestStatus, operation *scalar.Operation, search *string) (*graphql1.WriteRequestConnection, error)
+	Request(ctx context.Context, obj *graphql3.Ledger, key string) (*dto1.WriteRequestDetail, error)
+	Search(ctx context.Context, obj *graphql3.Ledger, q string) (*dto1.SearchResults, error)
 }
 type MutationResolver interface {
-	CreateOrganization(ctx context.Context, input graphql3.CreateOrganizationInput) (*dto2.Organization, error)
-	UpdateOrganization(ctx context.Context, input graphql3.UpdateOrganizationInput) (*dto2.Organization, error)
-	InviteMember(ctx context.Context, input graphql3.InviteMemberInput) (*dto2.Member, error)
-	SetMemberRole(ctx context.Context, input graphql3.SetMemberRoleInput) (bool, error)
-	RemoveMember(ctx context.Context, input graphql3.MemberInput) (bool, error)
-	SetLedgerRole(ctx context.Context, input graphql3.SetLedgerRoleInput) (bool, error)
-	RevokeLedgerRole(ctx context.Context, input graphql3.RevokeLedgerRoleInput) (bool, error)
-	ResendInvitation(ctx context.Context, input graphql3.InvitationInput) (bool, error)
-	DeleteInvitation(ctx context.Context, input graphql3.InvitationInput) (bool, error)
-	CreateLedger(ctx context.Context, input graphql2.CreateLedgerInput) (*graphql2.Ledger, error)
-	ReplaceLedgerMetadata(ctx context.Context, input graphql2.ReplaceLedgerMetadataInput) (*graphql2.Ledger, error)
-	PutRule(ctx context.Context, input graphql2.PutRuleInput) (*dto.Rule, error)
-	DeleteRule(ctx context.Context, input graphql2.DeleteRuleInput) (bool, error)
-	CreateEventType(ctx context.Context, input graphql2.CreateEventTypeInput) (*dto.EventType, error)
+	CreateOrganization(ctx context.Context, input graphql2.CreateOrganizationInput) (*dto2.Organization, error)
+	UpdateOrganization(ctx context.Context, input graphql2.UpdateOrganizationInput) (*dto2.Organization, error)
+	InviteMember(ctx context.Context, input graphql2.InviteMemberInput) (*dto2.Member, error)
+	SetMemberRole(ctx context.Context, input graphql2.SetMemberRoleInput) (bool, error)
+	RemoveMember(ctx context.Context, input graphql2.MemberInput) (bool, error)
+	SetLedgerRole(ctx context.Context, input graphql2.SetLedgerRoleInput) (bool, error)
+	RevokeLedgerRole(ctx context.Context, input graphql2.RevokeLedgerRoleInput) (bool, error)
+	ResendInvitation(ctx context.Context, input graphql2.InvitationInput) (bool, error)
+	DeleteInvitation(ctx context.Context, input graphql2.InvitationInput) (bool, error)
+	CreateAPIKey(ctx context.Context, input graphql2.CreateAPIKeyInput) (*dto2.CreatedAPIKey, error)
+	RevokeAPIKey(ctx context.Context, input graphql2.APIKeyInput) (bool, error)
+	CreateMachineClient(ctx context.Context, input graphql2.CreateMachineClientInput) (*dto2.CreatedMachineClient, error)
+	RegenerateMachineClientSecret(ctx context.Context, input graphql2.MachineClientInput) (*dto2.ClientSecret, error)
+	DeleteMachineClient(ctx context.Context, input graphql2.MachineClientInput) (bool, error)
+	SetCredentialRole(ctx context.Context, input graphql2.SetCredentialRoleInput) (bool, error)
+	RevokeCredentialRole(ctx context.Context, input graphql2.RevokeCredentialRoleInput) (bool, error)
+	CreateLedger(ctx context.Context, input graphql3.CreateLedgerInput) (*graphql3.Ledger, error)
+	ReplaceLedgerMetadata(ctx context.Context, input graphql3.ReplaceLedgerMetadataInput) (*graphql3.Ledger, error)
+	PutRule(ctx context.Context, input graphql3.PutRuleInput) (*dto.Rule, error)
+	DeleteRule(ctx context.Context, input graphql3.DeleteRuleInput) (bool, error)
+	CreateEventType(ctx context.Context, input graphql3.CreateEventTypeInput) (*dto.EventType, error)
 	CreateTransaction(ctx context.Context, input graphql1.CreateTransactionInput) (*dto1.Transaction, error)
 	RevertTransaction(ctx context.Context, input graphql1.RevertTransactionInput) (*dto1.Transaction, error)
 	ReplaceTransactionMetadata(ctx context.Context, input graphql1.ReplaceTransactionMetadataInput) (*dto1.Transaction, error)
@@ -526,11 +584,15 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	ServiceInfo(ctx context.Context) (*dto3.Info, error)
-	Organizations(ctx context.Context, first *int, after *string) (*graphql3.OrganizationConnection, error)
+	Organizations(ctx context.Context, first *int, after *string) (*graphql2.OrganizationConnection, error)
 	Organization(ctx context.Context, alias string) (*dto2.Organization, error)
 	Members(ctx context.Context) ([]dto2.Member, error)
-	Ledger(ctx context.Context, name string) (*graphql2.Ledger, error)
-	Ledgers(ctx context.Context, first *int, after *string) (*graphql2.LedgerConnection, error)
+	APIKeys(ctx context.Context) ([]dto2.APIKey, error)
+	APIKey(ctx context.Context, id string) (*dto2.APIKey, error)
+	MachineClients(ctx context.Context) ([]dto2.MachineClient, error)
+	MachineClient(ctx context.Context, clientID string) (*dto2.MachineClient, error)
+	Ledger(ctx context.Context, name string) (*graphql3.Ledger, error)
+	Ledgers(ctx context.Context, first *int, after *string) (*graphql3.LedgerConnection, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -550,6 +612,61 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	ec := newExecutionContext(nil, e, nil)
 	_ = ec
 	switch typeName + "." + field {
+
+	case "APIKey.createdAt":
+		if e.ComplexityRoot.APIKey.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.APIKey.CreatedAt(childComplexity), true
+	case "APIKey.createdBy":
+		if e.ComplexityRoot.APIKey.CreatedBy == nil {
+			break
+		}
+
+		return e.ComplexityRoot.APIKey.CreatedBy(childComplexity), true
+	case "APIKey.expiresAt":
+		if e.ComplexityRoot.APIKey.ExpiresAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.APIKey.ExpiresAt(childComplexity), true
+	case "APIKey.id":
+		if e.ComplexityRoot.APIKey.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.APIKey.ID(childComplexity), true
+	case "APIKey.lastUsedAt":
+		if e.ComplexityRoot.APIKey.LastUsedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.APIKey.LastUsedAt(childComplexity), true
+	case "APIKey.ledgers":
+		if e.ComplexityRoot.APIKey.Ledgers == nil {
+			break
+		}
+
+		return e.ComplexityRoot.APIKey.Ledgers(childComplexity), true
+	case "APIKey.name":
+		if e.ComplexityRoot.APIKey.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.APIKey.Name(childComplexity), true
+	case "APIKey.revokedAt":
+		if e.ComplexityRoot.APIKey.RevokedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.APIKey.RevokedAt(childComplexity), true
+	case "APIKey.status":
+		if e.ComplexityRoot.APIKey.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.APIKey.Status(childComplexity), true
 
 	case "Account.address":
 		if e.ComplexityRoot.Account.Address == nil {
@@ -872,6 +989,45 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.BalancePoint.Timestamp(childComplexity), true
+
+	case "ClientSecret.secret":
+		if e.ComplexityRoot.ClientSecret.Secret == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ClientSecret.Secret(childComplexity), true
+
+	case "CreatedAPIKey.key":
+		if e.ComplexityRoot.CreatedAPIKey.Key == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CreatedAPIKey.Key(childComplexity), true
+	case "CreatedAPIKey.secret":
+		if e.ComplexityRoot.CreatedAPIKey.Secret == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CreatedAPIKey.Secret(childComplexity), true
+
+	case "CreatedMachineClient.client":
+		if e.ComplexityRoot.CreatedMachineClient.Client == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CreatedMachineClient.Client(childComplexity), true
+	case "CreatedMachineClient.secret":
+		if e.ComplexityRoot.CreatedMachineClient.Secret == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CreatedMachineClient.Secret(childComplexity), true
+	case "CreatedMachineClient.tokenUrl":
+		if e.ComplexityRoot.CreatedMachineClient.TokenURL == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CreatedMachineClient.TokenURL(childComplexity), true
 
 	case "DeclinedReason.count":
 		if e.ComplexityRoot.DeclinedReason.Count == nil {
@@ -1481,6 +1637,67 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.LedgerStats.Holds(childComplexity), true
 
+	case "MachineClient.clientId":
+		if e.ComplexityRoot.MachineClient.ClientID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MachineClient.ClientID(childComplexity), true
+	case "MachineClient.createdAt":
+		if e.ComplexityRoot.MachineClient.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MachineClient.CreatedAt(childComplexity), true
+	case "MachineClient.createdBy":
+		if e.ComplexityRoot.MachineClient.CreatedBy == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MachineClient.CreatedBy(childComplexity), true
+	case "MachineClient.deletedAt":
+		if e.ComplexityRoot.MachineClient.DeletedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MachineClient.DeletedAt(childComplexity), true
+	case "MachineClient.lastTokenAt":
+		if e.ComplexityRoot.MachineClient.LastTokenAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MachineClient.LastTokenAt(childComplexity), true
+	case "MachineClient.ledgers":
+		if e.ComplexityRoot.MachineClient.Ledgers == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MachineClient.Ledgers(childComplexity), true
+	case "MachineClient.name":
+		if e.ComplexityRoot.MachineClient.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MachineClient.Name(childComplexity), true
+	case "MachineClient.secretSetAt":
+		if e.ComplexityRoot.MachineClient.SecretSetAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MachineClient.SecretSetAt(childComplexity), true
+	case "MachineClient.status":
+		if e.ComplexityRoot.MachineClient.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MachineClient.Status(childComplexity), true
+	case "MachineClient.subject":
+		if e.ComplexityRoot.MachineClient.Subject == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MachineClient.Subject(childComplexity), true
+
 	case "Member.addedAt":
 		if e.ComplexityRoot.Member.AddedAt == nil {
 			break
@@ -1553,6 +1770,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.CaptureHold(childComplexity, args["input"].(graphql1.CaptureHoldInput)), true
+	case "Mutation.createApiKey":
+		if e.ComplexityRoot.Mutation.CreateAPIKey == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createApiKey_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateAPIKey(childComplexity, args["input"].(graphql2.CreateAPIKeyInput)), true
 	case "Mutation.createEventType":
 		if e.ComplexityRoot.Mutation.CreateEventType == nil {
 			break
@@ -1563,7 +1791,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.CreateEventType(childComplexity, args["input"].(graphql2.CreateEventTypeInput)), true
+		return e.ComplexityRoot.Mutation.CreateEventType(childComplexity, args["input"].(graphql3.CreateEventTypeInput)), true
 	case "Mutation.createHold":
 		if e.ComplexityRoot.Mutation.CreateHold == nil {
 			break
@@ -1585,7 +1813,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.CreateLedger(childComplexity, args["input"].(graphql2.CreateLedgerInput)), true
+		return e.ComplexityRoot.Mutation.CreateLedger(childComplexity, args["input"].(graphql3.CreateLedgerInput)), true
+	case "Mutation.createMachineClient":
+		if e.ComplexityRoot.Mutation.CreateMachineClient == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createMachineClient_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateMachineClient(childComplexity, args["input"].(graphql2.CreateMachineClientInput)), true
 	case "Mutation.createOrganization":
 		if e.ComplexityRoot.Mutation.CreateOrganization == nil {
 			break
@@ -1596,7 +1835,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.CreateOrganization(childComplexity, args["input"].(graphql3.CreateOrganizationInput)), true
+		return e.ComplexityRoot.Mutation.CreateOrganization(childComplexity, args["input"].(graphql2.CreateOrganizationInput)), true
 	case "Mutation.createTransaction":
 		if e.ComplexityRoot.Mutation.CreateTransaction == nil {
 			break
@@ -1618,7 +1857,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.DeleteInvitation(childComplexity, args["input"].(graphql3.InvitationInput)), true
+		return e.ComplexityRoot.Mutation.DeleteInvitation(childComplexity, args["input"].(graphql2.InvitationInput)), true
+	case "Mutation.deleteMachineClient":
+		if e.ComplexityRoot.Mutation.DeleteMachineClient == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteMachineClient_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.DeleteMachineClient(childComplexity, args["input"].(graphql2.MachineClientInput)), true
 	case "Mutation.deleteRule":
 		if e.ComplexityRoot.Mutation.DeleteRule == nil {
 			break
@@ -1629,7 +1879,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.DeleteRule(childComplexity, args["input"].(graphql2.DeleteRuleInput)), true
+		return e.ComplexityRoot.Mutation.DeleteRule(childComplexity, args["input"].(graphql3.DeleteRuleInput)), true
 	case "Mutation.inviteMember":
 		if e.ComplexityRoot.Mutation.InviteMember == nil {
 			break
@@ -1640,7 +1890,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.InviteMember(childComplexity, args["input"].(graphql3.InviteMemberInput)), true
+		return e.ComplexityRoot.Mutation.InviteMember(childComplexity, args["input"].(graphql2.InviteMemberInput)), true
 	case "Mutation.putRule":
 		if e.ComplexityRoot.Mutation.PutRule == nil {
 			break
@@ -1651,7 +1901,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.PutRule(childComplexity, args["input"].(graphql2.PutRuleInput)), true
+		return e.ComplexityRoot.Mutation.PutRule(childComplexity, args["input"].(graphql3.PutRuleInput)), true
+	case "Mutation.regenerateMachineClientSecret":
+		if e.ComplexityRoot.Mutation.RegenerateMachineClientSecret == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_regenerateMachineClientSecret_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.RegenerateMachineClientSecret(childComplexity, args["input"].(graphql2.MachineClientInput)), true
 	case "Mutation.removeMember":
 		if e.ComplexityRoot.Mutation.RemoveMember == nil {
 			break
@@ -1662,7 +1923,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.RemoveMember(childComplexity, args["input"].(graphql3.MemberInput)), true
+		return e.ComplexityRoot.Mutation.RemoveMember(childComplexity, args["input"].(graphql2.MemberInput)), true
 	case "Mutation.replaceAccountMetadata":
 		if e.ComplexityRoot.Mutation.ReplaceAccountMetadata == nil {
 			break
@@ -1684,7 +1945,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.ReplaceLedgerMetadata(childComplexity, args["input"].(graphql2.ReplaceLedgerMetadataInput)), true
+		return e.ComplexityRoot.Mutation.ReplaceLedgerMetadata(childComplexity, args["input"].(graphql3.ReplaceLedgerMetadataInput)), true
 	case "Mutation.replaceTransactionMetadata":
 		if e.ComplexityRoot.Mutation.ReplaceTransactionMetadata == nil {
 			break
@@ -1706,7 +1967,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.ResendInvitation(childComplexity, args["input"].(graphql3.InvitationInput)), true
+		return e.ComplexityRoot.Mutation.ResendInvitation(childComplexity, args["input"].(graphql2.InvitationInput)), true
 	case "Mutation.revertTransaction":
 		if e.ComplexityRoot.Mutation.RevertTransaction == nil {
 			break
@@ -1718,6 +1979,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.RevertTransaction(childComplexity, args["input"].(graphql1.RevertTransactionInput)), true
+	case "Mutation.revokeApiKey":
+		if e.ComplexityRoot.Mutation.RevokeAPIKey == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_revokeApiKey_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.RevokeAPIKey(childComplexity, args["input"].(graphql2.APIKeyInput)), true
+	case "Mutation.revokeCredentialRole":
+		if e.ComplexityRoot.Mutation.RevokeCredentialRole == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_revokeCredentialRole_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.RevokeCredentialRole(childComplexity, args["input"].(graphql2.RevokeCredentialRoleInput)), true
 	case "Mutation.revokeLedgerRole":
 		if e.ComplexityRoot.Mutation.RevokeLedgerRole == nil {
 			break
@@ -1728,7 +2011,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.RevokeLedgerRole(childComplexity, args["input"].(graphql3.RevokeLedgerRoleInput)), true
+		return e.ComplexityRoot.Mutation.RevokeLedgerRole(childComplexity, args["input"].(graphql2.RevokeLedgerRoleInput)), true
+	case "Mutation.setCredentialRole":
+		if e.ComplexityRoot.Mutation.SetCredentialRole == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setCredentialRole_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.SetCredentialRole(childComplexity, args["input"].(graphql2.SetCredentialRoleInput)), true
 	case "Mutation.setLedgerRole":
 		if e.ComplexityRoot.Mutation.SetLedgerRole == nil {
 			break
@@ -1739,7 +2033,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.SetLedgerRole(childComplexity, args["input"].(graphql3.SetLedgerRoleInput)), true
+		return e.ComplexityRoot.Mutation.SetLedgerRole(childComplexity, args["input"].(graphql2.SetLedgerRoleInput)), true
 	case "Mutation.setMemberRole":
 		if e.ComplexityRoot.Mutation.SetMemberRole == nil {
 			break
@@ -1750,7 +2044,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.SetMemberRole(childComplexity, args["input"].(graphql3.SetMemberRoleInput)), true
+		return e.ComplexityRoot.Mutation.SetMemberRole(childComplexity, args["input"].(graphql2.SetMemberRoleInput)), true
 	case "Mutation.updateOrganization":
 		if e.ComplexityRoot.Mutation.UpdateOrganization == nil {
 			break
@@ -1761,7 +2055,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.UpdateOrganization(childComplexity, args["input"].(graphql3.UpdateOrganizationInput)), true
+		return e.ComplexityRoot.Mutation.UpdateOrganization(childComplexity, args["input"].(graphql2.UpdateOrganizationInput)), true
 	case "Mutation.voidHold":
 		if e.ComplexityRoot.Mutation.VoidHold == nil {
 			break
@@ -1935,6 +2229,24 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.PostingRecord.TransferID(childComplexity), true
 
+	case "Query.apiKey":
+		if e.ComplexityRoot.Query.APIKey == nil {
+			break
+		}
+
+		args, err := ec.field_Query_apiKey_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.APIKey(childComplexity, args["id"].(string)), true
+	case "Query.apiKeys":
+		if e.ComplexityRoot.Query.APIKeys == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.APIKeys(childComplexity), true
+
 	case "Query.ledger":
 		if e.ComplexityRoot.Query.Ledger == nil {
 			break
@@ -1957,6 +2269,23 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Ledgers(childComplexity, args["first"].(*int), args["after"].(*string)), true
+	case "Query.machineClient":
+		if e.ComplexityRoot.Query.MachineClient == nil {
+			break
+		}
+
+		args, err := ec.field_Query_machineClient_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.MachineClient(childComplexity, args["clientId"].(string)), true
+	case "Query.machineClients":
+		if e.ComplexityRoot.Query.MachineClients == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.MachineClients(childComplexity), true
 	case "Query.members":
 		if e.ComplexityRoot.Query.Members == nil {
 			break
@@ -2514,16 +2843,20 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := newExecutionContext(opCtx, e, make(chan graphql.DeferredResult))
 	inputUnmarshalers := func() *graphql.InputUnmarshalerIndex {
 		return graphql.NewInputUnmarshalerIndex(
+			graphql.NewInputUnmarshaler("APIKeyInput", ec.unmarshalInputAPIKeyInput),
 			graphql.NewInputUnmarshaler("CaptureHoldInput", ec.unmarshalInputCaptureHoldInput),
+			graphql.NewInputUnmarshaler("CreateAPIKeyInput", ec.unmarshalInputCreateAPIKeyInput),
 			graphql.NewInputUnmarshaler("CreateEventTypeInput", ec.unmarshalInputCreateEventTypeInput),
 			graphql.NewInputUnmarshaler("CreateHoldInput", ec.unmarshalInputCreateHoldInput),
 			graphql.NewInputUnmarshaler("CreateLedgerInput", ec.unmarshalInputCreateLedgerInput),
+			graphql.NewInputUnmarshaler("CreateMachineClientInput", ec.unmarshalInputCreateMachineClientInput),
 			graphql.NewInputUnmarshaler("CreateOrganizationInput", ec.unmarshalInputCreateOrganizationInput),
 			graphql.NewInputUnmarshaler("CreateTransactionInput", ec.unmarshalInputCreateTransactionInput),
 			graphql.NewInputUnmarshaler("DeleteRuleInput", ec.unmarshalInputDeleteRuleInput),
 			graphql.NewInputUnmarshaler("InvitationInput", ec.unmarshalInputInvitationInput),
 			graphql.NewInputUnmarshaler("InviteMemberInput", ec.unmarshalInputInviteMemberInput),
 			graphql.NewInputUnmarshaler("LedgerRoleInput", ec.unmarshalInputLedgerRoleInput),
+			graphql.NewInputUnmarshaler("MachineClientInput", ec.unmarshalInputMachineClientInput),
 			graphql.NewInputUnmarshaler("MemberInput", ec.unmarshalInputMemberInput),
 			graphql.NewInputUnmarshaler("NewMemberInput", ec.unmarshalInputNewMemberInput),
 			graphql.NewInputUnmarshaler("PostingInput", ec.unmarshalInputPostingInput),
@@ -2532,7 +2865,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			graphql.NewInputUnmarshaler("ReplaceLedgerMetadataInput", ec.unmarshalInputReplaceLedgerMetadataInput),
 			graphql.NewInputUnmarshaler("ReplaceTransactionMetadataInput", ec.unmarshalInputReplaceTransactionMetadataInput),
 			graphql.NewInputUnmarshaler("RevertTransactionInput", ec.unmarshalInputRevertTransactionInput),
+			graphql.NewInputUnmarshaler("RevokeCredentialRoleInput", ec.unmarshalInputRevokeCredentialRoleInput),
 			graphql.NewInputUnmarshaler("RevokeLedgerRoleInput", ec.unmarshalInputRevokeLedgerRoleInput),
+			graphql.NewInputUnmarshaler("SetCredentialRoleInput", ec.unmarshalInputSetCredentialRoleInput),
 			graphql.NewInputUnmarshaler("SetLedgerRoleInput", ec.unmarshalInputSetLedgerRoleInput),
 			graphql.NewInputUnmarshaler("SetMemberRoleInput", ec.unmarshalInputSetMemberRoleInput),
 			graphql.NewInputUnmarshaler("UpdateOrganizationInput", ec.unmarshalInputUpdateOrganizationInput),
@@ -2691,6 +3026,14 @@ type Query {
   organization(alias: String!): Organization
   "The members of the organization of the call and the people invited to it, in name order. Every member may read it."
   members: [Member!]!
+  "The organization's API keys, active ones first. Needs org.credentials."
+  apiKeys: [APIKey!]!
+  "One API key, or null. Needs org.credentials."
+  apiKey(id: String!): APIKey
+  "The organization's machine clients, active ones first. Needs org.credentials."
+  machineClients: [MachineClient!]!
+  "One machine client, or null. Needs org.credentials."
+  machineClient(clientId: String!): MachineClient
   "A ledger by name, or null when no ledger has that name."
   ledger(name: String!): Ledger
   "Every ledger in name order."
@@ -2721,6 +3064,20 @@ type Mutation {
   resendInvitation(input: InvitationInput!): Boolean!
   "Withdraws an invitation and the roles waiting for the person."
   deleteInvitation(input: InvitationInput!): Boolean!
+  "Creates an API key with its ledger roles and answers its secret, shown once."
+  createApiKey(input: CreateAPIKeyInput!): CreatedAPIKey!
+  "Revokes an API key from its next request."
+  revokeApiKey(input: APIKeyInput!): Boolean!
+  "Creates a confidential client in Keycloak whose tokens act for the organization, and answers its secret, shown once."
+  createMachineClient(input: CreateMachineClientInput!): CreatedMachineClient!
+  "Replaces a machine client's secret; the old one stops at once."
+  regenerateMachineClientSecret(input: MachineClientInput!): ClientSecret!
+  "Deletes a machine client in Keycloak."
+  deleteMachineClient(input: MachineClientInput!): Boolean!
+  "Gives an API key or a machine client a role on one ledger."
+  setCredentialRole(input: SetCredentialRoleInput!): Boolean!
+  "Removes an API key's or a machine client's role on one ledger."
+  revokeCredentialRole(input: RevokeCredentialRoleInput!): Boolean!
   "Creates a ledger. The name is permanent; a ledger cannot be deleted, because TigerBeetle accounts and transfers are permanent."
   createLedger(input: CreateLedgerInput!): Ledger!
   "Replaces the metadata of a ledger."
@@ -2745,6 +3102,22 @@ type Mutation {
   voidHold(input: VoidHoldInput!): Hold!
   "Replaces the metadata of an existing account."
   replaceAccountMetadata(input: ReplaceAccountMetadataInput!): Account!
+}
+
+"An API key of the organization, without its secret."
+type APIKey {
+  "The key ID, the middle of tbp_<id>_<secret>. The principal of the key is tbp:api-key/<id>."
+  id: String!
+  name: String!
+  status: String!
+  expiresAt: DateTime
+  "Updated at most once a minute."
+  lastUsedAt: DateTime
+  revokedAt: DateTime
+  createdAt: DateTime!
+  createdBy: String
+  "The ledger roles the key acts with."
+  ledgers: [LedgerRole!]!
 }
 
 "An address with one TigerBeetle account per asset, and its open holds."
@@ -2845,6 +3218,27 @@ type BalancePoint {
   reserved: Amount!
   credits: Amount!
   debits: Amount!
+}
+
+"A machine client's new secret, shown once."
+type ClientSecret {
+  secret: String!
+}
+
+"A new API key and its secret, shown once."
+type CreatedAPIKey {
+  key: APIKey!
+  "The whole key, tbp_<id>_<secret>. It is not stored and cannot be shown again."
+  secret: String!
+}
+
+"A new machine client and its secret, shown once."
+type CreatedMachineClient {
+  client: MachineClient!
+  "The client secret. Only a Keycloak realm administrator can see it again; regenerate it if it is lost."
+  secret: String!
+  "Where the client trades its secret for a token, with the client credentials grant."
+  tokenUrl: String!
 }
 
 type DeclinedReason {
@@ -3074,6 +3468,24 @@ type LedgerStats {
   assets: [AssetSummary!]!
   holds: HoldStats!
   declined: DeclinedStats!
+}
+
+"An OAuth client of the organization in Keycloak."
+type MachineClient {
+  "Keycloak's client ID: <organization>-<name>."
+  clientId: String!
+  name: String!
+  "The client's service account: the sub of its tokens."
+  subject: String!
+  status: String!
+  secretSetAt: DateTime!
+  "When the API last saw one of its tokens; updated at most once a minute."
+  lastTokenAt: DateTime
+  deletedAt: DateTime
+  createdAt: DateTime!
+  createdBy: String
+  "The ledger roles its tokens act with."
+  ledgers: [LedgerRole!]!
 }
 
 "A person of the organization with the roles the platform gives them (ADR-0028)."
@@ -3310,12 +3722,25 @@ type WriteRequestDetail {
   transferIds: [U128!]!
 }
 
+input APIKeyInput {
+  id: String!
+}
+
 input CaptureHoldInput {
   ledger: String!
   id: U128!
   idempotencyKey: String!
   "The amount to capture; the full hold when absent. Must not be zero."
   amount: Amount
+}
+
+input CreateAPIKeyInput {
+  "Lowercase letters, digits and dashes."
+  name: String!
+  "Absent for a key that does not expire."
+  expiresAt: DateTime
+  "The ledger roles the key acts with; at least one."
+  ledgers: [LedgerRoleInput!]!
 }
 
 input CreateEventTypeInput {
@@ -3344,6 +3769,13 @@ input CreateLedgerInput {
   "Lowercase letters, digits, dash and underscore, 1 to 63 characters."
   name: String!
   metadata: Metadata
+}
+
+input CreateMachineClientInput {
+  "The client ID becomes <organization>-<name>."
+  name: String!
+  "The ledger roles its tokens act with; at least one."
+  ledgers: [LedgerRoleInput!]!
 }
 
 input CreateOrganizationInput {
@@ -3388,6 +3820,10 @@ input LedgerRoleInput {
   ledger: String!
   "viewer, operator or admin."
   role: String!
+}
+
+input MachineClientInput {
+  clientId: String!
 }
 
 input MemberInput {
@@ -3446,9 +3882,26 @@ input RevertTransactionInput {
   metadata: Metadata
 }
 
+input RevokeCredentialRoleInput {
+  "api-key or machine-client."
+  kind: String!
+  id: String!
+  ledger: String!
+}
+
 input RevokeLedgerRoleInput {
   subject: String!
   ledger: String!
+}
+
+input SetCredentialRoleInput {
+  "api-key or machine-client."
+  kind: String!
+  "The key ID or the client ID."
+  id: String!
+  ledger: String!
+  "viewer, operator or admin."
+  role: String!
 }
 
 input SetLedgerRoleInput {
@@ -3485,6 +3938,30 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // childFields_* functions provide shared child field context lookups.
 // Each function is generated once per unique object type, deduplicating the
 // switch statements that were previously inlined in every fieldContext_* function.
+
+func (ec *executionContext) childFields_APIKey(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_APIKey_id(ctx, field)
+	case "name":
+		return ec.fieldContext_APIKey_name(ctx, field)
+	case "status":
+		return ec.fieldContext_APIKey_status(ctx, field)
+	case "expiresAt":
+		return ec.fieldContext_APIKey_expiresAt(ctx, field)
+	case "lastUsedAt":
+		return ec.fieldContext_APIKey_lastUsedAt(ctx, field)
+	case "revokedAt":
+		return ec.fieldContext_APIKey_revokedAt(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_APIKey_createdAt(ctx, field)
+	case "createdBy":
+		return ec.fieldContext_APIKey_createdBy(ctx, field)
+	case "ledgers":
+		return ec.fieldContext_APIKey_ledgers(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type APIKey", field.Name)
+}
 
 func (ec *executionContext) childFields_Account(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
@@ -3648,6 +4125,36 @@ func (ec *executionContext) childFields_BalancePoint(ctx context.Context, field 
 		return ec.fieldContext_BalancePoint_debits(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type BalancePoint", field.Name)
+}
+
+func (ec *executionContext) childFields_ClientSecret(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "secret":
+		return ec.fieldContext_ClientSecret_secret(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type ClientSecret", field.Name)
+}
+
+func (ec *executionContext) childFields_CreatedAPIKey(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "key":
+		return ec.fieldContext_CreatedAPIKey_key(ctx, field)
+	case "secret":
+		return ec.fieldContext_CreatedAPIKey_secret(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CreatedAPIKey", field.Name)
+}
+
+func (ec *executionContext) childFields_CreatedMachineClient(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "client":
+		return ec.fieldContext_CreatedMachineClient_client(ctx, field)
+	case "secret":
+		return ec.fieldContext_CreatedMachineClient_secret(ctx, field)
+	case "tokenUrl":
+		return ec.fieldContext_CreatedMachineClient_tokenUrl(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CreatedMachineClient", field.Name)
 }
 
 func (ec *executionContext) childFields_DeclinedReason(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -3914,6 +4421,32 @@ func (ec *executionContext) childFields_LedgerStats(ctx context.Context, field g
 		return ec.fieldContext_LedgerStats_declined(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type LedgerStats", field.Name)
+}
+
+func (ec *executionContext) childFields_MachineClient(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "clientId":
+		return ec.fieldContext_MachineClient_clientId(ctx, field)
+	case "name":
+		return ec.fieldContext_MachineClient_name(ctx, field)
+	case "subject":
+		return ec.fieldContext_MachineClient_subject(ctx, field)
+	case "status":
+		return ec.fieldContext_MachineClient_status(ctx, field)
+	case "secretSetAt":
+		return ec.fieldContext_MachineClient_secretSetAt(ctx, field)
+	case "lastTokenAt":
+		return ec.fieldContext_MachineClient_lastTokenAt(ctx, field)
+	case "deletedAt":
+		return ec.fieldContext_MachineClient_deletedAt(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_MachineClient_createdAt(ctx, field)
+	case "createdBy":
+		return ec.fieldContext_MachineClient_createdBy(ctx, field)
+	case "ledgers":
+		return ec.fieldContext_MachineClient_ledgers(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type MachineClient", field.Name)
 }
 
 func (ec *executionContext) childFields_Member(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -4752,11 +5285,25 @@ func (ec *executionContext) field_Mutation_captureHold_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createApiKey_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.CreateAPIKeyInput, error) {
+			return ec.unmarshalNCreateAPIKeyInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐCreateAPIKeyInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createEventType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql2.CreateEventTypeInput, error) {
+		func(ctx context.Context, v any) (graphql3.CreateEventTypeInput, error) {
 			return ec.unmarshalNCreateEventTypeInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐCreateEventTypeInput(ctx, v)
 		})
 	if err != nil {
@@ -4784,8 +5331,22 @@ func (ec *executionContext) field_Mutation_createLedger_args(ctx context.Context
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql2.CreateLedgerInput, error) {
+		func(ctx context.Context, v any) (graphql3.CreateLedgerInput, error) {
 			return ec.unmarshalNCreateLedgerInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐCreateLedgerInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createMachineClient_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.CreateMachineClientInput, error) {
+			return ec.unmarshalNCreateMachineClientInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐCreateMachineClientInput(ctx, v)
 		})
 	if err != nil {
 		return nil, err
@@ -4798,7 +5359,7 @@ func (ec *executionContext) field_Mutation_createOrganization_args(ctx context.C
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql3.CreateOrganizationInput, error) {
+		func(ctx context.Context, v any) (graphql2.CreateOrganizationInput, error) {
 			return ec.unmarshalNCreateOrganizationInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐCreateOrganizationInput(ctx, v)
 		})
 	if err != nil {
@@ -4826,8 +5387,22 @@ func (ec *executionContext) field_Mutation_deleteInvitation_args(ctx context.Con
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql3.InvitationInput, error) {
+		func(ctx context.Context, v any) (graphql2.InvitationInput, error) {
 			return ec.unmarshalNInvitationInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐInvitationInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteMachineClient_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.MachineClientInput, error) {
+			return ec.unmarshalNMachineClientInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐMachineClientInput(ctx, v)
 		})
 	if err != nil {
 		return nil, err
@@ -4840,7 +5415,7 @@ func (ec *executionContext) field_Mutation_deleteRule_args(ctx context.Context, 
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql2.DeleteRuleInput, error) {
+		func(ctx context.Context, v any) (graphql3.DeleteRuleInput, error) {
 			return ec.unmarshalNDeleteRuleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐDeleteRuleInput(ctx, v)
 		})
 	if err != nil {
@@ -4854,7 +5429,7 @@ func (ec *executionContext) field_Mutation_inviteMember_args(ctx context.Context
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql3.InviteMemberInput, error) {
+		func(ctx context.Context, v any) (graphql2.InviteMemberInput, error) {
 			return ec.unmarshalNInviteMemberInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐInviteMemberInput(ctx, v)
 		})
 	if err != nil {
@@ -4868,8 +5443,22 @@ func (ec *executionContext) field_Mutation_putRule_args(ctx context.Context, raw
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql2.PutRuleInput, error) {
+		func(ctx context.Context, v any) (graphql3.PutRuleInput, error) {
 			return ec.unmarshalNPutRuleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐPutRuleInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_regenerateMachineClientSecret_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.MachineClientInput, error) {
+			return ec.unmarshalNMachineClientInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐMachineClientInput(ctx, v)
 		})
 	if err != nil {
 		return nil, err
@@ -4882,7 +5471,7 @@ func (ec *executionContext) field_Mutation_removeMember_args(ctx context.Context
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql3.MemberInput, error) {
+		func(ctx context.Context, v any) (graphql2.MemberInput, error) {
 			return ec.unmarshalNMemberInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐMemberInput(ctx, v)
 		})
 	if err != nil {
@@ -4910,7 +5499,7 @@ func (ec *executionContext) field_Mutation_replaceLedgerMetadata_args(ctx contex
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql2.ReplaceLedgerMetadataInput, error) {
+		func(ctx context.Context, v any) (graphql3.ReplaceLedgerMetadataInput, error) {
 			return ec.unmarshalNReplaceLedgerMetadataInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐReplaceLedgerMetadataInput(ctx, v)
 		})
 	if err != nil {
@@ -4938,7 +5527,7 @@ func (ec *executionContext) field_Mutation_resendInvitation_args(ctx context.Con
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql3.InvitationInput, error) {
+		func(ctx context.Context, v any) (graphql2.InvitationInput, error) {
 			return ec.unmarshalNInvitationInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐInvitationInput(ctx, v)
 		})
 	if err != nil {
@@ -4962,12 +5551,54 @@ func (ec *executionContext) field_Mutation_revertTransaction_args(ctx context.Co
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_revokeApiKey_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.APIKeyInput, error) {
+			return ec.unmarshalNAPIKeyInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐAPIKeyInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_revokeCredentialRole_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.RevokeCredentialRoleInput, error) {
+			return ec.unmarshalNRevokeCredentialRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐRevokeCredentialRoleInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_revokeLedgerRole_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql3.RevokeLedgerRoleInput, error) {
+		func(ctx context.Context, v any) (graphql2.RevokeLedgerRoleInput, error) {
 			return ec.unmarshalNRevokeLedgerRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐRevokeLedgerRoleInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_setCredentialRole_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (graphql2.SetCredentialRoleInput, error) {
+			return ec.unmarshalNSetCredentialRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐSetCredentialRoleInput(ctx, v)
 		})
 	if err != nil {
 		return nil, err
@@ -4980,7 +5611,7 @@ func (ec *executionContext) field_Mutation_setLedgerRole_args(ctx context.Contex
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql3.SetLedgerRoleInput, error) {
+		func(ctx context.Context, v any) (graphql2.SetLedgerRoleInput, error) {
 			return ec.unmarshalNSetLedgerRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐSetLedgerRoleInput(ctx, v)
 		})
 	if err != nil {
@@ -4994,7 +5625,7 @@ func (ec *executionContext) field_Mutation_setMemberRole_args(ctx context.Contex
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql3.SetMemberRoleInput, error) {
+		func(ctx context.Context, v any) (graphql2.SetMemberRoleInput, error) {
 			return ec.unmarshalNSetMemberRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐSetMemberRoleInput(ctx, v)
 		})
 	if err != nil {
@@ -5008,7 +5639,7 @@ func (ec *executionContext) field_Mutation_updateOrganization_args(ctx context.C
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
-		func(ctx context.Context, v any) (graphql3.UpdateOrganizationInput, error) {
+		func(ctx context.Context, v any) (graphql2.UpdateOrganizationInput, error) {
 			return ec.unmarshalNUpdateOrganizationInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐUpdateOrganizationInput(ctx, v)
 		})
 	if err != nil {
@@ -5046,6 +5677,20 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_apiKey_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_ledger_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5079,6 +5724,20 @@ func (ec *executionContext) field_Query_ledgers_args(ctx context.Context, rawArg
 		return nil, err
 	}
 	args["after"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_machineClient_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "clientId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["clientId"] = arg0
 	return args, nil
 }
 
@@ -5191,6 +5850,222 @@ func (ec *executionContext) field___Type_inputFields_args(ctx context.Context, r
 // endregion ***************************** args.gotpl *****************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _APIKey_id(ctx context.Context, field graphql.CollectedField, obj *dto2.APIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_APIKey_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_APIKey_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("APIKey", field, false, false, "String")
+}
+
+func (ec *executionContext) _APIKey_name(ctx context.Context, field graphql.CollectedField, obj *dto2.APIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_APIKey_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_APIKey_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("APIKey", field, false, false, "String")
+}
+
+func (ec *executionContext) _APIKey_status(ctx context.Context, field graphql.CollectedField, obj *dto2.APIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_APIKey_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_APIKey_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("APIKey", field, false, false, "String")
+}
+
+func (ec *executionContext) _APIKey_expiresAt(ctx context.Context, field graphql.CollectedField, obj *dto2.APIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_APIKey_expiresAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ExpiresAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_APIKey_expiresAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("APIKey", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _APIKey_lastUsedAt(ctx context.Context, field graphql.CollectedField, obj *dto2.APIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_APIKey_lastUsedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.LastUsedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_APIKey_lastUsedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("APIKey", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _APIKey_revokedAt(ctx context.Context, field graphql.CollectedField, obj *dto2.APIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_APIKey_revokedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RevokedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_APIKey_revokedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("APIKey", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _APIKey_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto2.APIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_APIKey_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_APIKey_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("APIKey", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _APIKey_createdBy(ctx context.Context, field graphql.CollectedField, obj *dto2.APIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_APIKey_createdBy(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedBy, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_APIKey_createdBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("APIKey", field, false, false, "String")
+}
+
+func (ec *executionContext) _APIKey_ledgers(ctx context.Context, field graphql.CollectedField, obj *dto2.APIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_APIKey_ledgers(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Ledgers, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto2.LedgerRole) graphql.Marshaler {
+			return ec.marshalNLedgerRole2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐLedgerRoleᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_APIKey_ledgers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "APIKey",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LedgerRole(ctx, field)
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _Account_address(ctx context.Context, field graphql.CollectedField, obj *dto1.Account) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
@@ -6440,6 +7315,162 @@ func (ec *executionContext) _BalancePoint_debits(ctx context.Context, field grap
 }
 func (ec *executionContext) fieldContext_BalancePoint_debits(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("BalancePoint", field, false, false, "Amount")
+}
+
+func (ec *executionContext) _ClientSecret_secret(ctx context.Context, field graphql.CollectedField, obj *dto2.ClientSecret) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ClientSecret_secret(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Secret, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_ClientSecret_secret(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("ClientSecret", field, false, false, "String")
+}
+
+func (ec *executionContext) _CreatedAPIKey_key(ctx context.Context, field graphql.CollectedField, obj *dto2.CreatedAPIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CreatedAPIKey_key(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Key, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v dto2.APIKey) graphql.Marshaler {
+			return ec.marshalNAPIKey2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐAPIKey(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CreatedAPIKey_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreatedAPIKey",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_APIKey(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreatedAPIKey_secret(ctx context.Context, field graphql.CollectedField, obj *dto2.CreatedAPIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CreatedAPIKey_secret(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Secret, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CreatedAPIKey_secret(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CreatedAPIKey", field, false, false, "String")
+}
+
+func (ec *executionContext) _CreatedMachineClient_client(ctx context.Context, field graphql.CollectedField, obj *dto2.CreatedMachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CreatedMachineClient_client(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Client, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v dto2.MachineClient) graphql.Marshaler {
+			return ec.marshalNMachineClient2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐMachineClient(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CreatedMachineClient_client(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreatedMachineClient",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_MachineClient(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreatedMachineClient_secret(ctx context.Context, field graphql.CollectedField, obj *dto2.CreatedMachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CreatedMachineClient_secret(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Secret, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CreatedMachineClient_secret(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CreatedMachineClient", field, false, false, "String")
+}
+
+func (ec *executionContext) _CreatedMachineClient_tokenUrl(ctx context.Context, field graphql.CollectedField, obj *dto2.CreatedMachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CreatedMachineClient_tokenUrl(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TokenURL, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CreatedMachineClient_tokenUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CreatedMachineClient", field, false, false, "String")
 }
 
 func (ec *executionContext) _DeclinedReason_reason(ctx context.Context, field graphql.CollectedField, obj *dto1.DeclinedReason) (ret graphql.Marshaler) {
@@ -7792,7 +8823,7 @@ func (ec *executionContext) fieldContext_Invitation_expired(_ context.Context, f
 	return graphql.NewScalarFieldContext("Invitation", field, false, false, "Boolean")
 }
 
-func (ec *executionContext) _Ledger_name(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_name(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7815,7 +8846,7 @@ func (ec *executionContext) fieldContext_Ledger_name(_ context.Context, field gr
 	return graphql.NewScalarFieldContext("Ledger", field, false, false, "String")
 }
 
-func (ec *executionContext) _Ledger_metadata(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_metadata(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7838,7 +8869,7 @@ func (ec *executionContext) fieldContext_Ledger_metadata(_ context.Context, fiel
 	return graphql.NewScalarFieldContext("Ledger", field, false, false, "Metadata")
 }
 
-func (ec *executionContext) _Ledger_createdAt(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_createdAt(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7861,7 +8892,7 @@ func (ec *executionContext) fieldContext_Ledger_createdAt(_ context.Context, fie
 	return graphql.NewScalarFieldContext("Ledger", field, false, false, "DateTime")
 }
 
-func (ec *executionContext) _Ledger_assetCodes(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_assetCodes(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7884,7 +8915,7 @@ func (ec *executionContext) fieldContext_Ledger_assetCodes(_ context.Context, fi
 	return graphql.NewScalarFieldContext("Ledger", field, false, false, "String")
 }
 
-func (ec *executionContext) _Ledger_accountCount(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_accountCount(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7907,7 +8938,7 @@ func (ec *executionContext) fieldContext_Ledger_accountCount(_ context.Context, 
 	return graphql.NewScalarFieldContext("Ledger", field, false, false, "Int64")
 }
 
-func (ec *executionContext) _Ledger_rules(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_rules(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7939,7 +8970,7 @@ func (ec *executionContext) fieldContext_Ledger_rules(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_ruleMatch(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_ruleMatch(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7983,7 +9014,7 @@ func (ec *executionContext) fieldContext_Ledger_ruleMatch(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_eventTypes(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_eventTypes(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8015,7 +9046,7 @@ func (ec *executionContext) fieldContext_Ledger_eventTypes(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_assets(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_assets(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8047,7 +9078,7 @@ func (ec *executionContext) fieldContext_Ledger_assets(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_stats(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_stats(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8079,7 +9110,7 @@ func (ec *executionContext) fieldContext_Ledger_stats(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_accounts(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_accounts(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8123,7 +9154,7 @@ func (ec *executionContext) fieldContext_Ledger_accounts(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_account(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_account(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8167,7 +9198,7 @@ func (ec *executionContext) fieldContext_Ledger_account(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_accountHistory(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_accountHistory(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8211,7 +9242,7 @@ func (ec *executionContext) fieldContext_Ledger_accountHistory(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_segments(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_segments(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8255,7 +9286,7 @@ func (ec *executionContext) fieldContext_Ledger_segments(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_aggregateBalances(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_aggregateBalances(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8299,7 +9330,7 @@ func (ec *executionContext) fieldContext_Ledger_aggregateBalances(ctx context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_transactions(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_transactions(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8343,7 +9374,7 @@ func (ec *executionContext) fieldContext_Ledger_transactions(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_transaction(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_transaction(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8387,7 +9418,7 @@ func (ec *executionContext) fieldContext_Ledger_transaction(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_holds(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_holds(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8431,7 +9462,7 @@ func (ec *executionContext) fieldContext_Ledger_holds(ctx context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_holdCounts(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_holdCounts(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8463,7 +9494,7 @@ func (ec *executionContext) fieldContext_Ledger_holdCounts(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_hold(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_hold(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8507,7 +9538,7 @@ func (ec *executionContext) fieldContext_Ledger_hold(ctx context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_requests(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_requests(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8551,7 +9582,7 @@ func (ec *executionContext) fieldContext_Ledger_requests(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_request(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_request(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8595,7 +9626,7 @@ func (ec *executionContext) fieldContext_Ledger_request(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Ledger_search(ctx context.Context, field graphql.CollectedField, obj *graphql2.Ledger) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ledger_search(ctx context.Context, field graphql.CollectedField, obj *graphql3.Ledger) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8639,7 +9670,7 @@ func (ec *executionContext) fieldContext_Ledger_search(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _LedgerConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *graphql2.LedgerConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _LedgerConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *graphql3.LedgerConnection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8651,7 +9682,7 @@ func (ec *executionContext) _LedgerConnection_nodes(ctx context.Context, field g
 			return obj.Nodes, nil
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v []graphql2.Ledger) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v []graphql3.Ledger) graphql.Marshaler {
 			return ec.marshalNLedger2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedgerᚄ(ctx, selections, v)
 		},
 		true,
@@ -8671,7 +9702,7 @@ func (ec *executionContext) fieldContext_LedgerConnection_nodes(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _LedgerConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *graphql2.LedgerConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _LedgerConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *graphql3.LedgerConnection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8937,6 +9968,245 @@ func (ec *executionContext) fieldContext_LedgerStats_declined(_ context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _MachineClient_clientId(ctx context.Context, field graphql.CollectedField, obj *dto2.MachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MachineClient_clientId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ClientID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_MachineClient_clientId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MachineClient", field, false, false, "String")
+}
+
+func (ec *executionContext) _MachineClient_name(ctx context.Context, field graphql.CollectedField, obj *dto2.MachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MachineClient_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_MachineClient_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MachineClient", field, false, false, "String")
+}
+
+func (ec *executionContext) _MachineClient_subject(ctx context.Context, field graphql.CollectedField, obj *dto2.MachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MachineClient_subject(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Subject, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_MachineClient_subject(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MachineClient", field, false, false, "String")
+}
+
+func (ec *executionContext) _MachineClient_status(ctx context.Context, field graphql.CollectedField, obj *dto2.MachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MachineClient_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_MachineClient_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MachineClient", field, false, false, "String")
+}
+
+func (ec *executionContext) _MachineClient_secretSetAt(ctx context.Context, field graphql.CollectedField, obj *dto2.MachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MachineClient_secretSetAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SecretSetAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_MachineClient_secretSetAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MachineClient", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _MachineClient_lastTokenAt(ctx context.Context, field graphql.CollectedField, obj *dto2.MachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MachineClient_lastTokenAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.LastTokenAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_MachineClient_lastTokenAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MachineClient", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _MachineClient_deletedAt(ctx context.Context, field graphql.CollectedField, obj *dto2.MachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MachineClient_deletedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DeletedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_MachineClient_deletedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MachineClient", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _MachineClient_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto2.MachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MachineClient_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_MachineClient_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MachineClient", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _MachineClient_createdBy(ctx context.Context, field graphql.CollectedField, obj *dto2.MachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MachineClient_createdBy(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedBy, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_MachineClient_createdBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MachineClient", field, false, false, "String")
+}
+
+func (ec *executionContext) _MachineClient_ledgers(ctx context.Context, field graphql.CollectedField, obj *dto2.MachineClient) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MachineClient_ledgers(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Ledgers, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto2.LedgerRole) graphql.Marshaler {
+			return ec.marshalNLedgerRole2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐLedgerRoleᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_MachineClient_ledgers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MachineClient",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LedgerRole(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Member_subject(ctx context.Context, field graphql.CollectedField, obj *dto2.Member) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9195,7 +10465,7 @@ func (ec *executionContext) _Mutation_createOrganization(ctx context.Context, fi
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().CreateOrganization(ctx, fc.Args["input"].(graphql3.CreateOrganizationInput))
+			return ec.Resolvers.Mutation().CreateOrganization(ctx, fc.Args["input"].(graphql2.CreateOrganizationInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v *dto2.Organization) graphql.Marshaler {
@@ -9239,7 +10509,7 @@ func (ec *executionContext) _Mutation_updateOrganization(ctx context.Context, fi
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().UpdateOrganization(ctx, fc.Args["input"].(graphql3.UpdateOrganizationInput))
+			return ec.Resolvers.Mutation().UpdateOrganization(ctx, fc.Args["input"].(graphql2.UpdateOrganizationInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v *dto2.Organization) graphql.Marshaler {
@@ -9283,7 +10553,7 @@ func (ec *executionContext) _Mutation_inviteMember(ctx context.Context, field gr
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().InviteMember(ctx, fc.Args["input"].(graphql3.InviteMemberInput))
+			return ec.Resolvers.Mutation().InviteMember(ctx, fc.Args["input"].(graphql2.InviteMemberInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v *dto2.Member) graphql.Marshaler {
@@ -9327,7 +10597,7 @@ func (ec *executionContext) _Mutation_setMemberRole(ctx context.Context, field g
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().SetMemberRole(ctx, fc.Args["input"].(graphql3.SetMemberRoleInput))
+			return ec.Resolvers.Mutation().SetMemberRole(ctx, fc.Args["input"].(graphql2.SetMemberRoleInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
@@ -9371,7 +10641,7 @@ func (ec *executionContext) _Mutation_removeMember(ctx context.Context, field gr
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().RemoveMember(ctx, fc.Args["input"].(graphql3.MemberInput))
+			return ec.Resolvers.Mutation().RemoveMember(ctx, fc.Args["input"].(graphql2.MemberInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
@@ -9415,7 +10685,7 @@ func (ec *executionContext) _Mutation_setLedgerRole(ctx context.Context, field g
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().SetLedgerRole(ctx, fc.Args["input"].(graphql3.SetLedgerRoleInput))
+			return ec.Resolvers.Mutation().SetLedgerRole(ctx, fc.Args["input"].(graphql2.SetLedgerRoleInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
@@ -9459,7 +10729,7 @@ func (ec *executionContext) _Mutation_revokeLedgerRole(ctx context.Context, fiel
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().RevokeLedgerRole(ctx, fc.Args["input"].(graphql3.RevokeLedgerRoleInput))
+			return ec.Resolvers.Mutation().RevokeLedgerRole(ctx, fc.Args["input"].(graphql2.RevokeLedgerRoleInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
@@ -9503,7 +10773,7 @@ func (ec *executionContext) _Mutation_resendInvitation(ctx context.Context, fiel
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().ResendInvitation(ctx, fc.Args["input"].(graphql3.InvitationInput))
+			return ec.Resolvers.Mutation().ResendInvitation(ctx, fc.Args["input"].(graphql2.InvitationInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
@@ -9547,7 +10817,7 @@ func (ec *executionContext) _Mutation_deleteInvitation(ctx context.Context, fiel
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().DeleteInvitation(ctx, fc.Args["input"].(graphql3.InvitationInput))
+			return ec.Resolvers.Mutation().DeleteInvitation(ctx, fc.Args["input"].(graphql2.InvitationInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
@@ -9581,6 +10851,314 @@ func (ec *executionContext) fieldContext_Mutation_deleteInvitation(ctx context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createApiKey(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createApiKey(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateAPIKey(ctx, fc.Args["input"].(graphql2.CreateAPIKeyInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto2.CreatedAPIKey) graphql.Marshaler {
+			return ec.marshalNCreatedAPIKey2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐCreatedAPIKey(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createApiKey(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CreatedAPIKey(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createApiKey_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_revokeApiKey(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_revokeApiKey(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().RevokeAPIKey(ctx, fc.Args["input"].(graphql2.APIKeyInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_revokeApiKey(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_revokeApiKey_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createMachineClient(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createMachineClient(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateMachineClient(ctx, fc.Args["input"].(graphql2.CreateMachineClientInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto2.CreatedMachineClient) graphql.Marshaler {
+			return ec.marshalNCreatedMachineClient2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐCreatedMachineClient(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createMachineClient(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CreatedMachineClient(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createMachineClient_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_regenerateMachineClientSecret(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_regenerateMachineClientSecret(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().RegenerateMachineClientSecret(ctx, fc.Args["input"].(graphql2.MachineClientInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto2.ClientSecret) graphql.Marshaler {
+			return ec.marshalNClientSecret2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐClientSecret(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_regenerateMachineClientSecret(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_ClientSecret(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_regenerateMachineClientSecret_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteMachineClient(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_deleteMachineClient(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().DeleteMachineClient(ctx, fc.Args["input"].(graphql2.MachineClientInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_deleteMachineClient(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteMachineClient_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_setCredentialRole(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_setCredentialRole(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().SetCredentialRole(ctx, fc.Args["input"].(graphql2.SetCredentialRoleInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_setCredentialRole(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_setCredentialRole_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_revokeCredentialRole(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_revokeCredentialRole(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().RevokeCredentialRole(ctx, fc.Args["input"].(graphql2.RevokeCredentialRoleInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_revokeCredentialRole(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_revokeCredentialRole_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_createLedger(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9591,10 +11169,10 @@ func (ec *executionContext) _Mutation_createLedger(ctx context.Context, field gr
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().CreateLedger(ctx, fc.Args["input"].(graphql2.CreateLedgerInput))
+			return ec.Resolvers.Mutation().CreateLedger(ctx, fc.Args["input"].(graphql3.CreateLedgerInput))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *graphql2.Ledger) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql3.Ledger) graphql.Marshaler {
 			return ec.marshalNLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx, selections, v)
 		},
 		true,
@@ -9635,10 +11213,10 @@ func (ec *executionContext) _Mutation_replaceLedgerMetadata(ctx context.Context,
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().ReplaceLedgerMetadata(ctx, fc.Args["input"].(graphql2.ReplaceLedgerMetadataInput))
+			return ec.Resolvers.Mutation().ReplaceLedgerMetadata(ctx, fc.Args["input"].(graphql3.ReplaceLedgerMetadataInput))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *graphql2.Ledger) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql3.Ledger) graphql.Marshaler {
 			return ec.marshalNLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx, selections, v)
 		},
 		true,
@@ -9679,7 +11257,7 @@ func (ec *executionContext) _Mutation_putRule(ctx context.Context, field graphql
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().PutRule(ctx, fc.Args["input"].(graphql2.PutRuleInput))
+			return ec.Resolvers.Mutation().PutRule(ctx, fc.Args["input"].(graphql3.PutRuleInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v *dto.Rule) graphql.Marshaler {
@@ -9723,7 +11301,7 @@ func (ec *executionContext) _Mutation_deleteRule(ctx context.Context, field grap
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().DeleteRule(ctx, fc.Args["input"].(graphql2.DeleteRuleInput))
+			return ec.Resolvers.Mutation().DeleteRule(ctx, fc.Args["input"].(graphql3.DeleteRuleInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
@@ -9767,7 +11345,7 @@ func (ec *executionContext) _Mutation_createEventType(ctx context.Context, field
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().CreateEventType(ctx, fc.Args["input"].(graphql2.CreateEventTypeInput))
+			return ec.Resolvers.Mutation().CreateEventType(ctx, fc.Args["input"].(graphql3.CreateEventTypeInput))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v *dto.EventType) graphql.Marshaler {
@@ -10371,7 +11949,7 @@ func (ec *executionContext) fieldContext_Organization_ledgers(_ context.Context,
 	return graphql.NewScalarFieldContext("Organization", field, false, false, "Int")
 }
 
-func (ec *executionContext) _OrganizationConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *graphql3.OrganizationConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _OrganizationConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *graphql2.OrganizationConnection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10403,7 +11981,7 @@ func (ec *executionContext) fieldContext_OrganizationConnection_nodes(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _OrganizationConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *graphql3.OrganizationConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _OrganizationConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *graphql2.OrganizationConnection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10779,7 +12357,7 @@ func (ec *executionContext) _Query_organizations(ctx context.Context, field grap
 			return ec.Resolvers.Query().Organizations(ctx, fc.Args["first"].(*int), fc.Args["after"].(*string))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *graphql3.OrganizationConnection) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql2.OrganizationConnection) graphql.Marshaler {
 			return ec.marshalNOrganizationConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐOrganizationConnection(ctx, selections, v)
 		},
 		true,
@@ -10886,6 +12464,158 @@ func (ec *executionContext) fieldContext_Query_members(_ context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_apiKeys(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_apiKeys(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().APIKeys(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto2.APIKey) graphql.Marshaler {
+			return ec.marshalNAPIKey2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐAPIKeyᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_apiKeys(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_APIKey(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_apiKey(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_apiKey(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().APIKey(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto2.APIKey) graphql.Marshaler {
+			return ec.marshalOAPIKey2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐAPIKey(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Query_apiKey(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_APIKey(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_apiKey_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_machineClients(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_machineClients(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().MachineClients(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto2.MachineClient) graphql.Marshaler {
+			return ec.marshalNMachineClient2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐMachineClientᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_machineClients(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_MachineClient(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_machineClient(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_machineClient(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().MachineClient(ctx, fc.Args["clientId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *dto2.MachineClient) graphql.Marshaler {
+			return ec.marshalOMachineClient2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐMachineClient(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Query_machineClient(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_MachineClient(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_machineClient_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_ledger(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -10899,7 +12629,7 @@ func (ec *executionContext) _Query_ledger(ctx context.Context, field graphql.Col
 			return ec.Resolvers.Query().Ledger(ctx, fc.Args["name"].(string))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *graphql2.Ledger) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql3.Ledger) graphql.Marshaler {
 			return ec.marshalOLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx, selections, v)
 		},
 		true,
@@ -10943,7 +12673,7 @@ func (ec *executionContext) _Query_ledgers(ctx context.Context, field graphql.Co
 			return ec.Resolvers.Query().Ledgers(ctx, fc.Args["first"].(*int), fc.Args["after"].(*string))
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *graphql2.LedgerConnection) graphql.Marshaler {
+		func(ctx context.Context, selections ast.SelectionSet, v *graphql3.LedgerConnection) graphql.Marshaler {
 			return ec.marshalNLedgerConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedgerConnection(ctx, selections, v)
 		},
 		true,
@@ -14149,6 +15879,48 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAPIKeyInput(ctx context.Context, obj any) (graphql2.APIKeyInput, error) {
+	var it graphql2.APIKeyInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalAPIKeyInput unmarshals raw into the APIKeyInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalAPIKeyInput(ctx context.Context, raw any) (graphql2.APIKeyInput, error) {
+	var out graphql2.APIKeyInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "APIKeyInput", raw, &out)
+	return out, err
+}
+
 func (ec *executionContext) unmarshalInputCaptureHoldInput(ctx context.Context, obj any) (graphql1.CaptureHoldInput, error) {
 	var it graphql1.CaptureHoldInput
 	if obj == nil {
@@ -14212,8 +15984,64 @@ func UnmarshalCaptureHoldInput(ctx context.Context, raw any) (graphql1.CaptureHo
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputCreateEventTypeInput(ctx context.Context, obj any) (graphql2.CreateEventTypeInput, error) {
-	var it graphql2.CreateEventTypeInput
+func (ec *executionContext) unmarshalInputCreateAPIKeyInput(ctx context.Context, obj any) (graphql2.CreateAPIKeyInput, error) {
+	var it graphql2.CreateAPIKeyInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "expiresAt", "ledgers"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "expiresAt":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expiresAt"))
+			data, err := ec.unmarshalODateTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExpiresAt = data
+		case "ledgers":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledgers"))
+			data, err := ec.unmarshalNLedgerRoleInput2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐLedgerRoleInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledgers = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalCreateAPIKeyInput unmarshals raw into the CreateAPIKeyInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalCreateAPIKeyInput(ctx context.Context, raw any) (graphql2.CreateAPIKeyInput, error) {
+	var out graphql2.CreateAPIKeyInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "CreateAPIKeyInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputCreateEventTypeInput(ctx context.Context, obj any) (graphql3.CreateEventTypeInput, error) {
+	var it graphql3.CreateEventTypeInput
 	if obj == nil {
 		return it, nil
 	}
@@ -14262,8 +16090,8 @@ func (ec *executionContext) unmarshalInputCreateEventTypeInput(ctx context.Conte
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalCreateEventTypeInput(ctx context.Context, raw any) (graphql2.CreateEventTypeInput, error) {
-	var out graphql2.CreateEventTypeInput
+func UnmarshalCreateEventTypeInput(ctx context.Context, raw any) (graphql3.CreateEventTypeInput, error) {
+	var out graphql3.CreateEventTypeInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "CreateEventTypeInput", raw, &out)
 	return out, err
 }
@@ -14373,8 +16201,8 @@ func UnmarshalCreateHoldInput(ctx context.Context, raw any) (graphql1.CreateHold
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputCreateLedgerInput(ctx context.Context, obj any) (graphql2.CreateLedgerInput, error) {
-	var it graphql2.CreateLedgerInput
+func (ec *executionContext) unmarshalInputCreateLedgerInput(ctx context.Context, obj any) (graphql3.CreateLedgerInput, error) {
+	var it graphql3.CreateLedgerInput
 	if obj == nil {
 		return it, nil
 	}
@@ -14416,14 +16244,63 @@ func (ec *executionContext) unmarshalInputCreateLedgerInput(ctx context.Context,
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalCreateLedgerInput(ctx context.Context, raw any) (graphql2.CreateLedgerInput, error) {
-	var out graphql2.CreateLedgerInput
+func UnmarshalCreateLedgerInput(ctx context.Context, raw any) (graphql3.CreateLedgerInput, error) {
+	var out graphql3.CreateLedgerInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "CreateLedgerInput", raw, &out)
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputCreateOrganizationInput(ctx context.Context, obj any) (graphql3.CreateOrganizationInput, error) {
-	var it graphql3.CreateOrganizationInput
+func (ec *executionContext) unmarshalInputCreateMachineClientInput(ctx context.Context, obj any) (graphql2.CreateMachineClientInput, error) {
+	var it graphql2.CreateMachineClientInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "ledgers"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "ledgers":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledgers"))
+			data, err := ec.unmarshalNLedgerRoleInput2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐLedgerRoleInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledgers = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalCreateMachineClientInput unmarshals raw into the CreateMachineClientInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalCreateMachineClientInput(ctx context.Context, raw any) (graphql2.CreateMachineClientInput, error) {
+	var out graphql2.CreateMachineClientInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "CreateMachineClientInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputCreateOrganizationInput(ctx context.Context, obj any) (graphql2.CreateOrganizationInput, error) {
+	var it graphql2.CreateOrganizationInput
 	if obj == nil {
 		return it, nil
 	}
@@ -14472,8 +16349,8 @@ func (ec *executionContext) unmarshalInputCreateOrganizationInput(ctx context.Co
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalCreateOrganizationInput(ctx context.Context, raw any) (graphql3.CreateOrganizationInput, error) {
-	var out graphql3.CreateOrganizationInput
+func UnmarshalCreateOrganizationInput(ctx context.Context, raw any) (graphql2.CreateOrganizationInput, error) {
+	var out graphql2.CreateOrganizationInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "CreateOrganizationInput", raw, &out)
 	return out, err
 }
@@ -14562,8 +16439,8 @@ func UnmarshalCreateTransactionInput(ctx context.Context, raw any) (graphql1.Cre
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputDeleteRuleInput(ctx context.Context, obj any) (graphql2.DeleteRuleInput, error) {
-	var it graphql2.DeleteRuleInput
+func (ec *executionContext) unmarshalInputDeleteRuleInput(ctx context.Context, obj any) (graphql3.DeleteRuleInput, error) {
+	var it graphql3.DeleteRuleInput
 	if obj == nil {
 		return it, nil
 	}
@@ -14605,14 +16482,14 @@ func (ec *executionContext) unmarshalInputDeleteRuleInput(ctx context.Context, o
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalDeleteRuleInput(ctx context.Context, raw any) (graphql2.DeleteRuleInput, error) {
-	var out graphql2.DeleteRuleInput
+func UnmarshalDeleteRuleInput(ctx context.Context, raw any) (graphql3.DeleteRuleInput, error) {
+	var out graphql3.DeleteRuleInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "DeleteRuleInput", raw, &out)
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputInvitationInput(ctx context.Context, obj any) (graphql3.InvitationInput, error) {
-	var it graphql3.InvitationInput
+func (ec *executionContext) unmarshalInputInvitationInput(ctx context.Context, obj any) (graphql2.InvitationInput, error) {
+	var it graphql2.InvitationInput
 	if obj == nil {
 		return it, nil
 	}
@@ -14647,14 +16524,14 @@ func (ec *executionContext) unmarshalInputInvitationInput(ctx context.Context, o
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalInvitationInput(ctx context.Context, raw any) (graphql3.InvitationInput, error) {
-	var out graphql3.InvitationInput
+func UnmarshalInvitationInput(ctx context.Context, raw any) (graphql2.InvitationInput, error) {
+	var out graphql2.InvitationInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "InvitationInput", raw, &out)
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context, obj any) (graphql3.InviteMemberInput, error) {
-	var it graphql3.InviteMemberInput
+func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context, obj any) (graphql2.InviteMemberInput, error) {
+	var it graphql2.InviteMemberInput
 	if obj == nil {
 		return it, nil
 	}
@@ -14703,14 +16580,14 @@ func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context,
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalInviteMemberInput(ctx context.Context, raw any) (graphql3.InviteMemberInput, error) {
-	var out graphql3.InviteMemberInput
+func UnmarshalInviteMemberInput(ctx context.Context, raw any) (graphql2.InviteMemberInput, error) {
+	var out graphql2.InviteMemberInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "InviteMemberInput", raw, &out)
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputLedgerRoleInput(ctx context.Context, obj any) (graphql3.LedgerRoleInput, error) {
-	var it graphql3.LedgerRoleInput
+func (ec *executionContext) unmarshalInputLedgerRoleInput(ctx context.Context, obj any) (graphql2.LedgerRoleInput, error) {
+	var it graphql2.LedgerRoleInput
 	if obj == nil {
 		return it, nil
 	}
@@ -14752,14 +16629,56 @@ func (ec *executionContext) unmarshalInputLedgerRoleInput(ctx context.Context, o
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalLedgerRoleInput(ctx context.Context, raw any) (graphql3.LedgerRoleInput, error) {
-	var out graphql3.LedgerRoleInput
+func UnmarshalLedgerRoleInput(ctx context.Context, raw any) (graphql2.LedgerRoleInput, error) {
+	var out graphql2.LedgerRoleInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "LedgerRoleInput", raw, &out)
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputMemberInput(ctx context.Context, obj any) (graphql3.MemberInput, error) {
-	var it graphql3.MemberInput
+func (ec *executionContext) unmarshalInputMachineClientInput(ctx context.Context, obj any) (graphql2.MachineClientInput, error) {
+	var it graphql2.MachineClientInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"clientId"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "clientId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("clientId"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ClientID = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalMachineClientInput unmarshals raw into the MachineClientInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalMachineClientInput(ctx context.Context, raw any) (graphql2.MachineClientInput, error) {
+	var out graphql2.MachineClientInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "MachineClientInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputMemberInput(ctx context.Context, obj any) (graphql2.MemberInput, error) {
+	var it graphql2.MemberInput
 	if obj == nil {
 		return it, nil
 	}
@@ -14794,14 +16713,14 @@ func (ec *executionContext) unmarshalInputMemberInput(ctx context.Context, obj a
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalMemberInput(ctx context.Context, raw any) (graphql3.MemberInput, error) {
-	var out graphql3.MemberInput
+func UnmarshalMemberInput(ctx context.Context, raw any) (graphql2.MemberInput, error) {
+	var out graphql2.MemberInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "MemberInput", raw, &out)
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputNewMemberInput(ctx context.Context, obj any) (graphql3.NewMemberInput, error) {
-	var it graphql3.NewMemberInput
+func (ec *executionContext) unmarshalInputNewMemberInput(ctx context.Context, obj any) (graphql2.NewMemberInput, error) {
+	var it graphql2.NewMemberInput
 	if obj == nil {
 		return it, nil
 	}
@@ -14850,8 +16769,8 @@ func (ec *executionContext) unmarshalInputNewMemberInput(ctx context.Context, ob
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalNewMemberInput(ctx context.Context, raw any) (graphql3.NewMemberInput, error) {
-	var out graphql3.NewMemberInput
+func UnmarshalNewMemberInput(ctx context.Context, raw any) (graphql2.NewMemberInput, error) {
+	var out graphql2.NewMemberInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "NewMemberInput", raw, &out)
 	return out, err
 }
@@ -14919,8 +16838,8 @@ func UnmarshalPostingInput(ctx context.Context, raw any) (graphql1.PostingInput,
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputPutRuleInput(ctx context.Context, obj any) (graphql2.PutRuleInput, error) {
-	var it graphql2.PutRuleInput
+func (ec *executionContext) unmarshalInputPutRuleInput(ctx context.Context, obj any) (graphql3.PutRuleInput, error) {
+	var it graphql3.PutRuleInput
 	if obj == nil {
 		return it, nil
 	}
@@ -14987,8 +16906,8 @@ func (ec *executionContext) unmarshalInputPutRuleInput(ctx context.Context, obj 
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalPutRuleInput(ctx context.Context, raw any) (graphql2.PutRuleInput, error) {
-	var out graphql2.PutRuleInput
+func UnmarshalPutRuleInput(ctx context.Context, raw any) (graphql3.PutRuleInput, error) {
+	var out graphql3.PutRuleInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "PutRuleInput", raw, &out)
 	return out, err
 }
@@ -15049,8 +16968,8 @@ func UnmarshalReplaceAccountMetadataInput(ctx context.Context, raw any) (graphql
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputReplaceLedgerMetadataInput(ctx context.Context, obj any) (graphql2.ReplaceLedgerMetadataInput, error) {
-	var it graphql2.ReplaceLedgerMetadataInput
+func (ec *executionContext) unmarshalInputReplaceLedgerMetadataInput(ctx context.Context, obj any) (graphql3.ReplaceLedgerMetadataInput, error) {
+	var it graphql3.ReplaceLedgerMetadataInput
 	if obj == nil {
 		return it, nil
 	}
@@ -15092,8 +17011,8 @@ func (ec *executionContext) unmarshalInputReplaceLedgerMetadataInput(ctx context
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalReplaceLedgerMetadataInput(ctx context.Context, raw any) (graphql2.ReplaceLedgerMetadataInput, error) {
-	var out graphql2.ReplaceLedgerMetadataInput
+func UnmarshalReplaceLedgerMetadataInput(ctx context.Context, raw any) (graphql3.ReplaceLedgerMetadataInput, error) {
+	var out graphql3.ReplaceLedgerMetadataInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "ReplaceLedgerMetadataInput", raw, &out)
 	return out, err
 }
@@ -15224,8 +17143,64 @@ func UnmarshalRevertTransactionInput(ctx context.Context, raw any) (graphql1.Rev
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputRevokeLedgerRoleInput(ctx context.Context, obj any) (graphql3.RevokeLedgerRoleInput, error) {
-	var it graphql3.RevokeLedgerRoleInput
+func (ec *executionContext) unmarshalInputRevokeCredentialRoleInput(ctx context.Context, obj any) (graphql2.RevokeCredentialRoleInput, error) {
+	var it graphql2.RevokeCredentialRoleInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"kind", "id", "ledger"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "kind":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalRevokeCredentialRoleInput unmarshals raw into the RevokeCredentialRoleInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalRevokeCredentialRoleInput(ctx context.Context, raw any) (graphql2.RevokeCredentialRoleInput, error) {
+	var out graphql2.RevokeCredentialRoleInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "RevokeCredentialRoleInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputRevokeLedgerRoleInput(ctx context.Context, obj any) (graphql2.RevokeLedgerRoleInput, error) {
+	var it graphql2.RevokeLedgerRoleInput
 	if obj == nil {
 		return it, nil
 	}
@@ -15267,14 +17242,77 @@ func (ec *executionContext) unmarshalInputRevokeLedgerRoleInput(ctx context.Cont
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalRevokeLedgerRoleInput(ctx context.Context, raw any) (graphql3.RevokeLedgerRoleInput, error) {
-	var out graphql3.RevokeLedgerRoleInput
+func UnmarshalRevokeLedgerRoleInput(ctx context.Context, raw any) (graphql2.RevokeLedgerRoleInput, error) {
+	var out graphql2.RevokeLedgerRoleInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "RevokeLedgerRoleInput", raw, &out)
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputSetLedgerRoleInput(ctx context.Context, obj any) (graphql3.SetLedgerRoleInput, error) {
-	var it graphql3.SetLedgerRoleInput
+func (ec *executionContext) unmarshalInputSetCredentialRoleInput(ctx context.Context, obj any) (graphql2.SetCredentialRoleInput, error) {
+	var it graphql2.SetCredentialRoleInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"kind", "id", "ledger", "role"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "kind":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "role":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Role = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalSetCredentialRoleInput unmarshals raw into the SetCredentialRoleInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalSetCredentialRoleInput(ctx context.Context, raw any) (graphql2.SetCredentialRoleInput, error) {
+	var out graphql2.SetCredentialRoleInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "SetCredentialRoleInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputSetLedgerRoleInput(ctx context.Context, obj any) (graphql2.SetLedgerRoleInput, error) {
+	var it graphql2.SetLedgerRoleInput
 	if obj == nil {
 		return it, nil
 	}
@@ -15323,14 +17361,14 @@ func (ec *executionContext) unmarshalInputSetLedgerRoleInput(ctx context.Context
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalSetLedgerRoleInput(ctx context.Context, raw any) (graphql3.SetLedgerRoleInput, error) {
-	var out graphql3.SetLedgerRoleInput
+func UnmarshalSetLedgerRoleInput(ctx context.Context, raw any) (graphql2.SetLedgerRoleInput, error) {
+	var out graphql2.SetLedgerRoleInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "SetLedgerRoleInput", raw, &out)
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputSetMemberRoleInput(ctx context.Context, obj any) (graphql3.SetMemberRoleInput, error) {
-	var it graphql3.SetMemberRoleInput
+func (ec *executionContext) unmarshalInputSetMemberRoleInput(ctx context.Context, obj any) (graphql2.SetMemberRoleInput, error) {
+	var it graphql2.SetMemberRoleInput
 	if obj == nil {
 		return it, nil
 	}
@@ -15372,14 +17410,14 @@ func (ec *executionContext) unmarshalInputSetMemberRoleInput(ctx context.Context
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalSetMemberRoleInput(ctx context.Context, raw any) (graphql3.SetMemberRoleInput, error) {
-	var out graphql3.SetMemberRoleInput
+func UnmarshalSetMemberRoleInput(ctx context.Context, raw any) (graphql2.SetMemberRoleInput, error) {
+	var out graphql2.SetMemberRoleInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "SetMemberRoleInput", raw, &out)
 	return out, err
 }
 
-func (ec *executionContext) unmarshalInputUpdateOrganizationInput(ctx context.Context, obj any) (graphql3.UpdateOrganizationInput, error) {
-	var it graphql3.UpdateOrganizationInput
+func (ec *executionContext) unmarshalInputUpdateOrganizationInput(ctx context.Context, obj any) (graphql2.UpdateOrganizationInput, error) {
+	var it graphql2.UpdateOrganizationInput
 	if obj == nil {
 		return it, nil
 	}
@@ -15435,8 +17473,8 @@ func (ec *executionContext) unmarshalInputUpdateOrganizationInput(ctx context.Co
 //
 // ctx must come from a gqlgen request; outside one there is no unmarshaler to use
 // and the returned error says so.
-func UnmarshalUpdateOrganizationInput(ctx context.Context, raw any) (graphql3.UpdateOrganizationInput, error) {
-	var out graphql3.UpdateOrganizationInput
+func UnmarshalUpdateOrganizationInput(ctx context.Context, raw any) (graphql2.UpdateOrganizationInput, error) {
+	var out graphql2.UpdateOrganizationInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "UpdateOrganizationInput", raw, &out)
 	return out, err
 }
@@ -15504,6 +17542,79 @@ func UnmarshalVoidHoldInput(ctx context.Context, raw any) (graphql1.VoidHoldInpu
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var aPIKeyImplementors = []string{"APIKey"}
+
+func (ec *executionContext) _APIKey(ctx context.Context, sel ast.SelectionSet, obj *dto2.APIKey) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aPIKeyImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("APIKey")
+		case "id":
+			out.Values[i] = ec._APIKey_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._APIKey_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._APIKey_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "expiresAt":
+			out.Values[i] = ec._APIKey_expiresAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "lastUsedAt":
+			out.Values[i] = ec._APIKey_lastUsedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "revokedAt":
+			out.Values[i] = ec._APIKey_revokedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._APIKey_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdBy":
+			out.Values[i] = ec._APIKey_createdBy(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "ledgers":
+			out.Values[i] = ec._APIKey_ledgers(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
 
 var accountImplementors = []string{"Account"}
 
@@ -16025,6 +18136,120 @@ func (ec *executionContext) _BalancePoint(ctx context.Context, sel ast.Selection
 			}
 		case "debits":
 			out.Values[i] = ec._BalancePoint_debits(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var clientSecretImplementors = []string{"ClientSecret"}
+
+func (ec *executionContext) _ClientSecret(ctx context.Context, sel ast.SelectionSet, obj *dto2.ClientSecret) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, clientSecretImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ClientSecret")
+		case "secret":
+			out.Values[i] = ec._ClientSecret_secret(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var createdAPIKeyImplementors = []string{"CreatedAPIKey"}
+
+func (ec *executionContext) _CreatedAPIKey(ctx context.Context, sel ast.SelectionSet, obj *dto2.CreatedAPIKey) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createdAPIKeyImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreatedAPIKey")
+		case "key":
+			out.Values[i] = ec._CreatedAPIKey_key(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "secret":
+			out.Values[i] = ec._CreatedAPIKey_secret(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var createdMachineClientImplementors = []string{"CreatedMachineClient"}
+
+func (ec *executionContext) _CreatedMachineClient(ctx context.Context, sel ast.SelectionSet, obj *dto2.CreatedMachineClient) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createdMachineClientImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreatedMachineClient")
+		case "client":
+			out.Values[i] = ec._CreatedMachineClient_client(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "secret":
+			out.Values[i] = ec._CreatedMachineClient_secret(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "tokenUrl":
+			out.Values[i] = ec._CreatedMachineClient_tokenUrl(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -16625,7 +18850,7 @@ func (ec *executionContext) _Invitation(ctx context.Context, sel ast.SelectionSe
 
 var ledgerImplementors = []string{"Ledger"}
 
-func (ec *executionContext) _Ledger(ctx context.Context, sel ast.SelectionSet, obj *graphql2.Ledger) graphql.Marshaler {
+func (ec *executionContext) _Ledger(ctx context.Context, sel ast.SelectionSet, obj *graphql3.Ledger) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, ledgerImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -16786,7 +19011,7 @@ func (ec *executionContext) _Ledger(ctx context.Context, sel ast.SelectionSet, o
 
 var ledgerConnectionImplementors = []string{"LedgerConnection"}
 
-func (ec *executionContext) _LedgerConnection(ctx context.Context, sel ast.SelectionSet, obj *graphql2.LedgerConnection) graphql.Marshaler {
+func (ec *executionContext) _LedgerConnection(ctx context.Context, sel ast.SelectionSet, obj *graphql3.LedgerConnection) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, ledgerConnectionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -16903,6 +19128,84 @@ func (ec *executionContext) _LedgerStats(ctx context.Context, sel ast.SelectionS
 			}
 		case "declined":
 			out.Values[i] = ec._LedgerStats_declined(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var machineClientImplementors = []string{"MachineClient"}
+
+func (ec *executionContext) _MachineClient(ctx context.Context, sel ast.SelectionSet, obj *dto2.MachineClient) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, machineClientImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("MachineClient")
+		case "clientId":
+			out.Values[i] = ec._MachineClient_clientId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._MachineClient_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "subject":
+			out.Values[i] = ec._MachineClient_subject(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._MachineClient_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "secretSetAt":
+			out.Values[i] = ec._MachineClient_secretSetAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lastTokenAt":
+			out.Values[i] = ec._MachineClient_lastTokenAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "deletedAt":
+			out.Values[i] = ec._MachineClient_deletedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._MachineClient_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdBy":
+			out.Values[i] = ec._MachineClient_createdBy(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "ledgers":
+			out.Values[i] = ec._MachineClient_ledgers(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -17079,6 +19382,55 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteInvitation":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteInvitation(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createApiKey":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createApiKey(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "revokeApiKey":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_revokeApiKey(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createMachineClient":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createMachineClient(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "regenerateMachineClientSecret":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_regenerateMachineClientSecret(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteMachineClient":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteMachineClient(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "setCredentialRole":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_setCredentialRole(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "revokeCredentialRole":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_revokeCredentialRole(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -17269,7 +19621,7 @@ func (ec *executionContext) _Organization(ctx context.Context, sel ast.Selection
 
 var organizationConnectionImplementors = []string{"OrganizationConnection"}
 
-func (ec *executionContext) _OrganizationConnection(ctx context.Context, sel ast.SelectionSet, obj *graphql3.OrganizationConnection) graphql.Marshaler {
+func (ec *executionContext) _OrganizationConnection(ctx context.Context, sel ast.SelectionSet, obj *graphql2.OrganizationConnection) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, organizationConnectionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -17496,6 +19848,30 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				true, true,
 				func(ctx context.Context) graphql.Marshaler {
 					return ec._Query_members(ctx, field)
+				})
+		case "apiKeys":
+			out.ResolveRootConcurrently(innerCtx, ec.OperationContext, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Query_apiKeys(ctx, field)
+				})
+		case "apiKey":
+			out.ResolveRootConcurrently(innerCtx, ec.OperationContext, i,
+				true, false,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Query_apiKey(ctx, field)
+				})
+		case "machineClients":
+			out.ResolveRootConcurrently(innerCtx, ec.OperationContext, i,
+				true, true,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Query_machineClients(ctx, field)
+				})
+		case "machineClient":
+			out.ResolveRootConcurrently(innerCtx, ec.OperationContext, i,
+				true, false,
+				func(ctx context.Context) graphql.Marshaler {
+					return ec._Query_machineClient(ctx, field)
 				})
 		case "ledger":
 			out.ResolveRootConcurrently(innerCtx, ec.OperationContext, i,
@@ -18737,6 +21113,31 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNAPIKey2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐAPIKey(ctx context.Context, sel ast.SelectionSet, v dto2.APIKey) graphql.Marshaler {
+	return ec._APIKey(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAPIKey2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐAPIKeyᚄ(ctx context.Context, sel ast.SelectionSet, v []dto2.APIKey) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNAPIKey2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐAPIKey(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNAPIKeyInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐAPIKeyInput(ctx context.Context, v any) (graphql2.APIKeyInput, error) {
+	res, err := ec.unmarshalInputAPIKeyInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNAccount2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAccount(ctx context.Context, sel ast.SelectionSet, v *dto1.Account) graphql.Marshaler {
 	if v == nil {
 		graphql.AddInvalidNullError(ctx, "Account!")
@@ -18928,7 +21329,20 @@ func (ec *executionContext) unmarshalNCaptureHoldInput2githubᚗcomᚋwilfriedag
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreateEventTypeInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐCreateEventTypeInput(ctx context.Context, v any) (graphql2.CreateEventTypeInput, error) {
+func (ec *executionContext) marshalNClientSecret2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐClientSecret(ctx context.Context, sel ast.SelectionSet, v *dto2.ClientSecret) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "ClientSecret!")
+		return graphql.Null
+	}
+	return ec._ClientSecret(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNCreateAPIKeyInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐCreateAPIKeyInput(ctx context.Context, v any) (graphql2.CreateAPIKeyInput, error) {
+	res, err := ec.unmarshalInputCreateAPIKeyInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCreateEventTypeInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐCreateEventTypeInput(ctx context.Context, v any) (graphql3.CreateEventTypeInput, error) {
 	res, err := ec.unmarshalInputCreateEventTypeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -18938,12 +21352,17 @@ func (ec *executionContext) unmarshalNCreateHoldInput2githubᚗcomᚋwilfriedago
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreateLedgerInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐCreateLedgerInput(ctx context.Context, v any) (graphql2.CreateLedgerInput, error) {
+func (ec *executionContext) unmarshalNCreateLedgerInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐCreateLedgerInput(ctx context.Context, v any) (graphql3.CreateLedgerInput, error) {
 	res, err := ec.unmarshalInputCreateLedgerInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreateOrganizationInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐCreateOrganizationInput(ctx context.Context, v any) (graphql3.CreateOrganizationInput, error) {
+func (ec *executionContext) unmarshalNCreateMachineClientInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐCreateMachineClientInput(ctx context.Context, v any) (graphql2.CreateMachineClientInput, error) {
+	res, err := ec.unmarshalInputCreateMachineClientInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCreateOrganizationInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐCreateOrganizationInput(ctx context.Context, v any) (graphql2.CreateOrganizationInput, error) {
 	res, err := ec.unmarshalInputCreateOrganizationInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -18951,6 +21370,22 @@ func (ec *executionContext) unmarshalNCreateOrganizationInput2githubᚗcomᚋwil
 func (ec *executionContext) unmarshalNCreateTransactionInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋgraphqlᚐCreateTransactionInput(ctx context.Context, v any) (graphql1.CreateTransactionInput, error) {
 	res, err := ec.unmarshalInputCreateTransactionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCreatedAPIKey2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐCreatedAPIKey(ctx context.Context, sel ast.SelectionSet, v *dto2.CreatedAPIKey) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "CreatedAPIKey!")
+		return graphql.Null
+	}
+	return ec._CreatedAPIKey(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNCreatedMachineClient2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐCreatedMachineClient(ctx context.Context, sel ast.SelectionSet, v *dto2.CreatedMachineClient) graphql.Marshaler {
+	if v == nil {
+		graphql.AddInvalidNullError(ctx, "CreatedMachineClient!")
+		return graphql.Null
+	}
+	return ec._CreatedMachineClient(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNDateTime2timeᚐTime(ctx context.Context, v any) (time.Time, error) {
@@ -18991,7 +21426,7 @@ func (ec *executionContext) marshalNDeclinedStats2githubᚗcomᚋwilfriedagoᚋt
 	return ec._DeclinedStats(ctx, sel, &v)
 }
 
-func (ec *executionContext) unmarshalNDeleteRuleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐDeleteRuleInput(ctx context.Context, v any) (graphql2.DeleteRuleInput, error) {
+func (ec *executionContext) unmarshalNDeleteRuleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐDeleteRuleInput(ctx context.Context, v any) (graphql3.DeleteRuleInput, error) {
 	res, err := ec.unmarshalInputDeleteRuleInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -19140,12 +21575,12 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 	return res
 }
 
-func (ec *executionContext) unmarshalNInvitationInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐInvitationInput(ctx context.Context, v any) (graphql3.InvitationInput, error) {
+func (ec *executionContext) unmarshalNInvitationInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐInvitationInput(ctx context.Context, v any) (graphql2.InvitationInput, error) {
 	res, err := ec.unmarshalInputInvitationInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNInviteMemberInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐInviteMemberInput(ctx context.Context, v any) (graphql3.InviteMemberInput, error) {
+func (ec *executionContext) unmarshalNInviteMemberInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐInviteMemberInput(ctx context.Context, v any) (graphql2.InviteMemberInput, error) {
 	res, err := ec.unmarshalInputInviteMemberInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -19164,11 +21599,11 @@ func (ec *executionContext) marshalNJSON2githubᚗcomᚋwilfriedagoᚋtigerbeetl
 	return v
 }
 
-func (ec *executionContext) marshalNLedger2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx context.Context, sel ast.SelectionSet, v graphql2.Ledger) graphql.Marshaler {
+func (ec *executionContext) marshalNLedger2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx context.Context, sel ast.SelectionSet, v graphql3.Ledger) graphql.Marshaler {
 	return ec._Ledger(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNLedger2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedgerᚄ(ctx context.Context, sel ast.SelectionSet, v []graphql2.Ledger) graphql.Marshaler {
+func (ec *executionContext) marshalNLedger2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedgerᚄ(ctx context.Context, sel ast.SelectionSet, v []graphql3.Ledger) graphql.Marshaler {
 	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
 		fc := graphql.GetFieldContext(ctx)
 		fc.Result = &v[i]
@@ -19184,7 +21619,7 @@ func (ec *executionContext) marshalNLedger2ᚕgithubᚗcomᚋwilfriedagoᚋtiger
 	return ret
 }
 
-func (ec *executionContext) marshalNLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx context.Context, sel ast.SelectionSet, v *graphql2.Ledger) graphql.Marshaler {
+func (ec *executionContext) marshalNLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx context.Context, sel ast.SelectionSet, v *graphql3.Ledger) graphql.Marshaler {
 	if v == nil {
 		graphql.AddInvalidNullError(ctx, "Ledger!")
 		return graphql.Null
@@ -19192,7 +21627,7 @@ func (ec *executionContext) marshalNLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtiger
 	return ec._Ledger(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNLedgerConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedgerConnection(ctx context.Context, sel ast.SelectionSet, v *graphql2.LedgerConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNLedgerConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedgerConnection(ctx context.Context, sel ast.SelectionSet, v *graphql3.LedgerConnection) graphql.Marshaler {
 	if v == nil {
 		graphql.AddInvalidNullError(ctx, "LedgerConnection!")
 		return graphql.Null
@@ -19220,15 +21655,15 @@ func (ec *executionContext) marshalNLedgerRole2ᚕgithubᚗcomᚋwilfriedagoᚋt
 	return ret
 }
 
-func (ec *executionContext) unmarshalNLedgerRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐLedgerRoleInput(ctx context.Context, v any) (graphql3.LedgerRoleInput, error) {
+func (ec *executionContext) unmarshalNLedgerRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐLedgerRoleInput(ctx context.Context, v any) (graphql2.LedgerRoleInput, error) {
 	res, err := ec.unmarshalInputLedgerRoleInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNLedgerRoleInput2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐLedgerRoleInputᚄ(ctx context.Context, v any) ([]graphql3.LedgerRoleInput, error) {
+func (ec *executionContext) unmarshalNLedgerRoleInput2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐLedgerRoleInputᚄ(ctx context.Context, v any) ([]graphql2.LedgerRoleInput, error) {
 	vSlice := graphql.CoerceList(v)
 	var err error
-	res := make([]graphql3.LedgerRoleInput, len(vSlice))
+	res := make([]graphql2.LedgerRoleInput, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalNLedgerRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐLedgerRoleInput(ctx, vSlice[i])
@@ -19245,6 +21680,31 @@ func (ec *executionContext) marshalNLedgerStats2ᚖgithubᚗcomᚋwilfriedagoᚋ
 		return graphql.Null
 	}
 	return ec._LedgerStats(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNMachineClient2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐMachineClient(ctx context.Context, sel ast.SelectionSet, v dto2.MachineClient) graphql.Marshaler {
+	return ec._MachineClient(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNMachineClient2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐMachineClientᚄ(ctx context.Context, sel ast.SelectionSet, v []dto2.MachineClient) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNMachineClient2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐMachineClient(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNMachineClientInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐMachineClientInput(ctx context.Context, v any) (graphql2.MachineClientInput, error) {
+	res, err := ec.unmarshalInputMachineClientInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNMember2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐMember(ctx context.Context, sel ast.SelectionSet, v dto2.Member) graphql.Marshaler {
@@ -19275,7 +21735,7 @@ func (ec *executionContext) marshalNMember2ᚖgithubᚗcomᚋwilfriedagoᚋtiger
 	return ec._Member(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNMemberInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐMemberInput(ctx context.Context, v any) (graphql3.MemberInput, error) {
+func (ec *executionContext) unmarshalNMemberInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐMemberInput(ctx context.Context, v any) (graphql2.MemberInput, error) {
 	res, err := ec.unmarshalInputMemberInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -19294,7 +21754,7 @@ func (ec *executionContext) marshalNMetadata2githubᚗcomᚋwilfriedagoᚋtigerb
 	return v
 }
 
-func (ec *executionContext) unmarshalNNewMemberInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐNewMemberInput(ctx context.Context, v any) (graphql3.NewMemberInput, error) {
+func (ec *executionContext) unmarshalNNewMemberInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐNewMemberInput(ctx context.Context, v any) (graphql2.NewMemberInput, error) {
 	res, err := ec.unmarshalInputNewMemberInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -19337,7 +21797,7 @@ func (ec *executionContext) marshalNOrganization2ᚖgithubᚗcomᚋwilfriedago�
 	return ec._Organization(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNOrganizationConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐOrganizationConnection(ctx context.Context, sel ast.SelectionSet, v *graphql3.OrganizationConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNOrganizationConnection2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐOrganizationConnection(ctx context.Context, sel ast.SelectionSet, v *graphql2.OrganizationConnection) graphql.Marshaler {
 	if v == nil {
 		graphql.AddInvalidNullError(ctx, "OrganizationConnection!")
 		return graphql.Null
@@ -19408,7 +21868,7 @@ func (ec *executionContext) marshalNPostingRecord2ᚕgithubᚗcomᚋwilfriedago�
 	return ret
 }
 
-func (ec *executionContext) unmarshalNPutRuleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐPutRuleInput(ctx context.Context, v any) (graphql2.PutRuleInput, error) {
+func (ec *executionContext) unmarshalNPutRuleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐPutRuleInput(ctx context.Context, v any) (graphql3.PutRuleInput, error) {
 	res, err := ec.unmarshalInputPutRuleInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -19418,7 +21878,7 @@ func (ec *executionContext) unmarshalNReplaceAccountMetadataInput2githubᚗcom�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNReplaceLedgerMetadataInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐReplaceLedgerMetadataInput(ctx context.Context, v any) (graphql2.ReplaceLedgerMetadataInput, error) {
+func (ec *executionContext) unmarshalNReplaceLedgerMetadataInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐReplaceLedgerMetadataInput(ctx context.Context, v any) (graphql3.ReplaceLedgerMetadataInput, error) {
 	res, err := ec.unmarshalInputReplaceLedgerMetadataInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -19443,7 +21903,12 @@ func (ec *executionContext) unmarshalNRevertTransactionInput2githubᚗcomᚋwilf
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNRevokeLedgerRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐRevokeLedgerRoleInput(ctx context.Context, v any) (graphql3.RevokeLedgerRoleInput, error) {
+func (ec *executionContext) unmarshalNRevokeCredentialRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐRevokeCredentialRoleInput(ctx context.Context, v any) (graphql2.RevokeCredentialRoleInput, error) {
+	res, err := ec.unmarshalInputRevokeCredentialRoleInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNRevokeLedgerRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐRevokeLedgerRoleInput(ctx context.Context, v any) (graphql2.RevokeLedgerRoleInput, error) {
 	res, err := ec.unmarshalInputRevokeLedgerRoleInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -19612,12 +22077,17 @@ func (ec *executionContext) marshalNSegment2ᚕgithubᚗcomᚋwilfriedagoᚋtige
 	return ret
 }
 
-func (ec *executionContext) unmarshalNSetLedgerRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐSetLedgerRoleInput(ctx context.Context, v any) (graphql3.SetLedgerRoleInput, error) {
+func (ec *executionContext) unmarshalNSetCredentialRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐSetCredentialRoleInput(ctx context.Context, v any) (graphql2.SetCredentialRoleInput, error) {
+	res, err := ec.unmarshalInputSetCredentialRoleInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNSetLedgerRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐSetLedgerRoleInput(ctx context.Context, v any) (graphql2.SetLedgerRoleInput, error) {
 	res, err := ec.unmarshalInputSetLedgerRoleInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNSetMemberRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐSetMemberRoleInput(ctx context.Context, v any) (graphql3.SetMemberRoleInput, error) {
+func (ec *executionContext) unmarshalNSetMemberRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐSetMemberRoleInput(ctx context.Context, v any) (graphql2.SetMemberRoleInput, error) {
 	res, err := ec.unmarshalInputSetMemberRoleInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -19790,7 +22260,7 @@ func (ec *executionContext) marshalNU642githubᚗcomᚋwilfriedagoᚋtigerbeetle
 	return v
 }
 
-func (ec *executionContext) unmarshalNUpdateOrganizationInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐUpdateOrganizationInput(ctx context.Context, v any) (graphql3.UpdateOrganizationInput, error) {
+func (ec *executionContext) unmarshalNUpdateOrganizationInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐUpdateOrganizationInput(ctx context.Context, v any) (graphql2.UpdateOrganizationInput, error) {
 	res, err := ec.unmarshalInputUpdateOrganizationInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -19970,6 +22440,13 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) marshalOAPIKey2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐAPIKey(ctx context.Context, sel ast.SelectionSet, v *dto2.APIKey) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._APIKey(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOAccount2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐAccount(ctx context.Context, sel ast.SelectionSet, v *dto1.Account) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -20130,11 +22607,18 @@ func (ec *executionContext) marshalOJSON2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbe
 	return v
 }
 
-func (ec *executionContext) marshalOLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx context.Context, sel ast.SelectionSet, v *graphql2.Ledger) graphql.Marshaler {
+func (ec *executionContext) marshalOLedger2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋledgersᚋinterfacesᚋgraphqlᚐLedger(ctx context.Context, sel ast.SelectionSet, v *graphql3.Ledger) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Ledger(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOMachineClient2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐMachineClient(ctx context.Context, sel ast.SelectionSet, v *dto2.MachineClient) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._MachineClient(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOMetadata2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋscalarᚐMetadata(ctx context.Context, v any) (*scalar.Metadata, error) {

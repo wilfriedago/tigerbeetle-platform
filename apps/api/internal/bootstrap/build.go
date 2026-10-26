@@ -142,7 +142,7 @@ func authenticator(ctx context.Context, cfg config.Config, m modules) (*authn.Au
 	if err != nil {
 		return nil, nil, err
 	}
-	return authn.New(verifier, m.access.OrganizationQueries), verifier, nil
+	return authn.New(verifier, m.access.OrganizationQueries, m.access.CredentialResolver), verifier, nil
 }
 
 // Handler is the HTTP handler of the API, for tests that serve it with httptest.

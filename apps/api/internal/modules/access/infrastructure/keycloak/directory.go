@@ -5,24 +5,67 @@ package keycloak
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/domain"
 	platformkc "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/keycloak"
 )
 
-// Directory is the access module's domain.Directory on Keycloak.
+// Directory is the access module's domain.Directory and domain.Clients on Keycloak.
 type Directory struct {
-	admin  *platformkc.Admin
-	issuer string
+	admin    *platformkc.Admin
+	issuer   string
+	audience string
 }
 
-var _ domain.Directory = (*Directory)(nil)
+var (
+	_ domain.Directory = (*Directory)(nil)
+	_ domain.Clients   = (*Directory)(nil)
+)
 
-// New adapts the admin client. issuer is the issuer of people's tokens, which grants pair with
-// their subject.
-func New(admin *platformkc.Admin, issuer string) *Directory {
-	return &Directory{admin: admin, issuer: issuer}
+// machineTokenLifespan is how long a machine client's access tokens last (ADR-0029).
+const machineTokenLifespan = 5 * time.Minute
+
+// New adapts the admin client. issuer is the issuer of the realm's tokens, which grants pair with
+// their subject; audience is the API's, added to machine clients' tokens.
+func New(admin *platformkc.Admin, issuer, audience string) *Directory {
+	return &Directory{admin: admin, issuer: issuer, audience: audience}
+}
+
+// CreateClient creates a confidential client with a service account and returns its secret and
+// the subject of its tokens.
+func (d *Directory) CreateClient(ctx context.Context, c domain.NewClient) (domain.CreatedClient, error) {
+	id, err := d.admin.CreateServiceClient(ctx, platformkc.ServiceClient{
+		ClientID: c.ClientID, Name: c.Name, Audience: d.audience, TokenLifespan: machineTokenLifespan,
+	})
+	if err != nil {
+		return domain.CreatedClient{}, err
+	}
+	secret, err := d.admin.ClientSecret(ctx, id)
+	if err != nil {
+		return domain.CreatedClient{}, err
+	}
+	user, err := d.admin.ServiceAccountUser(ctx, id)
+	if err != nil {
+		return domain.CreatedClient{}, err
+	}
+	return domain.CreatedClient{KeycloakID: id, Subject: user.ID, Secret: secret}, nil
+}
+
+// RegenerateSecret replaces the client's secret.
+func (d *Directory) RegenerateSecret(ctx context.Context, keycloakID string) (string, error) {
+	return d.admin.RegenerateClientSecret(ctx, keycloakID)
+}
+
+// DeleteClient deletes the client.
+func (d *Directory) DeleteClient(ctx context.Context, keycloakID string) error {
+	return d.admin.DeleteClient(ctx, keycloakID)
+}
+
+// TokenURL is the realm's token endpoint, as clients reach it.
+func (d *Directory) TokenURL() string {
+	return strings.TrimSuffix(d.issuer, "/") + "/protocol/openid-connect/token"
 }
 
 // Issuer is the issuer of people's tokens.

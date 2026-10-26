@@ -3,6 +3,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -116,6 +117,22 @@ type Config struct {
 	// calls answer 503 and the rest of the API runs.
 	AuthAdminClientID     string `env:"AUTH_ADMIN_CLIENT_ID"`
 	AuthAdminClientSecret string `env:"AUTH_ADMIN_CLIENT_SECRET"`
+
+	// AuthAPIKeyPepper keys the HMAC of API key secrets (ADR-0029): 32 random bytes in standard
+	// base64. Without it, API keys are refused and cannot be created.
+	AuthAPIKeyPepper string `env:"AUTH_API_KEY_PEPPER"`
+}
+
+// APIKeyPepper decodes AUTH_API_KEY_PEPPER; nil when it is not set.
+func (c Config) APIKeyPepper() ([]byte, error) {
+	if c.AuthAPIKeyPepper == "" {
+		return nil, nil
+	}
+	b, err := base64.StdEncoding.DecodeString(c.AuthAPIKeyPepper)
+	if err != nil || len(b) < 32 {
+		return nil, fmt.Errorf("config: AUTH_API_KEY_PEPPER must be at least 32 bytes in standard base64")
+	}
+	return b, nil
 }
 
 // Load reads the process environment.
@@ -161,6 +178,9 @@ func (c *Config) validate() error {
 	}
 	if c.AuthClientID != "" && (c.AuthClientSecret == "" || c.AuthRedirectURL == "" || c.AuthConsoleOrigin == "" || c.AuthSessionKey == "") {
 		return fmt.Errorf("config: AUTH_CLIENT_ID needs AUTH_CLIENT_SECRET, AUTH_REDIRECT_URL, AUTH_CONSOLE_ORIGIN and AUTH_SESSION_KEY")
+	}
+	if _, err := c.APIKeyPepper(); err != nil {
+		return err
 	}
 	if (c.AuthAdminClientID == "") != (c.AuthAdminClientSecret == "") {
 		return fmt.Errorf("config: AUTH_ADMIN_CLIENT_ID and AUTH_ADMIN_CLIENT_SECRET go together")

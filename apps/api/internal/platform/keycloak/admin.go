@@ -409,3 +409,82 @@ func drain(res *http.Response) {
 	_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxBody))
 	_ = res.Body.Close()
 }
+
+// ServiceClient is a confidential client with a service account and no browser flow: what a
+// machine uses with the client credentials grant (ADR-0029).
+type ServiceClient struct {
+	ClientID string
+	Name     string
+	// Audience is added to its access tokens: the API's.
+	Audience string
+	// TokenLifespan is how long its access tokens last.
+	TokenLifespan time.Duration
+}
+
+type secretRep struct {
+	Value string `json:"value"`
+}
+
+// CreateServiceClient creates the client and returns its ID.
+func (d *Admin) CreateServiceClient(ctx context.Context, c ServiceClient) (string, error) {
+	rep := map[string]any{
+		"clientId":                  c.ClientID,
+		"name":                      c.Name,
+		"enabled":                   true,
+		"publicClient":              false,
+		"clientAuthenticatorType":   "client-secret",
+		"serviceAccountsEnabled":    true,
+		"standardFlowEnabled":       false,
+		"implicitFlowEnabled":       false,
+		"directAccessGrantsEnabled": false,
+		"attributes":                map[string]string{"access.token.lifespan": strconv.Itoa(int(c.TokenLifespan.Seconds()))},
+		"protocolMappers": []map[string]any{{
+			"name":           "audience " + c.Audience,
+			"protocol":       "openid-connect",
+			"protocolMapper": "oidc-audience-mapper",
+			"config": map[string]string{
+				"included.custom.audience": c.Audience, "access.token.claim": "true", "id.token.claim": "false",
+			},
+		}},
+	}
+	id, err := d.create(ctx, "/clients", rep)
+	if err != nil {
+		return "", fmt.Errorf("keycloak: create client %q: %w", c.ClientID, err)
+	}
+	return id, nil
+}
+
+// ClientSecret returns the client's current secret.
+func (d *Admin) ClientSecret(ctx context.Context, id string) (string, error) {
+	var s secretRep
+	if err := d.do(ctx, http.MethodGet, "/clients/"+url.PathEscape(id)+"/client-secret", nil, &s); err != nil {
+		return "", fmt.Errorf("keycloak: client secret: %w", err)
+	}
+	return s.Value, nil
+}
+
+// RegenerateClientSecret replaces the client's secret; the old one stops working at once.
+func (d *Admin) RegenerateClientSecret(ctx context.Context, id string) (string, error) {
+	var s secretRep
+	if err := d.do(ctx, http.MethodPost, "/clients/"+url.PathEscape(id)+"/client-secret", nil, &s); err != nil {
+		return "", fmt.Errorf("keycloak: regenerate client secret: %w", err)
+	}
+	return s.Value, nil
+}
+
+// ServiceAccountUser returns the user behind the client's service account.
+func (d *Admin) ServiceAccountUser(ctx context.Context, id string) (User, error) {
+	var u User
+	if err := d.do(ctx, http.MethodGet, "/clients/"+url.PathEscape(id)+"/service-account-user", nil, &u); err != nil {
+		return User{}, fmt.Errorf("keycloak: service account: %w", err)
+	}
+	return u, nil
+}
+
+// DeleteClient deletes the client and its service account; its tokens stop at their expiry.
+func (d *Admin) DeleteClient(ctx context.Context, id string) error {
+	if err := d.do(ctx, http.MethodDelete, "/clients/"+url.PathEscape(id), nil, nil); err != nil {
+		return fmt.Errorf("keycloak: delete client: %w", err)
+	}
+	return nil
+}

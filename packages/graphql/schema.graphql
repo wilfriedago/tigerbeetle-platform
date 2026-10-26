@@ -76,6 +76,14 @@ type Query {
   organization(alias: String!): Organization
   "The members of the organization of the call and the people invited to it, in name order. Every member may read it."
   members: [Member!]!
+  "The organization's API keys, active ones first. Needs org.credentials."
+  apiKeys: [APIKey!]!
+  "One API key, or null. Needs org.credentials."
+  apiKey(id: String!): APIKey
+  "The organization's machine clients, active ones first. Needs org.credentials."
+  machineClients: [MachineClient!]!
+  "One machine client, or null. Needs org.credentials."
+  machineClient(clientId: String!): MachineClient
   "A ledger by name, or null when no ledger has that name."
   ledger(name: String!): Ledger
   "Every ledger in name order."
@@ -106,6 +114,20 @@ type Mutation {
   resendInvitation(input: InvitationInput!): Boolean!
   "Withdraws an invitation and the roles waiting for the person."
   deleteInvitation(input: InvitationInput!): Boolean!
+  "Creates an API key with its ledger roles and answers its secret, shown once."
+  createApiKey(input: CreateAPIKeyInput!): CreatedAPIKey!
+  "Revokes an API key from its next request."
+  revokeApiKey(input: APIKeyInput!): Boolean!
+  "Creates a confidential client in Keycloak whose tokens act for the organization, and answers its secret, shown once."
+  createMachineClient(input: CreateMachineClientInput!): CreatedMachineClient!
+  "Replaces a machine client's secret; the old one stops at once."
+  regenerateMachineClientSecret(input: MachineClientInput!): ClientSecret!
+  "Deletes a machine client in Keycloak."
+  deleteMachineClient(input: MachineClientInput!): Boolean!
+  "Gives an API key or a machine client a role on one ledger."
+  setCredentialRole(input: SetCredentialRoleInput!): Boolean!
+  "Removes an API key's or a machine client's role on one ledger."
+  revokeCredentialRole(input: RevokeCredentialRoleInput!): Boolean!
   "Creates a ledger. The name is permanent; a ledger cannot be deleted, because TigerBeetle accounts and transfers are permanent."
   createLedger(input: CreateLedgerInput!): Ledger!
   "Replaces the metadata of a ledger."
@@ -130,6 +152,22 @@ type Mutation {
   voidHold(input: VoidHoldInput!): Hold!
   "Replaces the metadata of an existing account."
   replaceAccountMetadata(input: ReplaceAccountMetadataInput!): Account!
+}
+
+"An API key of the organization, without its secret."
+type APIKey {
+  "The key ID, the middle of tbp_<id>_<secret>. The principal of the key is tbp:api-key/<id>."
+  id: String!
+  name: String!
+  status: String!
+  expiresAt: DateTime
+  "Updated at most once a minute."
+  lastUsedAt: DateTime
+  revokedAt: DateTime
+  createdAt: DateTime!
+  createdBy: String
+  "The ledger roles the key acts with."
+  ledgers: [LedgerRole!]!
 }
 
 "An address with one TigerBeetle account per asset, and its open holds."
@@ -230,6 +268,27 @@ type BalancePoint {
   reserved: Amount!
   credits: Amount!
   debits: Amount!
+}
+
+"A machine client's new secret, shown once."
+type ClientSecret {
+  secret: String!
+}
+
+"A new API key and its secret, shown once."
+type CreatedAPIKey {
+  key: APIKey!
+  "The whole key, tbp_<id>_<secret>. It is not stored and cannot be shown again."
+  secret: String!
+}
+
+"A new machine client and its secret, shown once."
+type CreatedMachineClient {
+  client: MachineClient!
+  "The client secret. Only a Keycloak realm administrator can see it again; regenerate it if it is lost."
+  secret: String!
+  "Where the client trades its secret for a token, with the client credentials grant."
+  tokenUrl: String!
 }
 
 type DeclinedReason {
@@ -459,6 +518,24 @@ type LedgerStats {
   assets: [AssetSummary!]!
   holds: HoldStats!
   declined: DeclinedStats!
+}
+
+"An OAuth client of the organization in Keycloak."
+type MachineClient {
+  "Keycloak's client ID: <organization>-<name>."
+  clientId: String!
+  name: String!
+  "The client's service account: the sub of its tokens."
+  subject: String!
+  status: String!
+  secretSetAt: DateTime!
+  "When the API last saw one of its tokens; updated at most once a minute."
+  lastTokenAt: DateTime
+  deletedAt: DateTime
+  createdAt: DateTime!
+  createdBy: String
+  "The ledger roles its tokens act with."
+  ledgers: [LedgerRole!]!
 }
 
 "A person of the organization with the roles the platform gives them (ADR-0028)."
@@ -695,12 +772,25 @@ type WriteRequestDetail {
   transferIds: [U128!]!
 }
 
+input APIKeyInput {
+  id: String!
+}
+
 input CaptureHoldInput {
   ledger: String!
   id: U128!
   idempotencyKey: String!
   "The amount to capture; the full hold when absent. Must not be zero."
   amount: Amount
+}
+
+input CreateAPIKeyInput {
+  "Lowercase letters, digits and dashes."
+  name: String!
+  "Absent for a key that does not expire."
+  expiresAt: DateTime
+  "The ledger roles the key acts with; at least one."
+  ledgers: [LedgerRoleInput!]!
 }
 
 input CreateEventTypeInput {
@@ -729,6 +819,13 @@ input CreateLedgerInput {
   "Lowercase letters, digits, dash and underscore, 1 to 63 characters."
   name: String!
   metadata: Metadata
+}
+
+input CreateMachineClientInput {
+  "The client ID becomes <organization>-<name>."
+  name: String!
+  "The ledger roles its tokens act with; at least one."
+  ledgers: [LedgerRoleInput!]!
 }
 
 input CreateOrganizationInput {
@@ -773,6 +870,10 @@ input LedgerRoleInput {
   ledger: String!
   "viewer, operator or admin."
   role: String!
+}
+
+input MachineClientInput {
+  clientId: String!
 }
 
 input MemberInput {
@@ -831,9 +932,26 @@ input RevertTransactionInput {
   metadata: Metadata
 }
 
+input RevokeCredentialRoleInput {
+  "api-key or machine-client."
+  kind: String!
+  id: String!
+  ledger: String!
+}
+
 input RevokeLedgerRoleInput {
   subject: String!
   ledger: String!
+}
+
+input SetCredentialRoleInput {
+  "api-key or machine-client."
+  kind: String!
+  "The key ID or the client ID."
+  id: String!
+  ledger: String!
+  "viewer, operator or admin."
+  role: String!
 }
 
 input SetLedgerRoleInput {

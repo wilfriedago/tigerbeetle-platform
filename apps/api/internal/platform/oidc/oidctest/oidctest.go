@@ -112,6 +112,15 @@ func (i *Issuer) Person(t testing.TB, subject string, organizations ...string) s
 	return i.Token(t, map[string]any{"sub": subject, "preferred_username": subject, "organization": organizations})
 }
 
+// Machine returns a client credentials token of the client, shaped as Keycloak issues one: the
+// service account is the subject and client_id names the client (ADR-0029).
+func (i *Issuer) Machine(t testing.TB, clientID, subject string) string {
+	t.Helper()
+	return i.Token(t, map[string]any{
+		"sub": subject, "client_id": clientID, "azp": clientID, "preferred_username": "service-account-" + clientID,
+	})
+}
+
 // SignInAs sets who the authorization endpoint signs in from now on: the browser of a test is
 // redirected straight back with a code, as if this person had typed a password.
 func (i *Issuer) SignInAs(subject string, organizations ...string) {

@@ -15,7 +15,10 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/domain"
 )
 
-var _ domain.Directory = (*Directory)(nil)
+var (
+	_ domain.Directory = (*Directory)(nil)
+	_ domain.Clients   = (*Directory)(nil)
+)
 
 // Directory is Keycloak in memory. It records the emails it would send. It is not safe for
 // concurrent use beyond what a lock around each call gives; every method takes the lock.
@@ -28,6 +31,7 @@ type Directory struct {
 	emails      []string // "setup <subject>", "invite <subject>", "resend <invitation>"
 	next        int
 	issuer      string
+	clients     map[string]string // Keycloak ID to client ID
 }
 
 // New returns an empty directory whose people's tokens come from the issuer.
@@ -267,3 +271,58 @@ func (d *Directory) DeleteInvitation(_ context.Context, orgID, id string) error 
 	}
 	return nil
 }
+
+// CreateClient implements domain.Clients: a client with a service account of its own.
+func (d *Directory) CreateClient(_ context.Context, c domain.NewClient) (domain.CreatedClient, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.clients == nil {
+		d.clients = map[string]string{}
+	}
+	for _, existing := range d.clients {
+		if existing == c.ClientID {
+			return domain.CreatedClient{}, ledger.ErrAlreadyExists
+		}
+	}
+	id := d.newID()
+	d.clients[id] = c.ClientID
+	return domain.CreatedClient{KeycloakID: id, Subject: "service-account-" + c.ClientID, Secret: "secret-of-" + c.ClientID}, nil
+}
+
+// RegenerateSecret implements domain.Clients.
+func (d *Directory) RegenerateSecret(_ context.Context, keycloakID string) (string, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	clientID, ok := d.clients[keycloakID]
+	if !ok {
+		return "", ledger.ErrNotFound
+	}
+	d.next++
+	return fmt.Sprintf("secret-%d-of-%s", d.next, clientID), nil
+}
+
+// DeleteClient implements domain.Clients.
+func (d *Directory) DeleteClient(_ context.Context, keycloakID string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if _, ok := d.clients[keycloakID]; !ok {
+		return ledger.ErrNotFound
+	}
+	delete(d.clients, keycloakID)
+	return nil
+}
+
+// HasClient reports whether a client with the client ID exists.
+func (d *Directory) HasClient(clientID string) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for _, existing := range d.clients {
+		if existing == clientID {
+			return true
+		}
+	}
+	return false
+}
+
+// TokenURL implements domain.Clients.
+func (d *Directory) TokenURL() string { return d.issuer + "/protocol/openid-connect/token" }

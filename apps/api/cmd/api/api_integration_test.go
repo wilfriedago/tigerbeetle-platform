@@ -69,6 +69,8 @@ func newHarness(t *testing.T) *harness {
 		TigerBeetleTimeout:    10 * time.Second,
 		ReconcilerGracePeriod: time.Millisecond,
 		ReconcilerInterval:    time.Hour,
+		// 32 bytes for the API key HMAC (ADR-0029), fixed for tests.
+		AuthAPIKeyPepper: "dGVzdC1vbmx5LWFwaS1rZXktcGVwcGVyLTMyLWJ5dGVz",
 	}
 	h := &harness{t: t}
 	h.auth = trustTestIssuer(t, &cfg)

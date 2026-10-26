@@ -46,9 +46,16 @@ func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options
 		return modules{}, err
 	}
 	ledgerStore := ledgerspg.NewStore(r.db)
+	pepper, err := cfg.APIKeyPepper()
+	if err != nil {
+		return modules{}, err
+	}
+	// The Keycloak directory also creates machine clients; the in-memory one of tests does too.
+	clientAdmin, _ := dir.(accessdomain.Clients)
 	accessDeps := accessapp.Deps{
 		Organizations: accessStore, Grants: accessStore, Sessions: accessStore, Directory: dir,
-		Ledgers: ledgersapp.NewLedgerCounts(ledgerStore), Clock: clock,
+		Ledgers: ledgersapp.NewLedgerCounts(ledgerStore), APIKeys: accessStore, MachineClients: accessStore,
+		ClientAdmin: clientAdmin, APIKeyPepper: pepper, Clock: clock,
 	}
 	ac := accessapp.New(accessDeps)
 
@@ -111,5 +118,5 @@ func directory(cfg config.Config, o options) (accessdomain.Directory, error) {
 	if err != nil {
 		return nil, err
 	}
-	return accesskc.New(admin, cfg.AuthIssuerURL), nil
+	return accesskc.New(admin, cfg.AuthIssuerURL, cfg.AuthAudience), nil
 }

@@ -32,7 +32,7 @@ func TestAuthenticate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	auth := authn.New(verifier, tenants{})
+	auth := authn.New(verifier, tenants{}, nil)
 	member := "Bearer " + iss.Person(t, "ada", "acme", "globex", "gone")
 
 	tests := []struct {

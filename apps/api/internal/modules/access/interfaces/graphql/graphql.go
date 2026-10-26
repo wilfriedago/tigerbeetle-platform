@@ -42,6 +42,7 @@ func Register(s *graphqlschema.Schema) {
 	graphqlschema.Mutation[RevokeLedgerRoleArgs, bool](s, "revokeLedgerRole", "Removes a person's role on one ledger. Needs ledger.members.")
 	graphqlschema.Mutation[InvitationArgs, bool](s, "resendInvitation", "Sends an invitation again with a new expiry.")
 	graphqlschema.Mutation[InvitationArgs, bool](s, "deleteInvitation", "Withdraws an invitation and the roles waiting for the person.")
+	registerCredentials(s)
 }
 
 // OrganizationConnection is a page of organizations.
@@ -171,13 +172,14 @@ type InvitationArgs struct {
 
 // Queries holds the access query resolvers.
 type Queries struct {
-	orgs    application.PlatformOrganizations
-	members application.Members
+	orgs        application.PlatformOrganizations
+	members     application.Members
+	credentials application.Credentials
 }
 
 // NewQueries builds the query resolvers.
 func NewQueries(app application.Application) *Queries {
-	return &Queries{orgs: app.PlatformOrganizations, members: app.Members}
+	return &Queries{orgs: app.PlatformOrganizations, members: app.Members, credentials: app.Credentials}
 }
 
 // Organizations resolves Query.organizations.
@@ -221,13 +223,14 @@ func (q *Queries) Members(ctx context.Context) ([]dto.Member, error) {
 
 // Mutations holds the access mutation resolvers.
 type Mutations struct {
-	orgs    application.PlatformOrganizations
-	members application.Members
+	orgs        application.PlatformOrganizations
+	members     application.Members
+	credentials application.Credentials
 }
 
 // NewMutations builds the mutation resolvers.
 func NewMutations(app application.Application) *Mutations {
-	return &Mutations{orgs: app.PlatformOrganizations, members: app.Members}
+	return &Mutations{orgs: app.PlatformOrganizations, members: app.Members, credentials: app.Credentials}
 }
 
 // CreateOrganization resolves Mutation.createOrganization.

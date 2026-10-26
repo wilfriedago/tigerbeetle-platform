@@ -53,3 +53,26 @@ type Members interface {
 	ResendInvitation(ctx context.Context, id string) error
 	DeleteInvitation(ctx context.Context, id string) error
 }
+
+// Credentials are an organization's API keys and machine clients (ADR-0029). Each needs
+// org.credentials.
+type Credentials interface {
+	APIKeys(ctx context.Context) ([]APIKeyView, error)
+	APIKey(ctx context.Context, id string) (APIKeyView, error)
+	CreateAPIKey(ctx context.Context, in NewAPIKey) (CreatedAPIKey, error)
+	RevokeAPIKey(ctx context.Context, id string) error
+	MachineClients(ctx context.Context) ([]MachineClientView, error)
+	MachineClient(ctx context.Context, clientID string) (MachineClientView, error)
+	CreateMachineClient(ctx context.Context, in NewMachineClient) (CreatedMachineClient, error)
+	RegenerateSecret(ctx context.Context, clientID string) (string, error)
+	DeleteMachineClient(ctx context.Context, clientID string) error
+	SetCredentialRole(ctx context.Context, kind CredentialKind, id, ledgerName string, role ledger.Role) error
+	RevokeCredentialRole(ctx context.Context, kind CredentialKind, id, ledgerName string) error
+}
+
+// CredentialResolver turns the platform's own credentials into a principal and an organization,
+// for authentication (internal/platform/authn).
+type CredentialResolver interface {
+	APIKey(ctx context.Context, raw string) (ledger.Principal, ledger.Tenant, error)
+	MachineTenant(ctx context.Context, p ledger.Principal) (ledger.Tenant, error)
+}

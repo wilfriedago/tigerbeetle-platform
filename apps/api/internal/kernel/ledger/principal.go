@@ -37,6 +37,9 @@ type Principal struct {
 	// Organizations lists the aliases of the organizations the identity provider says the
 	// principal belongs to (Keycloak's organization claim, ADR-0027).
 	Organizations []string
+	// Client is the OAuth client a machine token was issued to (ADR-0029); the platform maps it
+	// to its organization. Empty for people and API keys.
+	Client string
 }
 
 // MemberOf reports whether the identity provider lists the principal in the organization.

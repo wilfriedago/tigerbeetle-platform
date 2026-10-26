@@ -63,6 +63,19 @@ var registered = []struct {
 	{"revokeLedgerRole", http.MethodDelete, "/v1/ledgers/{ledger}/members/{subject}", "members"},
 	{"resendInvitation", http.MethodPost, "/v1/invitations/{invitation}/resend", "members"},
 	{"deleteInvitation", http.MethodDelete, "/v1/invitations/{invitation}", "members"},
+	{"listAPIKeys", http.MethodGet, "/v1/api-keys", "api-keys"},
+	{"createAPIKey", http.MethodPost, "/v1/api-keys", "api-keys"},
+	{"getAPIKey", http.MethodGet, "/v1/api-keys/{key}", "api-keys"},
+	{"revokeAPIKey", http.MethodDelete, "/v1/api-keys/{key}", "api-keys"},
+	{"setAPIKeyRole", http.MethodPut, "/v1/api-keys/{key}/ledgers/{ledger}", "api-keys"},
+	{"revokeAPIKeyRole", http.MethodDelete, "/v1/api-keys/{key}/ledgers/{ledger}", "api-keys"},
+	{"listMachineClients", http.MethodGet, "/v1/machine-clients", "machine-clients"},
+	{"createMachineClient", http.MethodPost, "/v1/machine-clients", "machine-clients"},
+	{"getMachineClient", http.MethodGet, "/v1/machine-clients/{client}", "machine-clients"},
+	{"deleteMachineClient", http.MethodDelete, "/v1/machine-clients/{client}", "machine-clients"},
+	{"regenerateMachineClientSecret", http.MethodPost, "/v1/machine-clients/{client}/secret", "machine-clients"},
+	{"setMachineClientRole", http.MethodPut, "/v1/machine-clients/{client}/ledgers/{ledger}", "machine-clients"},
+	{"revokeMachineClientRole", http.MethodDelete, "/v1/machine-clients/{client}/ledgers/{ledger}", "machine-clients"},
 }
 
 func TestOperationsAreRegistered(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/logging"
@@ -26,16 +27,27 @@ type Tenants interface {
 	Tenant(ctx context.Context, alias string) (ledger.Tenant, error)
 }
 
-// Authenticator authenticates calls.
-type Authenticator struct {
-	tokens  TokenVerifier
-	tenants Tenants
+// Credentials resolves the platform's own credentials (ADR-0029); the access module implements
+// it. An API key names its organization; a machine token's client does.
+type Credentials interface {
+	APIKey(ctx context.Context, raw string) (ledger.Principal, ledger.Tenant, error)
+	MachineTenant(ctx context.Context, p ledger.Principal) (ledger.Tenant, error)
 }
 
-// New returns an authenticator.
-func New(tokens TokenVerifier, tenants Tenants) *Authenticator {
-	return &Authenticator{tokens: tokens, tenants: tenants}
+// Authenticator authenticates calls.
+type Authenticator struct {
+	tokens      TokenVerifier
+	tenants     Tenants
+	credentials Credentials
 }
+
+// New returns an authenticator. Without credentials, API keys and machine tokens are refused.
+func New(tokens TokenVerifier, tenants Tenants, credentials Credentials) *Authenticator {
+	return &Authenticator{tokens: tokens, tenants: tenants, credentials: credentials}
+}
+
+// apiKeyPrefix starts every API key, tbp_<id>_<secret>; any other bearer value is a token.
+const apiKeyPrefix = "tbp_"
 
 var (
 	errNoCredential = ledger.NewProblem(ledger.ErrUnauthenticated, "unauthenticated",
@@ -54,11 +66,33 @@ func (a *Authenticator) Authenticate(ctx context.Context, authorization, organiz
 	if raw == "" {
 		return ctx, errNoCredential
 	}
+	if strings.HasPrefix(raw, apiKeyPrefix) {
+		if a.credentials == nil {
+			return ctx, errBadCredential
+		}
+		p, t, err := a.credentials.APIKey(ctx, raw)
+		if err != nil {
+			logging.From(ctx).InfoContext(ctx, "authentication failed", slog.Any("error", err))
+			return ctx, err
+		}
+		return a.owned(ctx, p, t, organization)
+	}
 	p, err := a.tokens.Verify(ctx, raw)
 	if err != nil {
 		// The reason (expired, wrong audience, unknown key) goes to the log, not to the client.
 		logging.From(ctx).InfoContext(ctx, "authentication failed", slog.Any("error", err))
 		return ctx, errBadCredential
+	}
+	if p.Kind == ledger.KindMachine {
+		if a.credentials == nil {
+			return ctx, errBadCredential
+		}
+		t, err := a.credentials.MachineTenant(ctx, p)
+		if err != nil {
+			logging.From(ctx).InfoContext(ctx, "authentication failed", slog.Any("error", err))
+			return ctx, err
+		}
+		return a.owned(ctx, p, t, organization)
 	}
 	ctx = ledger.WithPrincipal(ctx, p)
 	logger := logging.From(ctx).With(slog.String("principal", p.Subject))
@@ -70,6 +104,17 @@ func (a *Authenticator) Authenticate(ctx context.Context, authorization, organiz
 		ctx = ledger.WithTenant(ctx, t)
 		logger = logger.With(slog.String("organization", t.Alias))
 	}
+	return logging.With(ctx, logger), nil
+}
+
+// owned puts a credential that belongs to one organization in the context: an API key or a
+// machine client acts for its own organization, and naming another is 403 (plan section 5.2).
+func (a *Authenticator) owned(ctx context.Context, p ledger.Principal, t ledger.Tenant, organization string) (context.Context, error) {
+	if organization != "" && organization != t.Alias {
+		return ctx, ledger.NewProblem(ledger.ErrForbidden, "forbidden", "this credential belongs to the organization "+t.Alias)
+	}
+	ctx = ledger.WithTenant(ledger.WithPrincipal(ctx, p), t)
+	logger := logging.From(ctx).With(slog.String("principal", string(p.Kind)+":"+p.Subject), slog.String("organization", t.Alias))
 	return logging.With(ctx, logger), nil
 }
 

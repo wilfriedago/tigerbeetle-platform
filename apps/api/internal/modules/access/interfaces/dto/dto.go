@@ -148,14 +148,12 @@ type Member struct {
 func MemberFrom(v application.MemberView) Member {
 	m := Member{
 		Subject: v.Subject, Email: v.Email, EmailVerified: v.EmailVerified, Name: v.Name, Status: string(v.Status),
-		Role: optional(string(v.Role)), AddedBy: optional(v.AddedBy), Ledgers: make([]LedgerRole, len(v.Ledgers)),
+		Role: optional(string(v.Role)), AddedBy: optional(v.AddedBy),
 	}
 	if !v.AddedAt.IsZero() {
 		m.AddedAt = &v.AddedAt
 	}
-	for i, l := range v.Ledgers {
-		m.Ledgers[i] = LedgerRole{Ledger: l.Ledger, Role: string(l.Role), GrantedAt: l.GrantedAt, GrantedBy: optional(l.GrantedBy)}
-	}
+	m.Ledgers = ledgerRolesOf(v.Ledgers)
 	if v.Invitation != nil {
 		m.Invitation = &Invitation{ID: v.Invitation.ID, SentAt: v.Invitation.SentAt, ExpiresAt: v.Invitation.ExpiresAt, Expired: v.Invitation.Expired}
 	}

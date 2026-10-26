@@ -19,6 +19,7 @@ import (
 type Deps struct {
 	PlatformOrganizations application.PlatformOrganizations
 	Members               application.Members
+	Credentials           application.Credentials
 }
 
 type handlers struct {
@@ -30,6 +31,7 @@ func Register(api huma.API, deps Deps) {
 	h := &handlers{Deps: deps}
 	registerOrganizations(api, h)
 	registerMembers(api, h)
+	registerCredentials(api, h)
 }
 
 // OrganizationPath names an organization in the staff's paths.

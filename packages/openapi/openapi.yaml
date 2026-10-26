@@ -18,6 +18,55 @@ components:
           schema:
             type: string
   schemas:
+    APIKey:
+      properties:
+        createdAt:
+          format: date-time
+          type: string
+        createdBy:
+          type: string
+        expiresAt:
+          format: date-time
+          type: string
+        id:
+          description: The key ID, the middle of tbp_<id>_<secret>. The principal of the key is tbp:api-key/<id>.
+          type: string
+        lastUsedAt:
+          description: Updated at most once a minute.
+          format: date-time
+          type: string
+        ledgers:
+          description: The ledger roles the key acts with.
+          items:
+            $ref: "#/components/schemas/LedgerRole"
+          type: array
+        name:
+          type: string
+        revokedAt:
+          format: date-time
+          type: string
+        status:
+          enum:
+            - active
+            - expired
+            - revoked
+          type: string
+      required:
+        - id
+        - name
+        - status
+        - createdAt
+        - ledgers
+      type: object
+    APIKeyList:
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/APIKey"
+          type: array
+      required:
+        - data
+      type: object
     Account:
       allOf:
         - $ref: "#/components/schemas/AccountSummary"
@@ -288,6 +337,34 @@ components:
           $ref: "#/components/schemas/Amount"
           description: The amount to capture; the full hold when absent. Must not be zero.
       type: object
+    ClientSecret:
+      properties:
+        secret:
+          type: string
+      required:
+        - secret
+      type: object
+    CreateAPIKeyRequest:
+      properties:
+        expiresAt:
+          description: Absent for a key that does not expire.
+          format: date-time
+          type: string
+        ledgers:
+          description: The ledger roles the key acts with; at least one.
+          items:
+            $ref: "#/components/schemas/LedgerRoleSpec"
+          maxItems: 100
+          minItems: 1
+          type: array
+        name:
+          description: Shown in grants, write requests and logs.
+          pattern: ^[a-z0-9][a-z0-9-]{0,62}$
+          type: string
+      required:
+        - name
+        - ledgers
+      type: object
     CreateEventTypeRequest:
       properties:
         code:
@@ -335,6 +412,23 @@ components:
         metadata:
           $ref: "#/components/schemas/Metadata"
       type: object
+    CreateMachineClientRequest:
+      properties:
+        ledgers:
+          description: The ledger roles its tokens act with; at least one.
+          items:
+            $ref: "#/components/schemas/LedgerRoleSpec"
+          maxItems: 100
+          minItems: 1
+          type: array
+        name:
+          description: The client ID becomes <organization>-<name>.
+          pattern: ^[a-z0-9][a-z0-9-]{0,62}$
+          type: string
+      required:
+        - name
+        - ledgers
+      type: object
     CreateOrganizationRequest:
       properties:
         alias:
@@ -375,6 +469,32 @@ components:
           type: string
       required:
         - postings
+      type: object
+    CreatedAPIKey:
+      properties:
+        key:
+          $ref: "#/components/schemas/APIKey"
+        secret:
+          description: The whole key, tbp_<id>_<secret>. It is not stored and cannot be shown again.
+          type: string
+      required:
+        - key
+        - secret
+      type: object
+    CreatedMachineClient:
+      properties:
+        client:
+          $ref: "#/components/schemas/MachineClient"
+        secret:
+          description: The client secret. Only a Keycloak realm administrator can see it again; regenerate it if it is lost.
+          type: string
+        tokenUrl:
+          description: Where the client trades its secret for a token, with the client credentials grant.
+          type: string
+      required:
+        - client
+        - secret
+        - tokenUrl
       type: object
     DeclinedStats:
       description: Declined and failed writes in the last 24 hours.
@@ -792,6 +912,59 @@ components:
           type: string
       required:
         - status
+      type: object
+    MachineClient:
+      properties:
+        clientId:
+          description: "Keycloak's client ID: <organization>-<name>."
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        createdBy:
+          type: string
+        deletedAt:
+          format: date-time
+          type: string
+        lastTokenAt:
+          description: When the API last saw one of its tokens; updated at most once a minute.
+          format: date-time
+          type: string
+        ledgers:
+          description: The ledger roles its tokens act with.
+          items:
+            $ref: "#/components/schemas/LedgerRole"
+          type: array
+        name:
+          type: string
+        secretSetAt:
+          format: date-time
+          type: string
+        status:
+          enum:
+            - active
+            - deleted
+          type: string
+        subject:
+          description: "The client's service account: the sub of its tokens."
+          type: string
+      required:
+        - clientId
+        - name
+        - subject
+        - status
+        - secretSetAt
+        - createdAt
+        - ledgers
+      type: object
+    MachineClientList:
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/MachineClient"
+          type: array
+      required:
+        - data
       type: object
     Member:
       properties:
@@ -1753,6 +1926,260 @@ paths:
       summary: Reconciler status
       tags:
         - operations
+  /v1/api-keys:
+    get:
+      description: The organization's API keys, active ones first, without their secrets. Needs `org.credentials`.
+      operationId: listAPIKeys
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIKeyList"
+          description: The keys.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: List API keys
+      tags:
+        - api-keys
+    post:
+      description: |
+        Creates a key with the ledger roles it acts with and answers its secret, shown once: the
+        platform keeps only a keyed hash of it. Send it as `Authorization: Bearer tbp_<id>_<secret>` on
+        every transport. Needs `org.credentials`.
+      operationId: createAPIKey
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAPIKeyRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedAPIKey"
+          description: The key and its secret.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Create an API key
+      tags:
+        - api-keys
+  /v1/api-keys/{key}:
+    delete:
+      description: |
+        Stops the key from its next request; it cannot be undone. Its grants and the writes it made
+        stay, with the key as actor. Needs `org.credentials`.
+      operationId: revokeAPIKey
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The key ID, the middle of tbp_<id>_<secret>.
+          in: path
+          name: key
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: The key was revoked.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Revoke an API key
+      tags:
+        - api-keys
+    get:
+      description: One key, without its secret. Needs `org.credentials`.
+      operationId: getAPIKey
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The key ID, the middle of tbp_<id>_<secret>.
+          in: path
+          name: key
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIKey"
+          description: The key.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Get an API key
+      tags:
+        - api-keys
+  /v1/api-keys/{key}/ledgers/{ledger}:
+    delete:
+      description: Removes the key's role on the ledger. Needs `org.credentials`.
+      operationId: revokeAPIKeyRole
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The key ID, the middle of tbp_<id>_<secret>.
+          in: path
+          name: key
+          required: true
+          schema:
+            type: string
+        - description: The ledger name.
+          in: path
+          name: ledger
+          required: true
+          schema:
+            $ref: "#/components/schemas/LedgerName"
+      responses:
+        "204":
+          description: The role was revoked.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Revoke an API key's ledger role
+      tags:
+        - api-keys
+    put:
+      description: Gives the key a role on the ledger. Needs `org.credentials`.
+      operationId: setAPIKeyRole
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The key ID, the middle of tbp_<id>_<secret>.
+          in: path
+          name: key
+          required: true
+          schema:
+            type: string
+        - description: The ledger name.
+          in: path
+          name: ledger
+          required: true
+          schema:
+            $ref: "#/components/schemas/LedgerName"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LedgerRoleRequest"
+        required: true
+      responses:
+        "204":
+          description: The role was set.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Set an API key's ledger role
+      tags:
+        - api-keys
   /v1/invitations/{invitation}:
     delete:
       description: Withdraws the invitation and the roles waiting for the person. Needs `org.members`.
@@ -3617,6 +4044,302 @@ paths:
       summary: Revert a transaction
       tags:
         - transactions
+  /v1/machine-clients:
+    get:
+      description: The organization's OAuth clients in Keycloak, active ones first. Needs `org.credentials`.
+      operationId: listMachineClients
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MachineClientList"
+          description: The clients.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: List machine clients
+      tags:
+        - machine-clients
+    post:
+      description: |
+        Creates a confidential client in Keycloak, named <organization>-<name>, whose client credentials
+        tokens act for this organization with the ledger roles given. Answers the secret, shown once,
+        and the token URL. Needs `org.credentials`.
+      operationId: createMachineClient
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMachineClientRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedMachineClient"
+          description: The client and its secret.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Create a machine client
+      tags:
+        - machine-clients
+  /v1/machine-clients/{client}:
+    delete:
+      description: |
+        Deletes the client in Keycloak, so it gets no new token; a token already issued works until it
+        expires, five minutes at most. Its grants and writes stay. Needs `org.credentials`.
+      operationId: deleteMachineClient
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The client ID.
+          in: path
+          name: client
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: The client was deleted.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Delete a machine client
+      tags:
+        - machine-clients
+    get:
+      description: One client, without its secret. Needs `org.credentials`.
+      operationId: getMachineClient
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The client ID.
+          in: path
+          name: client
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MachineClient"
+          description: The client.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Get a machine client
+      tags:
+        - machine-clients
+  /v1/machine-clients/{client}/ledgers/{ledger}:
+    delete:
+      description: Removes the client's role on the ledger. Needs `org.credentials`.
+      operationId: revokeMachineClientRole
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The client ID.
+          in: path
+          name: client
+          required: true
+          schema:
+            type: string
+        - description: The ledger name.
+          in: path
+          name: ledger
+          required: true
+          schema:
+            $ref: "#/components/schemas/LedgerName"
+      responses:
+        "204":
+          description: The role was revoked.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Revoke a machine client's ledger role
+      tags:
+        - machine-clients
+    put:
+      description: Gives the client a role on the ledger. Needs `org.credentials`.
+      operationId: setMachineClientRole
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The client ID.
+          in: path
+          name: client
+          required: true
+          schema:
+            type: string
+        - description: The ledger name.
+          in: path
+          name: ledger
+          required: true
+          schema:
+            $ref: "#/components/schemas/LedgerName"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LedgerRoleRequest"
+        required: true
+      responses:
+        "204":
+          description: The role was set.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Set a machine client's ledger role
+      tags:
+        - machine-clients
+  /v1/machine-clients/{client}/secret:
+    post:
+      description: Replaces the secret; the old one stops working at once. Needs `org.credentials`.
+      operationId: regenerateMachineClientSecret
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The client ID.
+          in: path
+          name: client
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientSecret"
+          description: The new secret, shown once.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Regenerate a machine client's secret
+      tags:
+        - machine-clients
   /v1/members:
     get:
       description: |

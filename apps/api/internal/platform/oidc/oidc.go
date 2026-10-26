@@ -103,6 +103,13 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (ledger.Principal, er
 		Email:         firstString(claims, "email"),
 		Organizations: aliases(claims[v.cfg.OrganizationClaim]),
 	}
+	// A client credentials token is a machine's (ADR-0029): Keycloak names the client in
+	// client_id, and its service account's username starts with service-account-.
+	if client := firstString(claims, "client_id"); client != "" {
+		p.Kind, p.Client = ledger.KindMachine, client
+	} else if strings.HasPrefix(firstString(claims, "preferred_username"), "service-account-") {
+		p.Kind, p.Client = ledger.KindMachine, firstString(claims, "azp")
+	}
 	if v.cfg.StaffClaim != "" {
 		for _, s := range stringsOf(claims[v.cfg.StaffClaim]) {
 			if s == v.cfg.StaffValue {

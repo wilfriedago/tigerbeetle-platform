@@ -59,6 +59,7 @@ func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *
 			Access: accessv1.Deps{
 				PlatformOrganizations: m.access.PlatformOrganizations,
 				Members:               m.access.Members,
+				Credentials:           m.access.Credentials,
 			},
 			Ledgers: ledgersv1.Deps{
 				LedgerCommands:   m.ledgers.LedgerCommands,
