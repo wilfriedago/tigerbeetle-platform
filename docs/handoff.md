@@ -144,8 +144,10 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
     login theme in the admin console or rebuild Keycloak's database.
   - Verified in the second stack: identity-first sign-in to the console, the account setup email
     of a new invitee through verify, password and profile, and every designed page in the mock.
-  - Not done: Keycloak's emails keep Keycloak's look (an email theme is later work); Keycloak's
-    default user profile asks a new invitee for a last name when the invitation gave none.
+  - Keycloak's user profile no longer requires a last name (realm.json `components`), so an
+    invitee given only a first name is not asked for one.
+  - Not done: Keycloak's emails keep Keycloak's look; the owner designs them, then an email
+    theme in `apps/keycloak-theme` implements them.
 - Phase 6 (machine access) is done, from 79fd433:
   - API keys (`tbp_<id>_<secret>`, HMAC under `AUTH_API_KEY_PEPPER`) and machine clients
     (confidential Keycloak clients created by `tbp-admin`, five-minute tokens), migration 00014,
@@ -159,9 +161,10 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
     roles, revocation, deletion), and against Keycloak 26.8.1 in the second stack: a client
     created by the API, its token (`client_id`, the `tbp-api` audience, 300 seconds), a call with
     it and with a key, secret regeneration, and every page in a browser.
-  - Not done: the "recent writes" panel of a credential (write requests have no actor filter
-    yet); `tbp-admin` can manage every client of the realm until fine-grained admin permissions
-    v2 narrow it.
+  - The "recent writes" panel: `listWriteRequests` gained an `actor` filter (the subject, or a
+    key's ID) on every transport, with migration 00015 for its index.
+  - `tbp-admin` keeps realm-wide roles, by the owner's decision; `docs/keycloak.md` explains the
+    realm, the clients and how to contain that account.
 - Phase 7 (exposure) is done:
   - `internal/platform/tlsconfig` builds the TLS settings: gRPC serves TLS with
     `GRPC_TLS_CERT_FILE` and `GRPC_TLS_KEY_FILE`; AMQP (RPC and the CDC relay), NATS and Kafka

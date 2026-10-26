@@ -271,6 +271,8 @@ ADR-0004).
   - request ID.
 - Highlight pending records older than the reconciler's grace period.
 - Row drawer: the stored response or problem body, the body hash and the minted IDs.
+- `?actor=` keeps the writes of one principal (its subject, or an API key's ID), shown as a
+  removable filter; the credential pages link here with it.
 - This is the only place where declined and in-flight writes are visible.
 
 ### Ledger settings
@@ -334,7 +336,7 @@ cannot do, derived from the role table. Remove (or Leave, on your own page) expl
 
 `/ledgers/$ledger/settings/access`. Who holds a role on this ledger, and the admins and owners who
 hold every role through the organization. Ledger admins grant and revoke here (`ledger.members`).
-API keys and machine clients join the list in phase 6.
+API keys and machine clients are listed too.
 
 ### API keys and machine clients
 
@@ -348,8 +350,10 @@ API keys and machine clients join the list in phase 6.
 - The secret is shown once, in a dialog that cannot close until "I have stored it" is ticked,
   with a command to try it.
 - A credential's page shows its roles (grant and revoke), its details and the way to revoke a key
-  or delete a client, which asks for the name. The design's "recent writes" panel is not built:
-  write requests cannot be filtered by actor yet.
+  or delete a client, which asks for the name.
+- Recent writes: the five newest write requests the credential made, read per ledger it holds a
+  role on with the `actor` filter of `listWriteRequests` and merged. A write on a ledger it lost
+  its role on is only on that ledger's Requests page.
 
 ### Organization settings and Roles and permissions
 
@@ -396,7 +400,7 @@ which the organization's members see on the suspended page, and the alias to con
   (`docs/architecture.md`, Future work).
 - Live feed: a stream of transfers and balance changes from TigerBeetle CDC, filterable by
   address and asset, with pause.
-- API keys and machine clients (phase 6 of `docs/plans/auth/plan.md`), then an audit log.
+- An audit log.
 
 ## Rules shared by every page
 
