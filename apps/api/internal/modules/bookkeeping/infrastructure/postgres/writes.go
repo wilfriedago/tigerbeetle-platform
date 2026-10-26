@@ -33,6 +33,8 @@ func writeRecord(w gen.WriteRequest) domain.WriteRecord {
 		Attempts:     int(w.Attempts),
 		CreatedAt:    platformpg.TimeOf(w.CreatedAt),
 		ResolvedAt:   platformpg.OptionalTime(w.ResolvedAt),
+		ActorIssuer:  platformpg.StringOf(w.ActorIssuer),
+		ActorSubject: platformpg.StringOf(w.ActorSubject),
 	}
 	if w.ResponseStatus != nil {
 		rec.ResponseStatus = int(*w.ResponseStatus)
@@ -66,6 +68,8 @@ func (s *Store) BeginWrite(ctx context.Context, rec domain.WriteRecord) (domain.
 		TransferIds:    platformpg.UUIDsOf(rec.TransferIDs),
 		RequestID:      platformpg.OptionalString(rec.RequestID),
 		CreatedAt:      platformpg.Timestamptz(rec.CreatedAt),
+		ActorIssuer:    platformpg.OptionalString(rec.ActorIssuer),
+		ActorSubject:   platformpg.OptionalString(rec.ActorSubject),
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		// ON CONFLICT DO NOTHING returned nothing: the key exists.
@@ -302,7 +306,11 @@ func (s *Store) PendingWrites(ctx context.Context, before time.Time, limit int) 
 
 // CountPending counts pending records and those older than a time.
 func (s *Store) CountPending(ctx context.Context, before time.Time) (pending, stuck int64, err error) {
-	r, err := s.queries.CountPending(ctx, platformpg.Timestamptz(before))
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return 0, 0, err
+	}
+	r, err := s.queries.CountPending(ctx, gen.CountPendingParams{OrganizationID: org, Before: platformpg.Timestamptz(before)})
 	if err != nil {
 		return 0, 0, fmt.Errorf("postgres: count pending: %w", mapError(err))
 	}

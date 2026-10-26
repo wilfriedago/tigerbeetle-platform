@@ -87,7 +87,8 @@ type WriteRepository interface {
 	CommitResolution(ctx context.Context, outcome WriteOutcome, resolution HoldResolution) error
 	// PendingWrites returns pending records created before the given time, oldest first.
 	PendingWrites(ctx context.Context, before time.Time, limit int) ([]WriteRecord, error)
-	// CountPending returns the pending records and those created before the given time.
+	// CountPending returns the pending records of the organization of the call and those created
+	// before the given time.
 	CountPending(ctx context.Context, before time.Time) (pending, stuck int64, err error)
 	// DeclinedSince groups declined and failed records of a ledger by problem type.
 	DeclinedSince(ctx context.Context, ledgerName string, since time.Time) ([]ReasonCount, error)

@@ -319,12 +319,14 @@ type SearchResult struct {
 
 // StuckRecord is a pending record the reconciler could not settle.
 type StuckRecord struct {
-	Ledger    string
-	Key       string
-	Operation domain.Operation
-	CreatedAt time.Time
-	Attempts  int
-	Note      string
+	// Organization is the record's tenant; Status shows each organization its own records.
+	Organization ledger.ID
+	Ledger       string
+	Key          string
+	Operation    domain.Operation
+	CreatedAt    time.Time
+	Attempts     int
+	Note         string
 }
 
 // ReconcilerStatus is what the System page shows.

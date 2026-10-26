@@ -43,12 +43,21 @@ type writeFlow struct {
 // begin inserts the pending record. For an existing key it either replays (committed, returning
 // the record and fresh false with a nil error), or answers with the problem the key maps to.
 func (f *writeFlow) begin(ctx context.Context, rec domain.WriteRecord) (stored domain.WriteRecord, fresh bool, err error) {
+	if p, ok := ledger.PrincipalFrom(ctx); ok {
+		rec.ActorIssuer, rec.ActorSubject = p.Issuer, p.Subject
+	}
 	got, created, err := f.writes.BeginWrite(ctx, rec)
 	if err != nil {
 		return domain.WriteRecord{}, false, fmt.Errorf("begin write: %w", err)
 	}
 	if created {
 		return got, true, nil
+	}
+	// A key belongs to the principal that used it first (ADR-0030). Another principal learns
+	// only that the key is taken, never the stored answer.
+	if got.ActorIssuer != rec.ActorIssuer || got.ActorSubject != rec.ActorSubject {
+		return domain.WriteRecord{}, false, ledger.NewProblem(ledger.ErrRejected, "idempotency-key-reused",
+			fmt.Sprintf("Idempotency-Key %q was already used by another caller; choose a new key", rec.Key))
 	}
 	if got.Operation != rec.Operation || !bytes.Equal(got.BodyHash, rec.BodyHash) {
 		return got, false, ledger.NewProblem(ledger.ErrRejected, "idempotency-key-reused",

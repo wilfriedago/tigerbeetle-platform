@@ -172,6 +172,10 @@ type WriteRecord struct {
 	Attempts       int
 	CreatedAt      time.Time
 	ResolvedAt     *time.Time
+	// ActorIssuer and ActorSubject name the principal that made the write (ADR-0030); a key
+	// replays only for it. Records from before authentication have neither.
+	ActorIssuer  string
+	ActorSubject string
 }
 
 // WriteOutcome is how a pending record resolves.

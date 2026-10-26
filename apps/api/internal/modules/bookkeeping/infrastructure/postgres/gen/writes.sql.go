@@ -14,17 +14,22 @@ import (
 const countPending = `-- name: CountPending :one
 SELECT count(*)::bigint AS pending, count(*) FILTER (WHERE created_at < $1)::bigint AS stuck
 FROM write_requests
-WHERE status = 'pending'
+WHERE organization_id = $2 AND status = 'pending'
 `
+
+type CountPendingParams struct {
+	Before         pgtype.Timestamptz
+	OrganizationID pgtype.UUID
+}
 
 type CountPendingRow struct {
 	Pending int64
 	Stuck   int64
 }
 
-// tenant-free: the reconciler's own backlog, across organizations.
-func (q *Queries) CountPending(ctx context.Context, before pgtype.Timestamptz) (CountPendingRow, error) {
-	row := q.db.QueryRow(ctx, countPending, before)
+// The reconciler's backlog in one organization, for its status page.
+func (q *Queries) CountPending(ctx context.Context, arg CountPendingParams) (CountPendingRow, error) {
+	row := q.db.QueryRow(ctx, countPending, arg.Before, arg.OrganizationID)
 	var i CountPendingRow
 	err := row.Scan(&i.Pending, &i.Stuck)
 	return i, err
@@ -71,7 +76,7 @@ func (q *Queries) DeclinedSince(ctx context.Context, arg DeclinedSinceParams) ([
 
 const getWrite = `-- name: GetWrite :one
 SELECT ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id, actor_issuer, actor_subject
 FROM write_requests
 WHERE organization_id = $3 AND ledger = $1 AND idempotency_key = $2
 `
@@ -102,16 +107,18 @@ func (q *Queries) GetWrite(ctx context.Context, arg GetWriteParams) (WriteReques
 		&i.CreatedAt,
 		&i.ResolvedAt,
 		&i.OrganizationID,
+		&i.ActorIssuer,
+		&i.ActorSubject,
 	)
 	return i, err
 }
 
 const insertWrite = `-- name: InsertWrite :one
-INSERT INTO write_requests (organization_id, ledger, idempotency_key, operation, body_hash, request, target_id, transfer_ids, request_id, created_at)
-VALUES ($10, $1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO write_requests (organization_id, ledger, idempotency_key, operation, body_hash, request, target_id, transfer_ids, request_id, created_at, actor_issuer, actor_subject)
+VALUES ($10, $1, $2, $3, $4, $5, $6, $7, $8, $9, $11, $12)
 ON CONFLICT (organization_id, ledger, idempotency_key) DO NOTHING
 RETURNING ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id, actor_issuer, actor_subject
 `
 
 type InsertWriteParams struct {
@@ -125,6 +132,8 @@ type InsertWriteParams struct {
 	RequestID      *string
 	CreatedAt      pgtype.Timestamptz
 	OrganizationID pgtype.UUID
+	ActorIssuer    *string
+	ActorSubject   *string
 }
 
 func (q *Queries) InsertWrite(ctx context.Context, arg InsertWriteParams) (WriteRequest, error) {
@@ -139,6 +148,8 @@ func (q *Queries) InsertWrite(ctx context.Context, arg InsertWriteParams) (Write
 		arg.RequestID,
 		arg.CreatedAt,
 		arg.OrganizationID,
+		arg.ActorIssuer,
+		arg.ActorSubject,
 	)
 	var i WriteRequest
 	err := row.Scan(
@@ -158,13 +169,15 @@ func (q *Queries) InsertWrite(ctx context.Context, arg InsertWriteParams) (Write
 		&i.CreatedAt,
 		&i.ResolvedAt,
 		&i.OrganizationID,
+		&i.ActorIssuer,
+		&i.ActorSubject,
 	)
 	return i, err
 }
 
 const listWrites = `-- name: ListWrites :many
 SELECT ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id, actor_issuer, actor_subject
 FROM write_requests
 WHERE organization_id = $1 AND ledger = $2
     AND ($3::text IS NULL OR status = $3::text)
@@ -228,6 +241,8 @@ func (q *Queries) ListWrites(ctx context.Context, arg ListWritesParams) ([]Write
 			&i.CreatedAt,
 			&i.ResolvedAt,
 			&i.OrganizationID,
+			&i.ActorIssuer,
+			&i.ActorSubject,
 		); err != nil {
 			return nil, err
 		}
@@ -258,7 +273,7 @@ func (q *Queries) NoteAttempt(ctx context.Context, arg NoteAttemptParams) error 
 
 const pendingWrites = `-- name: PendingWrites :many
 SELECT ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id, actor_issuer, actor_subject
 FROM write_requests
 WHERE status = 'pending' AND created_at < $1
 ORDER BY created_at
@@ -298,6 +313,8 @@ func (q *Queries) PendingWrites(ctx context.Context, arg PendingWritesParams) ([
 			&i.CreatedAt,
 			&i.ResolvedAt,
 			&i.OrganizationID,
+			&i.ActorIssuer,
+			&i.ActorSubject,
 		); err != nil {
 			return nil, err
 		}

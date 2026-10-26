@@ -1,19 +1,19 @@
 -- name: InsertWrite :one
-INSERT INTO write_requests (organization_id, ledger, idempotency_key, operation, body_hash, request, target_id, transfer_ids, request_id, created_at)
-VALUES ($10, $1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO write_requests (organization_id, ledger, idempotency_key, operation, body_hash, request, target_id, transfer_ids, request_id, created_at, actor_issuer, actor_subject)
+VALUES ($10, $1, $2, $3, $4, $5, $6, $7, $8, $9, $11, $12)
 ON CONFLICT (organization_id, ledger, idempotency_key) DO NOTHING
 RETURNING ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id;
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id, actor_issuer, actor_subject;
 
 -- name: GetWrite :one
 SELECT ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id, actor_issuer, actor_subject
 FROM write_requests
 WHERE organization_id = $3 AND ledger = $1 AND idempotency_key = $2;
 
 -- name: ListWrites :many
 SELECT ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id, actor_issuer, actor_subject
 FROM write_requests
 WHERE organization_id = sqlc.arg(organization_id) AND ledger = sqlc.arg(ledger)
     AND (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status)::text)
@@ -44,17 +44,17 @@ WHERE organization_id = $8 AND ledger = $1 AND idempotency_key = $2 AND status =
 -- tenant-free: the reconciler settles every organization's writes; each record carries its
 -- organization, which the reconciler acts for.
 SELECT ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id, actor_issuer, actor_subject
 FROM write_requests
 WHERE status = 'pending' AND created_at < sqlc.arg(before)
 ORDER BY created_at
 LIMIT sqlc.arg(max_rows);
 
 -- name: CountPending :one
--- tenant-free: the reconciler's own backlog, across organizations.
+-- The reconciler's backlog in one organization, for its status page.
 SELECT count(*)::bigint AS pending, count(*) FILTER (WHERE created_at < sqlc.arg(before))::bigint AS stuck
 FROM write_requests
-WHERE status = 'pending';
+WHERE organization_id = sqlc.arg(organization_id) AND status = 'pending';
 
 -- name: DeclinedSince :many
 SELECT COALESCE(problem_type, 'unknown')::text AS reason, count(*)::bigint AS occurrences
