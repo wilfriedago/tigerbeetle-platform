@@ -19,6 +19,8 @@ import (
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
@@ -27,19 +29,25 @@ import (
 // serve runs one GraphQL request through the production middleware.
 func serve(t *testing.T, m Modules, body string) map[string]any {
 	t.Helper()
-	mux := http.NewServeMux()
-	mux.Handle("POST /graphql", NewHandler(NewResolver(m)))
-	h := restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/graphql", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Request-Id", "req-1")
-	h.ServeHTTP(rec, req)
+	rec := post(m, body)
 	var out map[string]any
 	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
 		t.Fatalf("status %d, body %q: %v", rec.Code, rec.Body.String(), err)
 	}
 	return out
+}
+
+// post sends body to POST /graphql through the production middleware.
+func post(m Modules, body string) *httptest.ResponseRecorder {
+	mux := http.NewServeMux()
+	mux.Handle("POST /graphql", NewHandler(NewResolver(m)))
+	h := restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), restapi.Options{Auth: authntest.Default()})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/graphql", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Request-Id", "req-1")
+	h.ServeHTTP(rec, req)
+	return rec
 }
 
 func healthModules() Modules {
@@ -72,8 +80,45 @@ func TestGraphQLOwnErrorsKeepTheirCode(t *testing.T) {
 		t.Fatalf("errors = %v", out)
 	}
 	ext := errs[0].(map[string]any)["extensions"].(map[string]any)
-	if ext["code"] != "GRAPHQL_VALIDATION_FAILED" {
+	if ext["code"] != "GRAPHQL_VALIDATION_FAILED" || ext["type"] != problem.TypeOf("invalid-request") ||
+		ext["title"] != "Invalid request" || ext["status"] != float64(400) || ext["requestId"] != "req-1" {
 		t.Fatalf("extensions = %v", ext)
+	}
+}
+
+// TestBodiesThatAreNoGraphQLRequest checks that a body gqlgen cannot even read as a request is
+// answered with a problem, without quoting the body back.
+func TestBodiesThatAreNoGraphQLRequest(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		body       string
+		wantStatus int
+		wantType   string
+	}{
+		{name: "not JSON", body: `query=secret`, wantStatus: 400, wantType: problem.TypeOf("invalid-request")},
+		{name: "a JSON array", body: `["secret"]`, wantStatus: 400, wantType: problem.TypeOf("invalid-request")},
+		{name: "too large", body: `{"query":"` + strings.Repeat("a", maxBodyBytes) + `"}`, wantStatus: 413, wantType: problem.TypeBlank},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			rec := post(healthModules(), tt.body)
+			if rec.Code != tt.wantStatus || rec.Header().Get("Content-Type") != "application/problem+json" {
+				t.Fatalf("status %d, Content-Type %q, want %d problem+json", rec.Code, rec.Header().Get("Content-Type"), tt.wantStatus)
+			}
+			var p struct {
+				Type      string `json:"type"`
+				Status    int    `json:"status"`
+				RequestID string `json:"requestId"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &p); err != nil || p.Type != tt.wantType || p.Status != tt.wantStatus || p.RequestID != "req-1" {
+				t.Fatalf("problem %+v (%v), want type %q", p, err, tt.wantType)
+			}
+			if strings.Contains(rec.Body.String(), "secret") {
+				t.Errorf("the body was quoted back: %s", rec.Body.String())
+			}
+		})
 	}
 }
 
@@ -129,7 +174,7 @@ func TestPresentError(t *testing.T) {
 			err:     fmt.Errorf("postgres: %w: secret driver text", ledger.ErrUnavailable),
 			message: "Dependency unavailable",
 			ext: map[string]any{
-				"code": "UNAVAILABLE", "reason": "dependency-unavailable", "type": "/problems/dependency-unavailable",
+				"code": "UNAVAILABLE", "reason": "dependency-unavailable", "type": problem.TypeOf("dependency-unavailable"),
 				"title": "Dependency unavailable", "status": 503, "requestId": "req-9",
 			},
 		},
@@ -141,7 +186,7 @@ func TestPresentError(t *testing.T) {
 			},
 			message: "Posting 2 would take a below zero.",
 			ext: map[string]any{
-				"code": "REJECTED", "reason": "exceeds-credits", "type": "/problems/exceeds-credits",
+				"code": "REJECTED", "reason": "exceeds-credits", "type": problem.TypeOf("exceeds-credits"),
 				"title": "Declined: exceeds credits", "status": 422, "detail": "Posting 2 would take a below zero.",
 				"requestId": "req-9", "retryAfter": 2, "posting": 1, "results": []string{"linked_event_failed", "exceeds_credits"},
 			},
@@ -151,15 +196,15 @@ func TestPresentError(t *testing.T) {
 			err:     gqlerror.WrapPath(nil, fmt.Errorf("%w: Amount must be a JSON string, got float64", ledger.ErrInvalid)),
 			message: "Amount must be a JSON string, got float64",
 			ext: map[string]any{
-				"code": "INVALID", "reason": "invalid-request", "type": "/problems/invalid-request", "title": "Invalid request",
+				"code": "INVALID", "reason": "invalid-request", "type": problem.TypeOf("invalid-request"), "title": "Invalid request",
 				"status": 400, "detail": "Amount must be a JSON string, got float64", "requestId": "req-9",
 			},
 		},
 		{
 			name:    "anything else is internal",
 			err:     fmt.Errorf("panic: %v", "boom"),
-			message: "Internal server error",
-			ext:     map[string]any{"code": "INTERNAL", "type": "about:blank", "title": "Internal server error", "status": 500, "requestId": "req-9"},
+			message: "Internal Server Error",
+			ext:     map[string]any{"code": "INTERNAL", "type": "about:blank", "title": "Internal Server Error", "status": 500, "requestId": "req-9"},
 		},
 	}
 	for _, tt := range tests {

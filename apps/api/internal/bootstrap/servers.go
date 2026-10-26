@@ -2,12 +2,17 @@ package bootstrap
 
 import (
 	"context"
+	"crypto/tls"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
 	"strconv"
 	"time"
 
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/tlsconfig"
+
+	accessv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/rest/v1"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/web"
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
 	bookkeepingkafka "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure/kafka"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/cdc"
@@ -15,6 +20,7 @@ import (
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	ledgersv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/rest/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/amqprpc"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/httpserver"
@@ -47,12 +53,17 @@ func healthSource(r resources, cfg config.Config, svc Service) healthdto.Source 
 // httpHandler builds the HTTP handler: the health operations always, the module operations when
 // REST is enabled, and POST /graphql when GraphQL is, on one ServeMux behind the standard
 // middleware of platform/restapi (request ID, access log, panic recovery).
-func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger) http.Handler {
+func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger, auth *authn.Authenticator, signIn *console) http.Handler {
 	mux := http.NewServeMux()
 	api := restapi.NewAPI(mux)
 	rest.RegisterHealth(api, health)
 	if cfg.RESTEnabled {
 		rest.RegisterModules(api, rest.Handlers{
+			Access: accessv1.Deps{
+				PlatformOrganizations: m.access.PlatformOrganizations,
+				Members:               m.access.Members,
+				Credentials:           m.access.Credentials,
+			},
 			Ledgers: ledgersv1.Deps{
 				LedgerCommands:   m.ledgers.LedgerCommands,
 				LedgerQueries:    m.ledgers.LedgerQueries,
@@ -68,27 +79,40 @@ func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *
 				AccountQueries:      m.bookkeeping.AccountQueries,
 				RequestQueries:      m.bookkeeping.RequestQueries,
 				OverviewQueries:     m.bookkeeping.OverviewQueries,
-				Reconciler:          m.bookkeeping.Reconciler,
+				Reconciler:          m.bookkeeping.ReconcilerQueries,
 			},
 		})
 	}
 	if cfg.GraphQLEnabled {
 		mux.Handle("POST /graphql", graphqltransport.NewHandler(graphqltransport.NewResolver(graphqltransport.Modules{
+			Access:      m.access,
 			Health:      health,
 			Ledgers:     m.ledgers,
 			Bookkeeping: m.bookkeeping,
 		})))
 	}
-	return restapi.Handler(mux, logger)
+	// Liveness and readiness are for orchestrators and load balancers: no credential.
+	opts := restapi.Options{Auth: auth, Public: []string{"/healthz", "/readyz"}}
+	if signIn != nil {
+		web.Register(mux, signIn.sessions, m.access.ViewerQueries, signIn.web)
+		opts.Public = append(opts.Public, web.Paths...)
+		opts.Sessions, opts.SessionCookie, opts.ConsoleOrigin = signIn.sessions, signIn.web.SessionCookie(), signIn.web.ConsoleOrigin
+	}
+	return restapi.Handler(mux, logger, opts)
 }
 
-// grpcServer builds the gRPC server with every module's services and server reflection.
-func grpcServer(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger) *grpcserver.Server {
+// grpcServer builds the gRPC server with every module's services and server reflection, with TLS
+// when a certificate is configured.
+func grpcServer(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger, auth *authn.Authenticator) (*grpcserver.Server, error) {
+	tlsConfig, err := tlsconfig.Server(cfg.GRPCTLSCertFile, cfg.GRPCTLSKeyFile)
+	if err != nil {
+		return nil, err
+	}
 	srv := grpcserver.New(grpcserver.Options{
-		Addr: cfg.GRPCAddr, ShutdownTimeout: cfg.ShutdownTimeout, Logger: logger, Reflection: true,
+		Addr: cfg.GRPCAddr, ShutdownTimeout: cfg.ShutdownTimeout, Logger: logger, Reflection: true, Auth: auth, TLS: tlsConfig,
 	})
 	grpctransport.RegisterAll(srv, grpctransport.Modules{Health: health, Ledgers: m.ledgers, Bookkeeping: m.bookkeeping})
-	return srv
+	return srv, nil
 }
 
 // brokerServers builds what talks to a broker: the AMQP and NATS RPC servers on one router and
@@ -96,15 +120,20 @@ func grpcServer(health healthdto.Source, m modules, cfg config.Config, logger *s
 // probes are optional: a broker outage degrades the service without making it unready (plan
 // section 13.2). RabbitMQ is one dependency, reported once, even when both AMQP RPC and the relay
 // connect to it.
-func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger) error {
+func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger, auth *authn.Authenticator) error {
 	var rabbit []readiness.Probe
 	defer func() {
 		if len(rabbit) > 0 {
 			r.readiness.Optional(healthdto.ProbeRabbitMQ, allOf(rabbit))
 		}
 	}()
+	// An amqps:// URL turns TLS on; the CA file only replaces the system's CAs.
+	amqpTLS, err := tlsconfig.ClientWhen(false, cfg.AMQPTLSCAFile)
+	if err != nil {
+		return err
+	}
 	if cfg.KafkaEventsEnabled {
-		probe, err := a.kafkaRelay(r, m, cfg, logger)
+		probe, err := a.kafkaRelay(r, m, cfg, logger, amqpTLS)
 		if err != nil {
 			return err
 		}
@@ -114,18 +143,22 @@ func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg
 		return nil
 	}
 	router := rpctransport.Router(rpctransport.Modules{Health: health, Ledgers: m.ledgers, Bookkeeping: m.bookkeeping})
-	dispatcher := rpc.NewDispatcher(router, cfg.RPCTimeoutMax, logger)
+	dispatcher := rpc.NewDispatcher(router, cfg.RPCTimeoutMax, logger, auth, "v1.getLiveness", "v1.getReadiness")
 	if cfg.AMQPRPCEnabled {
 		a.amqp = amqprpc.New(amqprpc.Options{
 			URL: cfg.AMQPURL, Queue: cfg.AMQPRPCQueue, Concurrency: cfg.RPCConcurrency,
-			ShutdownTimeout: cfg.ShutdownTimeout, Dispatcher: dispatcher, Logger: logger,
+			ShutdownTimeout: cfg.ShutdownTimeout, Dispatcher: dispatcher, Logger: logger, TLS: amqpTLS,
 		})
 		rabbit = append(rabbit, a.amqp.Ready)
 	}
 	if cfg.NATSRPCEnabled {
+		natsTLS, err := tlsconfig.ClientWhen(false, cfg.NATSTLSCAFile)
+		if err != nil {
+			return err
+		}
 		srv, err := natsrpc.New(natsrpc.Options{
 			URL: cfg.NATSURL, QueueGroup: cfg.NATSRPCQueueGroup, Concurrency: cfg.RPCConcurrency,
-			ShutdownTimeout: cfg.ShutdownTimeout, Router: router, Dispatcher: dispatcher, Logger: logger,
+			ShutdownTimeout: cfg.ShutdownTimeout, Router: router, Dispatcher: dispatcher, Logger: logger, TLS: natsTLS,
 		})
 		if err != nil {
 			return err
@@ -139,15 +172,21 @@ func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg
 
 // kafkaRelay builds the ledger event relay (ADR-0022): the Kafka producer, the publisher, the
 // relay use case and the CDC consumer. It registers the Kafka probe and returns the RabbitMQ one.
-func (a *App) kafkaRelay(r resources, m modules, cfg config.Config, logger *slog.Logger) (readiness.Probe, error) {
-	producer, err := kafka.New(cfg.KafkaBrokers, "tbp-api", 30*time.Second)
+func (a *App) kafkaRelay(r resources, m modules, cfg config.Config, logger *slog.Logger, amqpTLS *tls.Config) (readiness.Probe, error) {
+	kafkaTLS, err := tlsconfig.ClientWhen(cfg.KafkaTLS, cfg.KafkaTLSCAFile)
+	if err != nil {
+		return nil, err
+	}
+	producer, err := kafka.New(cfg.KafkaBrokers, "tbp-api", 30*time.Second, kafka.Security{
+		TLS: kafkaTLS, SASLMechanism: cfg.KafkaSASLMechanism, Username: cfg.KafkaSASLUsername, Password: cfg.KafkaSASLPassword,
+	})
 	if err != nil {
 		return nil, err
 	}
 	a.closers = append(a.closers, producer.Close)
 	r.readiness.Optional(healthdto.ProbeKafka, producer.Ping)
 	relay := bookkeepingapp.NewLedgerEventRelay(m.bookkeepingAccounts, bookkeepingkafka.NewEventPublisher(producer, cfg.KafkaEventsTopic))
-	a.relay = cdc.NewConsumer(cdc.Options{URL: cfg.CDCAMQPURL, Queue: cfg.CDCQueue, Relay: relay, Logger: logger})
+	a.relay = cdc.NewConsumer(cdc.Options{URL: cfg.CDCAMQPURL, Queue: cfg.CDCQueue, Relay: relay, Logger: logger, TLS: amqpTLS})
 	return a.relay.Ready, nil
 }
 

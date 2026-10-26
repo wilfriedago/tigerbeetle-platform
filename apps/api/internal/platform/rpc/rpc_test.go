@@ -15,6 +15,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 )
 
@@ -57,7 +59,7 @@ func newDispatcher(t *testing.T, ran *atomic.Int32) *Dispatcher {
 		ran.Add(1)
 		panic("secret panic text")
 	})
-	d := NewDispatcher(r, 30*time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	d := NewDispatcher(r, 30*time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)), authntest.Default())
 	d.now = func() time.Time { return time.UnixMilli(1_000_000) }
 	return d
 }
@@ -95,7 +97,7 @@ func TestDispatcher(t *testing.T) {
 			call:    Call{Method: "v1.echo", RequestID: "client-1", Deadline: "999999"},
 			wantRan: 0,
 			want: Reply{Error: &Error{
-				Code: "UNAVAILABLE", Reason: "deadline-exceeded", Type: "/problems/deadline-exceeded", Title: "Deadline exceeded",
+				Code: "UNAVAILABLE", Reason: "deadline-exceeded", Type: problem.TypeOf("deadline-exceeded"), Title: "Deadline exceeded",
 				Status: 503, Detail: "the deadline passed before the request ran; it was not executed", RequestID: "client-1",
 			}},
 		},
@@ -103,7 +105,7 @@ func TestDispatcher(t *testing.T) {
 			name: "unknown method",
 			call: Call{Method: "v1.nope", RequestID: "client-1"},
 			want: Reply{Error: &Error{
-				Code: "NOT_FOUND", Reason: "unknown-method", Type: "/problems/unknown-method", Title: "Unknown method",
+				Code: "NOT_FOUND", Reason: "unknown-method", Type: problem.TypeOf("unknown-method"), Title: "Unknown method",
 				Status: 404, Detail: `no method "v1.nope"`, RequestID: "client-1",
 			}},
 		},
@@ -111,7 +113,7 @@ func TestDispatcher(t *testing.T) {
 			name: "malformed envelope",
 			call: Call{Method: "v1.echo", Payload: []byte(`{"params":`), RequestID: "client-1"},
 			want: Reply{Error: &Error{
-				Code: "INVALID", Reason: "invalid-request", Type: "/problems/invalid-request", Title: "Invalid request",
+				Code: "INVALID", Reason: "invalid-request", Type: problem.TypeOf("invalid-request"), Title: "Invalid request",
 				Status: 400, Detail: "the message is not an RPC envelope: unexpected EOF", RequestID: "client-1",
 			}},
 		},
@@ -120,7 +122,7 @@ func TestDispatcher(t *testing.T) {
 			call:    Call{Method: "v1.echo", Payload: []byte(`{"params":{"ledgr":"eu"}}`), RequestID: "client-1"},
 			wantRan: 1,
 			want: Reply{Error: &Error{
-				Code: "INVALID", Reason: "invalid-request", Type: "/problems/invalid-request", Title: "Invalid request",
+				Code: "INVALID", Reason: "invalid-request", Type: problem.TypeOf("invalid-request"), Title: "Invalid request",
 				Status: 400, Detail: `params: json: unknown field "ledgr"`, RequestID: "client-1",
 			}},
 		},
@@ -129,7 +131,7 @@ func TestDispatcher(t *testing.T) {
 			call:    Call{Method: "v1.fail", RequestID: "client-1"},
 			wantRan: 1,
 			want: Reply{Error: &Error{
-				Code: "REJECTED", Reason: "exceeds-credits", Type: "/problems/exceeds-credits", Title: "Declined: exceeds credits",
+				Code: "REJECTED", Reason: "exceeds-credits", Type: problem.TypeOf("exceeds-credits"), Title: "Declined: exceeds credits",
 				Status: 422, Detail: "no money", RequestID: "client-1", Posting: &posting, Results: []string{"linked_event_failed", "exceeds_credits"},
 			}},
 		},
@@ -138,7 +140,7 @@ func TestDispatcher(t *testing.T) {
 			call:    Call{Method: "v1.leak", RequestID: "client-1"},
 			wantRan: 1,
 			want: Reply{Error: &Error{
-				Code: "UNAVAILABLE", Reason: "dependency-unavailable", Type: "/problems/dependency-unavailable",
+				Code: "UNAVAILABLE", Reason: "dependency-unavailable", Type: problem.TypeOf("dependency-unavailable"),
 				Title: "Dependency unavailable", Status: 503, RequestID: "client-1",
 			}},
 		},
@@ -146,7 +148,7 @@ func TestDispatcher(t *testing.T) {
 			name:    "a panic is internal, without its text",
 			call:    Call{Method: "v1.panic", RequestID: "client-1"},
 			wantRan: 1,
-			want:    Reply{Error: &Error{Code: "INTERNAL", Type: "about:blank", Title: "Internal server error", Status: 500, RequestID: "client-1"}},
+			want:    Reply{Error: &Error{Code: "INTERNAL", Type: "about:blank", Title: "Internal Server Error", Status: 500, RequestID: "client-1"}},
 		},
 	}
 	for _, tt := range tests {
@@ -192,7 +194,7 @@ func TestDecodeReply(t *testing.T) {
 	if err := DecodeReply([]byte(`{"ok":true,"data":{"Name":"eu"}}`), &data); err != nil || data.Name != "eu" {
 		t.Fatalf("data %+v, err %v", data, err)
 	}
-	err := DecodeReply([]byte(`{"ok":false,"error":{"code":"NOT_FOUND","type":"/problems/not-found","title":"Not found","status":404}}`), &data)
+	err := DecodeReply([]byte(`{"ok":false,"error":{"code":"NOT_FOUND","type":"https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#not-found","title":"Not found","status":404}}`), &data)
 	var rpcErr *Error
 	if !errors.As(err, &rpcErr) || rpcErr.Code != "NOT_FOUND" {
 		t.Fatalf("err = %v", err)

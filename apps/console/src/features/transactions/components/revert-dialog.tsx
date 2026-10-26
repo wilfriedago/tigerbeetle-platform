@@ -14,6 +14,7 @@ import { Dialog, DialogBody, DialogClose, DialogContent, DialogDescription, Dial
 
 import { keyIsSpent, useIdempotencyKey } from '~/lib/idempotency'
 import { shortId } from '~/lib/ids'
+import { useOrganization } from '~/lib/organization'
 
 import { useRevertTransaction } from '../api'
 
@@ -38,6 +39,7 @@ export function RevertDialog({ ledger, transaction, open, onOpenChange }: Revert
 }
 
 function RevertForm({ ledger, transaction, onDone }: { ledger: string; transaction: Transaction; onDone: () => void }) {
+  const org = useOrganization()
   const navigate = useNavigate()
   const revert = useRevertTransaction(ledger, transaction.id)
   const idempotency = useIdempotencyKey()
@@ -51,7 +53,7 @@ function RevertForm({ ledger, transaction, onDone }: { ledger: string; transacti
         const created = await revert.mutateAsync({ body, idempotencyKey: idempotency.keyFor(body) })
         toast.success(`Reverted ${shortId(transaction.id)}`, { description: `New transaction ${shortId(created.id)}` })
         onDone()
-        await navigate({ params: { ledger, txId: created.id }, to: '/ledgers/$ledger/transactions/$txId' })
+        await navigate({ params: { ledger, org, txId: created.id }, to: '/$org/ledgers/$ledger/transactions/$txId' })
       } catch (error_) {
         setError(error_)
         if (keyIsSpent(error_)) {

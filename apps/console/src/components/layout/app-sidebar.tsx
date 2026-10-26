@@ -1,10 +1,13 @@
-import { Link, type LinkComponentProps } from '@tanstack/react-router'
+import { Link, type LinkComponentProps, useLocation } from '@tanstack/react-router'
 
 import {
   ActivityIcon,
   ArrowLeftRightIcon,
+  BotIcon,
+  BuildingIcon,
   CoinsIcon,
   InboxIcon,
+  KeyRoundIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
   LockIcon,
@@ -12,9 +15,14 @@ import {
   SettingsIcon,
   SlidersHorizontalIcon,
   TagIcon,
+  UserCheckIcon,
+  UsersIcon,
   WalletIcon
 } from 'lucide-react'
 
+import { canManageMembers } from '~/lib/auth/session'
+import { useSession } from '~/lib/auth/use-session'
+import { useOrganization } from '~/lib/organization'
 import { cn } from '~/lib/utils'
 
 // 13 Navigation, Sidebar: 240 px on the sidebar surface, ledger switcher on top, navigation scoped
@@ -51,6 +59,9 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ ledger, switcher, versions, className, onNavigate }: AppSidebarProps) {
+  const org = useOrganization()
+  const session = useSession()
+  const staffPage = useLocation({ select: (l) => l.pathname.startsWith('/staff') })
   return (
     <nav
       aria-label="Console"
@@ -61,31 +72,61 @@ export function AppSidebar({ ledger, switcher, versions, className, onNavigate }
       <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto pt-3">
         {ledger ? (
           <>
-            <NavItem icon={LayoutDashboardIcon} label="Overview" to="/ledgers/$ledger" params={{ ledger }} activeOptions={{ exact: true }} />
+            <NavItem
+              icon={LayoutDashboardIcon}
+              label="Overview"
+              to="/$org/ledgers/$ledger"
+              params={{ ledger, org }}
+              activeOptions={{ exact: true }}
+            />
             <NavSection label="Activity">
-              <NavItem icon={ArrowLeftRightIcon} label="Transactions" to="/ledgers/$ledger/transactions" params={{ ledger }} />
-              <NavItem icon={LockIcon} label="Holds" to="/ledgers/$ledger/holds" params={{ ledger }} />
+              <NavItem icon={ArrowLeftRightIcon} label="Transactions" to="/$org/ledgers/$ledger/transactions" params={{ ledger, org }} />
+              <NavItem icon={LockIcon} label="Holds" to="/$org/ledgers/$ledger/holds" params={{ ledger, org }} />
             </NavSection>
             <NavSection label="Money">
-              <NavItem icon={WalletIcon} label="Accounts" to="/ledgers/$ledger/accounts" params={{ ledger }} />
-              <NavItem icon={ScaleIcon} label="Balances" to="/ledgers/$ledger/balances" params={{ ledger }} />
-              <NavItem icon={CoinsIcon} label="Assets" to="/ledgers/$ledger/assets" params={{ ledger }} />
+              <NavItem icon={WalletIcon} label="Accounts" to="/$org/ledgers/$ledger/accounts" params={{ ledger, org }} />
+              <NavItem icon={ScaleIcon} label="Balances" to="/$org/ledgers/$ledger/balances" params={{ ledger, org }} />
+              <NavItem icon={CoinsIcon} label="Assets" to="/$org/ledgers/$ledger/assets" params={{ ledger, org }} />
             </NavSection>
             <NavSection label="Operations">
-              <NavItem icon={InboxIcon} label="Requests" to="/ledgers/$ledger/requests" params={{ ledger }} />
+              <NavItem icon={InboxIcon} label="Requests" to="/$org/ledgers/$ledger/requests" params={{ ledger, org }} />
             </NavSection>
             <NavSection label="Settings">
-              <NavItem icon={SettingsIcon} label="Ledger" to="/ledgers/$ledger/settings" params={{ ledger }} activeOptions={{ exact: true }} />
-              <NavItem icon={ListChecksIcon} label="Account rules" to="/ledgers/$ledger/settings/rules" params={{ ledger }} />
-              <NavItem icon={TagIcon} label="Event types" to="/ledgers/$ledger/settings/event-types" params={{ ledger }} />
+              <NavItem
+                icon={SettingsIcon}
+                label="Ledger"
+                to="/$org/ledgers/$ledger/settings"
+                params={{ ledger, org }}
+                activeOptions={{ exact: true }}
+              />
+              <NavItem icon={ListChecksIcon} label="Account rules" to="/$org/ledgers/$ledger/settings/rules" params={{ ledger, org }} />
+              <NavItem icon={TagIcon} label="Event types" to="/$org/ledgers/$ledger/settings/event-types" params={{ ledger, org }} />
+              <NavItem icon={UserCheckIcon} label="Access" to="/$org/ledgers/$ledger/settings/access" params={{ ledger, org }} />
             </NavSection>
           </>
-        ) : (
+        ) : staffPage ? null : (
           <p className="px-2.5 pt-2 text-small text-muted-foreground">Pick or create a ledger to see its accounts and transactions.</p>
         )}
+        {org && !staffPage ? (
+          <NavSection label="Organization">
+            <NavItem icon={UsersIcon} label="Members" to="/$org/members" params={{ org }} />
+            {canManageMembers(session) ? (
+              <>
+                <NavItem icon={KeyRoundIcon} label="API keys" to="/$org/api-keys" params={{ org }} />
+                <NavItem icon={BotIcon} label="Machine clients" to="/$org/machine-clients" params={{ org }} />
+              </>
+            ) : null}
+            <NavItem icon={SettingsIcon} label="Settings" to="/$org/settings" params={{ org }} />
+          </NavSection>
+        ) : null}
+        {session?.staff ? (
+          <NavSection label="Platform staff">
+            <NavItem icon={BuildingIcon} label="Organizations" to="/staff/organizations" />
+          </NavSection>
+        ) : null}
       </div>
       <div className="flex flex-col gap-0.5 border-t border-sidebar-border pt-2">
-        <NavItem icon={ActivityIcon} label="System" to="/system" />
+        {org && !staffPage ? <NavItem icon={ActivityIcon} label="System" to="/$org/system" params={{ org }} /> : null}
         <NavItem icon={SlidersHorizontalIcon} label="Preferences" to="/preferences" />
         {versions ? <div className="flex gap-3 px-0 pt-1 font-mono text-[11px] text-subtle-foreground">{versions}</div> : null}
       </div>

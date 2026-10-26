@@ -1,0 +1,19 @@
+$kind: http-request
+name: Capture Hold
+order: 4000
+method: POST
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/holds/{{holdId}}/capture'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+  - key: id
+    value: '{{holdId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": "10000"
+    }

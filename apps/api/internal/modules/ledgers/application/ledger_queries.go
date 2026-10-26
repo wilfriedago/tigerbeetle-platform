@@ -11,6 +11,9 @@ import (
 type ledgerQueries struct {
 	ledgers    domain.LedgerRepository
 	footprints Footprints
+	// visible says which ledgers the caller may see; List filters in the query, so the cursor
+	// stays correct.
+	visible Authorizer
 }
 
 func (u *ledgerQueries) Get(ctx context.Context, name string) (LedgerView, error) {
@@ -29,12 +32,16 @@ func (u *ledgerQueries) Get(ctx context.Context, name string) (LedgerView, error
 }
 
 func (u *ledgerQueries) List(ctx context.Context, cursor string, limit int) ([]LedgerView, string, error) {
+	all, names, err := u.visible.VisibleLedgers(ctx)
+	if err != nil {
+		return nil, "", err
+	}
 	after, err := ledger.DecodeCursor(cursor)
 	if err != nil {
 		return nil, "", err
 	}
 	limit = ledger.PageSize(limit)
-	rows, err := u.ledgers.ListLedgers(ctx, after, limit+1)
+	rows, err := u.ledgers.ListLedgers(ctx, all, names, after, limit+1)
 	if err != nil {
 		return nil, "", fmt.Errorf("list ledgers: %w", err)
 	}

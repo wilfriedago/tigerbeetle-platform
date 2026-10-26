@@ -5,14 +5,17 @@ import { defineConfig, defineTransformer } from 'orval'
 
 const methods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'] as const
 
-// The fetch layer sends X-Request-Id on every call, so the generated functions do not take it as
-// an argument; the Idempotency-Key of the five money writes stays a typed, required header.
-const withoutRequestIdHeader = defineTransformer((spec) => {
+// The fetch layer sends X-Request-Id and X-Organization on every call (the organization from the
+// client's configuration, ADR-0027), so the generated functions do not take them as arguments;
+// the Idempotency-Key of the five money writes stays a typed, required header.
+const fetchLayerHeaders = new Set(['X-Request-Id', 'X-Organization'])
+
+const withoutFetchLayerHeaders = defineTransformer((spec) => {
   for (const item of Object.values(spec.paths ?? {})) {
     for (const method of methods) {
       const operation = item?.[method]
       if (operation?.parameters) {
-        operation.parameters = operation.parameters.filter((p) => !('name' in p) || p.name !== 'X-Request-Id')
+        operation.parameters = operation.parameters.filter((p) => !('name' in p) || !fetchLayerHeaders.has(p.name))
       }
     }
   }
@@ -23,7 +26,7 @@ export default defineConfig({
   api: {
     input: {
       target: '../openapi/openapi.yaml',
-      override: { transformer: withoutRequestIdHeader }
+      override: { transformer: withoutFetchLayerHeaders }
     },
     output: {
       mode: 'tags-split',

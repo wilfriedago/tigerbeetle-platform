@@ -11,6 +11,11 @@ the REST client from the spec, and a root justfile runs everything. The plan in
 `docs/plans/ddd-transports/plan.md` describes how it got there, in seven phases, and ADR-0015 to
 ADR-0024 record the decisions.
 
+Authentication, authorization and multi-tenancy are in progress on the plan in
+`docs/plans/auth/plan.md` (ADR-0026 to ADR-0032): Keycloak for identity and organizations,
+platform grants per organization and ledger, a backend-for-frontend for the console, API keys and
+OAuth machine clients. Until its phases land, the sections below describe the code as it is.
+
 ## Overview
 
 The platform makes TigerBeetle easier to work with: it adds the naming, context and tooling that
@@ -78,8 +83,9 @@ gRPC (ADR-0021) has a hand-written contract in `packages/proto`: one package,
 module's `interfaces/grpc/v1` implements its services over the same use cases and `dto` types,
 and `internal/transport/grpc` registers them all, joining the two services that span modules
 (LedgerService and OperationsService). `internal/platform/grpcserver` runs the server behind
-`GRPC_ENABLED` (off by default, development only until authentication is decided) with request
-ID, access log, error and recovery interceptors, `grpc.health.v1` and reflection. Errors carry
+`GRPC_ENABLED` (off by default; TLS with `GRPC_TLS_CERT_FILE` and `GRPC_TLS_KEY_FILE`, else
+plaintext behind a proxy that terminates TLS) with request ID, authentication, access log, error
+and recovery interceptors, `grpc.health.v1` and reflection. Errors carry
 the standard `google.rpc` details: `ErrorInfo` with an AIP-193 reason derived from the problem
 type, `RetryInfo` when a retry later makes sense, `BadRequest` when an input error names a field.
 
@@ -95,7 +101,10 @@ replies go to `reply_to` with the correlation ID, and the ack follows the reply;
 `internal/platform/amqp` redials a dropped connection, because amqp091-go does not. Over NATS a
 `micro` service in the queue group `tbp-api` serves `tbp.rpc.v1.<operationId>`. Either way each
 request runs once across replicas, and a client retries a write with the same key. Both are off
-by default (`AMQP_RPC_ENABLED`, `NATS_RPC_ENABLED`) and turned on by `just compose-up-brokers`.
+by default (`AMQP_RPC_ENABLED`, `NATS_RPC_ENABLED`), turned on by `just compose-up-brokers`, and
+serve the platform's own services, which authenticate like any caller (ADR-0032). `amqps://` and
+`tls://` URLs, or a CA file (`AMQP_TLS_CA_FILE`, `NATS_TLS_CA_FILE`), turn TLS on; the compose
+stack gives each caller its own broker user (`deploy/compose/rabbitmq.conf`, `nats.conf`).
 
 Ledger events leave through Kafka (ADR-0022), outbound only. TigerBeetle's own change data
 capture, the `amqp` subcommand of the server image, publishes every committed transfer to the
@@ -104,7 +113,10 @@ RabbitMQ exchange `tbp.cdc`; the relay in the bookkeeping module (`interfaces/cd
 `tbp.ledger-events.relay` in order, adds the ledger, asset and addresses Postgres holds, and
 writes one record per transfer to `tbp.ledger-events.v1`, acknowledging RabbitMQ only once Kafka
 has the record. The source is TigerBeetle's committed state, so there is no dual-write gap: a
-crash delays an event, it cannot lose it. `docs/ledger-events.md` is the record format.
+crash delays an event, it cannot lose it. `docs/ledger-events.md` is the record format. The
+producer takes TLS (`KAFKA_TLS`, `KAFKA_TLS_CA_FILE`) and SASL PLAIN or SCRAM
+(`KAFKA_SASL_MECHANISM`); the compose Kafka requires SASL PLAIN. The topic is internal to the
+platform (ADR-0032).
 
 ## Code layout of apps/api
 
@@ -256,13 +268,17 @@ Cursor pagination orders by the stored big-endian ID, which is time order.
 
 - `GET /healthz` is liveness only: a liveness failure restarts the process, which does not help
   when a dependency is down. `GET /readyz` probes Postgres and TigerBeetle concurrently with a
-  2 second timeout each (`READINESS_TIMEOUT`) and answers 503 when either is down. With a broker
+  2 second timeout each (`READINESS_TIMEOUT`) and answers a 503 `not-ready` problem, with
+  `dependencies` as an extension member, when either is down. With a broker
   transport enabled it probes that broker too, but a broker outage only makes the status
   `degraded`, still 200: readiness gates HTTP traffic, which no broker carries. `GET /v1/_info`
   always answers 200 with the dependency state as payload. The runtime image has no shell, so
   `/app/api -probe http://127.0.0.1:8080/readyz` is the container healthcheck.
-- Every error path answers `application/problem+json`, including unknown routes, binding errors
-  and recovered panics. Domain problems carry stable `type` URIs under `/problems/`.
+- Every error path answers `application/problem+json` (RFC 9457, ADR-0025), including unknown
+  routes, binding errors, oversized bodies, a body on `/graphql` that is no GraphQL request, and
+  recovered panics. Domain problems carry an absolute `type`, the same in every deployment: the
+  URL of their entry in [docs/problems.md](problems.md), which `cmd/problemdocs` generates.
+  Problems the status describes on its own are `about:blank` with the status phrase as title.
 - `X-Request-Id` is kept when the client sends a short printable one, generated otherwise, echoed
   in the response and the problem body, and attached to every JSON log line of that request.
 - The TigerBeetle Go client is a cgo binding around a static C library that links `libdl` and
@@ -320,6 +336,17 @@ Cursor pagination orders by the stored big-endian ID, which is time order.
   TigerBeetle CDC.
 - `docs/adr/0023-console-on-graphql.md`: the console on GraphQL.
 - `docs/adr/0024-transport-neutral-write-protocol.md`: the write protocol on every transport.
+- `docs/adr/0026-identity-from-keycloak-through-openid-connect.md`: Keycloak behind standard
+  OpenID Connect.
+- `docs/adr/0027-organizations-as-tenants.md`: organizations in Keycloak, ledgers per
+  organization.
+- `docs/adr/0028-authorization-through-platform-grants.md`: roles, grants and the use-case
+  wrappers.
+- `docs/adr/0029-machine-access-api-keys-and-oauth-clients.md`: API keys and machine clients.
+- `docs/adr/0030-console-sessions-through-a-backend-for-frontend.md`: console sign-in.
+- `docs/adr/0031-idempotency-keys-belong-to-their-principal.md`: replay only for the same caller.
+- `docs/adr/0032-authenticated-transports-and-strict-request-bodies.md`: credentials on every
+  transport, 415 for non-JSON bodies, internal events.
 
 An ADR whose status reads `Accepted, amended by ...` is partly replaced; the amending ADRs say
 which parts (ADR-0015). ADR-0008 is superseded by ADR-0018 and ADR-0019.

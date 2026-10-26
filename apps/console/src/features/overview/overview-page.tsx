@@ -25,22 +25,24 @@ import { PostingsSummary } from '~/features/transactions/components/postings-sum
 
 import { shortId } from '~/lib/ids'
 import { assetCode } from '~/lib/money'
+import { activeOrganization, useOrganization } from '~/lib/organization'
 import { formatDate, formatRelative } from '~/lib/time'
 
 // docs/console.md, Overview: money issued per asset, accounts, open holds and declined writes,
 // the latest transactions, and what needs attention soon.
 
-const route = getRouteApi('/_console/ledgers/$ledger/')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/')
 
 const column = columnHelper<Transaction>()
 
 function recentColumns(ledger: string) {
+  const org = activeOrganization() ?? ''
   return [
     column.accessor('id', {
       cell: (info) => (
         <Link
-          to="/ledgers/$ledger/transactions/$txId"
-          params={{ ledger, txId: info.getValue() }}
+          to="/$org/ledgers/$ledger/transactions/$txId"
+          params={{ ledger, org, txId: info.getValue() }}
           className="font-mono outline-none hover:underline focus-visible:ring-3 focus-visible:ring-focus-ring"
         >
           {shortId(info.getValue())}
@@ -105,6 +107,7 @@ function expiringSoon(holds: readonly Hold[]): Hold[] {
 }
 
 export function OverviewPage() {
+  const org = useOrganization()
   const { ledger } = route.useParams()
   const navigate = route.useNavigate()
   const summary = useQuery(ledgerQueries.detail(ledger))
@@ -127,11 +130,11 @@ export function OverviewPage() {
         description={<MetadataTags metadata={summary.data?.metadata} />}
         actions={
           <>
-            <Button variant="secondary" render={<Link to="/ledgers/$ledger/holds/new" params={{ ledger }} />}>
+            <Button variant="secondary" render={<Link to="/$org/ledgers/$ledger/holds/new" params={{ ledger, org }} />}>
               <LockIcon />
               New hold
             </Button>
-            <Button render={<Link to="/ledgers/$ledger/transactions/new" params={{ ledger }} />}>
+            <Button render={<Link to="/$org/ledgers/$ledger/transactions/new" params={{ ledger, org }} />}>
               <PlusIcon />
               New transaction
             </Button>
@@ -165,7 +168,7 @@ export function OverviewPage() {
             <CardTitle>Recent transactions</CardTitle>
             <CardDescription>Newest first, committed time from TigerBeetle</CardDescription>
             <CardAction>
-              <Button variant="link" size="sm" render={<Link to="/ledgers/$ledger/transactions" params={{ ledger }} />}>
+              <Button variant="link" size="sm" render={<Link to="/$org/ledgers/$ledger/transactions" params={{ ledger, org }} />}>
                 View all
               </Button>
             </CardAction>
@@ -182,13 +185,13 @@ export function OverviewPage() {
                 data={recent.data?.data}
                 getRowId={(tx) => tx.id}
                 loading={recent.isPending}
-                onRowClick={(tx) => void navigate({ params: { ledger, txId: tx.id }, to: '/ledgers/$ledger/transactions/$txId' })}
+                onRowClick={(tx) => void navigate({ params: { ledger, org, txId: tx.id }, to: '/$org/ledgers/$ledger/transactions/$txId' })}
                 empty={
                   <>
                     No transactions yet.{' '}
                     <Link
-                      to="/ledgers/$ledger/transactions/new"
-                      params={{ ledger }}
+                      to="/$org/ledgers/$ledger/transactions/new"
+                      params={{ ledger, org }}
                       search={{ source: 'world' }}
                       className="text-primary-text hover:underline"
                     >
@@ -208,7 +211,11 @@ export function OverviewPage() {
               <CardTitle>Declined writes, last 24 h</CardTitle>
               <CardDescription>Kept under their Idempotency-Key</CardDescription>
               <CardAction>
-                <Button variant="link" size="sm" render={<Link to="/ledgers/$ledger/requests" params={{ ledger }} search={{ status: 'declined' }} />}>
+                <Button
+                  variant="link"
+                  size="sm"
+                  render={<Link to="/$org/ledgers/$ledger/requests" params={{ ledger, org }} search={{ status: 'declined' }} />}
+                >
                   Requests
                 </Button>
               </CardAction>
@@ -240,7 +247,7 @@ export function OverviewPage() {
               <CardTitle>Holds expiring soon</CardTitle>
               <CardDescription>Released by the cluster at timeout</CardDescription>
               <CardAction>
-                <Button variant="link" size="sm" render={<Link to="/ledgers/$ledger/holds" params={{ ledger }} />}>
+                <Button variant="link" size="sm" render={<Link to="/$org/ledgers/$ledger/holds" params={{ ledger, org }} />}>
                   Holds
                 </Button>
               </CardAction>
@@ -250,8 +257,8 @@ export function OverviewPage() {
                 {expiring.map((hold) => (
                   <li key={hold.id}>
                     <Link
-                      to="/ledgers/$ledger/holds/$holdId"
-                      params={{ holdId: hold.id, ledger }}
+                      to="/$org/ledgers/$ledger/holds/$holdId"
+                      params={{ holdId: hold.id, ledger, org }}
                       className="flex items-center gap-3 px-4 py-3 outline-none hover:bg-surface-hover focus-visible:ring-3 focus-visible:ring-focus-ring focus-visible:ring-inset"
                     >
                       <LockIcon aria-hidden="true" className="size-4 shrink-0 text-warning-fg" />
@@ -277,7 +284,7 @@ export function OverviewPage() {
             <CardHeader>
               <CardTitle>Assets in use</CardTitle>
               <CardAction>
-                <Button variant="link" size="sm" render={<Link to="/ledgers/$ledger/assets" params={{ ledger }} />}>
+                <Button variant="link" size="sm" render={<Link to="/$org/ledgers/$ledger/assets" params={{ ledger, org }} />}>
                   Assets
                 </Button>
               </CardAction>

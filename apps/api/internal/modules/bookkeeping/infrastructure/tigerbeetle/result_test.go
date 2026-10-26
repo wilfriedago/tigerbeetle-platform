@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	tb "github.com/tigerbeetle/tigerbeetle-go"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
@@ -66,12 +67,29 @@ func TestResultReasonsFollowAIP193(t *testing.T) {
 			continue
 		}
 		seen++
-		reason := problem.ErrorReasonOf(problem.TypeOf(domain.ResultReason(resultName(name, "Transfer"))))
+		reason := problem.ErrorReasonFor(domain.ResultReason(resultName(name, "Transfer")))
 		if !problem.ValidErrorReason(reason) {
 			t.Errorf("%s gives ErrorInfo reason %q, which breaks AIP-193", name, reason)
 		}
 	}
 	if seen < 50 {
 		t.Fatalf("walked %d named results, want the client's full list", seen)
+	}
+}
+
+// TestTransferResultsMatchTheClient keeps domain.TransferResults, which the problem catalogue
+// documents without linking the cgo client, equal to the results the client knows.
+func TestTransferResultsMatchTheClient(t *testing.T) {
+	t.Parallel()
+	var got []string
+	for code := range tb.CreateTransferStatus(256) {
+		name := code.String()
+		if strings.HasPrefix(name, "CreateTransferStatus(") {
+			continue
+		}
+		got = append(got, resultName(name, "Transfer"))
+	}
+	if diff := cmp.Diff(domain.TransferResults, got); diff != "" {
+		t.Fatalf("domain.TransferResults differs from the client (-listed +client):\n%s", diff)
 	}
 }

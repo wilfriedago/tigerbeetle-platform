@@ -6,6 +6,8 @@ import type { DependencyCheck } from './dependencyCheck';
 export interface Dependencies {
   /** Present when the Kafka ledger event relay is enabled. */
   kafka?: DependencyCheck;
+  /** The identity provider (ADR-0026). When it does not answer, tokens already issued still verify, but nobody can sign in. */
+  keycloak?: DependencyCheck;
   /** Present when NATS RPC is enabled. */
   nats?: DependencyCheck;
   postgres: DependencyCheck;

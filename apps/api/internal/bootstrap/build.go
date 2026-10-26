@@ -16,9 +16,11 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/cdc"
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/amqprpc"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/natsrpc"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/oidc"
 	platformpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/postgres"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
 	platformtb "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/tigerbeetle"
@@ -67,13 +69,27 @@ func Build(ctx context.Context, cfg config.Config, svc Service, logger *slog.Log
 	if err != nil {
 		return nil, err
 	}
-	m := buildModules(r, cfg, logger, o)
-	health := healthSource(r, cfg, svc)
-	a.handler = httpHandler(health, m, cfg, logger)
-	if cfg.GRPCEnabled {
-		a.grpc = grpcServer(health, m, cfg, logger)
+	m, err := buildModules(r, cfg, logger, o)
+	if err != nil {
+		return nil, err
 	}
-	if err := a.brokerServers(r, health, m, cfg, logger); err != nil {
+	auth, verifier, err := authenticator(ctx, cfg, m)
+	if err != nil {
+		return nil, err
+	}
+	r.readiness.Optional(healthdto.ProbeKeycloak, verifier.Ready)
+	signIn, err := consoleSignIn(cfg, verifier, m)
+	if err != nil {
+		return nil, err
+	}
+	health := healthSource(r, cfg, svc)
+	a.handler = httpHandler(health, m, cfg, logger, auth, signIn)
+	if cfg.GRPCEnabled {
+		if a.grpc, err = grpcServer(health, m, cfg, logger, auth); err != nil {
+			return nil, err
+		}
+	}
+	if err := a.brokerServers(r, health, m, cfg, logger, auth); err != nil {
 		return nil, err
 	}
 	a.reconciler = m.bookkeeping.Reconciler
@@ -112,6 +128,24 @@ func (a *App) open(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	checker.Require(healthdto.ProbePostgres, db.Ready)
 	checker.Require(healthdto.ProbeTigerBeetle, client.Ready)
 	return resources{db: db, tigerbeetle: client, readiness: checker}, nil
+}
+
+// authenticator reads the identity provider's discovery document and builds the authenticator
+// every transport shares (ADR-0026). Authentication is always on: without an issuer the API does
+// not start.
+func authenticator(ctx context.Context, cfg config.Config, m modules) (*authn.Authenticator, *oidc.Verifier, error) {
+	verifier, err := oidc.New(ctx, oidc.Config{
+		IssuerURL:         cfg.AuthIssuerURL,
+		DiscoveryURL:      cfg.AuthDiscoveryURL,
+		Audience:          cfg.AuthAudience,
+		StaffClaim:        cfg.AuthStaffClaim,
+		StaffValue:        cfg.AuthStaffValue,
+		OrganizationClaim: cfg.AuthOrganizationClaim,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return authn.New(verifier, m.access.OrganizationQueries, m.access.CredentialResolver), verifier, nil
 }
 
 // Handler is the HTTP handler of the API, for tests that serve it with httptest.

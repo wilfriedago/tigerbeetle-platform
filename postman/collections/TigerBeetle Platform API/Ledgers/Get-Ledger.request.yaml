@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Ledger
+order: 2000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+    description: The ledger name

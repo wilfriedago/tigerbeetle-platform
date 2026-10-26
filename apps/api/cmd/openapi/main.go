@@ -17,6 +17,7 @@ import (
 func main() {
 	out := flag.String("out", "", "file to write the spec to; standard output when empty")
 	flag.Parse()
+
 	if err := run(*out); err != nil {
 		fmt.Fprintln(os.Stderr, "openapi:", err)
 		os.Exit(1)
@@ -28,13 +29,16 @@ func run(out string) error {
 	if err != nil {
 		return err
 	}
+
 	if out == "" {
 		_, err = os.Stdout.Write(spec)
 		return err
 	}
+
 	if err := os.WriteFile(out, spec, 0o644); err != nil { //nolint:gosec // the spec is a public file
 		return fmt.Errorf("write %s: %w", out, err)
 	}
+
 	return nil
 }
 
@@ -43,5 +47,6 @@ func run(out string) error {
 func build() ([]byte, error) {
 	api := restapi.NewAPI(http.NewServeMux())
 	rest.RegisterAll(api, rest.Handlers{})
+
 	return restapi.Spec(api)
 }

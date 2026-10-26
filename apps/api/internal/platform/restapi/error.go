@@ -29,6 +29,22 @@ type Error struct {
 	Problem   problem.Problem
 	Instance  string
 	RequestID string
+	// Errors lists the parameters and body members Huma could not decode, one entry each: the
+	// errors extension of the RFC 9457 validation example.
+	Errors []InputError
+	// Extensions holds the extension members one operation adds, such as the dependencies of a
+	// 503 from /readyz. A name the Problem schema already uses is refused when the body is written.
+	Extensions map[string]any
+}
+
+// InputError is one entry of the errors member: what is wrong, and where. Pointer is a JSON
+// Pointer into the body in URI fragment form ("#/postings/0/amount", "#" for the whole body);
+// Parameter and In name a path, query or header parameter.
+type InputError struct {
+	Detail    string `json:"detail"`
+	Pointer   string `json:"pointer,omitempty"`
+	Parameter string `json:"parameter,omitempty"`
+	In        string `json:"in,omitempty"`
 }
 
 // Fail turns any error into a REST problem for the request in ctx and logs the cause: at error
@@ -39,7 +55,7 @@ func Fail(ctx context.Context, err error) *Error {
 	if errors.As(err, &re) {
 		return re
 	}
-	e := newError(ctx, problem.From(err))
+	e := NewError(ctx, problem.From(err))
 	logger := logging.From(ctx)
 	if e.Problem.Status >= http.StatusInternalServerError {
 		logger.ErrorContext(ctx, "request failed", slog.Int("status", e.Problem.Status), slog.Any("error", err))
@@ -49,8 +65,9 @@ func Fail(ctx context.Context, err error) *Error {
 	return e
 }
 
-// newError stamps a problem with the request ID and path of the request in ctx.
-func newError(ctx context.Context, p problem.Problem) *Error {
+// NewError stamps a problem with the request ID and path of the request in ctx. It logs nothing,
+// for an operation whose contract answers a problem, such as /readyz when a dependency is down.
+func NewError(ctx context.Context, p problem.Problem) *Error {
 	return &Error{Problem: p, Instance: pathFrom(ctx), RequestID: requestid.From(ctx)}
 }
 
@@ -76,6 +93,10 @@ func (e *Error) GetHeaders() http.Header {
 	if d := e.Problem.RetryAfter; d > 0 {
 		h.Set("Retry-After", strconv.Itoa(int((d+time.Second-1)/time.Second)))
 	}
+	if e.Problem.Status == http.StatusUnauthorized {
+		// The bearer challenge of RFC 6750, section 3.
+		h.Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+	}
 	return h
 }
 
@@ -92,28 +113,50 @@ func problemHeaders(ctx huma.Context, _ string, v any) (any, error) {
 
 // problemBody is the JSON form of a problem, with the members of the Problem schema.
 type problemBody struct {
-	Type      string   `json:"type"`
-	Title     string   `json:"title"`
-	Status    int      `json:"status"`
-	Detail    string   `json:"detail,omitempty"`
-	Instance  string   `json:"instance,omitempty"`
-	RequestID string   `json:"requestId,omitempty"`
-	Posting   *int     `json:"posting,omitempty"`
-	Results   []string `json:"results,omitempty"`
+	Type      string       `json:"type"`
+	Title     string       `json:"title"`
+	Status    int          `json:"status"`
+	Detail    string       `json:"detail,omitempty"`
+	Instance  string       `json:"instance,omitempty"`
+	RequestID string       `json:"requestId,omitempty"`
+	Posting   *int         `json:"posting,omitempty"`
+	Results   []string     `json:"results,omitempty"`
+	Errors    []InputError `json:"errors,omitempty"`
+}
+
+// reservedMembers are the names of problemBody, which an extension member may not reuse.
+var reservedMembers = map[string]bool{
+	"type": true, "title": true, "status": true, "detail": true, "instance": true,
+	"requestId": true, "posting": true, "results": true, "errors": true, "targetId": true,
 }
 
 // MarshalJSON writes the RFC 9457 body. Posting is a pointer because 0 is a valid index.
+// Extension members follow the standard ones in the same object.
 func (e *Error) MarshalJSON() ([]byte, error) {
 	p := e.Problem
 	body := problemBody{
 		Type: p.Type(), Title: p.Title, Status: p.Status, Detail: p.Detail,
-		Instance: e.Instance, RequestID: e.RequestID, Results: p.Results,
+		Instance: e.Instance, RequestID: e.RequestID, Results: p.Results, Errors: e.Errors,
 	}
 	if p.Posting >= 0 {
 		posting := p.Posting
 		body.Posting = &posting
 	}
-	return json.Marshal(body)
+	out, err := json.Marshal(body)
+	if err != nil || len(e.Extensions) == 0 {
+		return out, err
+	}
+	for name := range e.Extensions {
+		if reservedMembers[name] {
+			return nil, fmt.Errorf("problem extension %q reuses a member of the Problem schema", name)
+		}
+	}
+	ext, err := json.Marshal(e.Extensions)
+	if err != nil {
+		return nil, err
+	}
+	// Both are JSON objects: drop the closing brace of one and the opening brace of the other.
+	return append(append(out[:len(out)-1], ','), ext[1:]...), nil
 }
 
 // newHumaError and newHumaErrorWithContext replace Huma's error model, so the errors Huma raises
@@ -135,28 +178,70 @@ func newHumaErrorWithContext(hctx huma.Context, status int, msg string, errs ...
 func humaProblem(ctx context.Context, status int, msg string, errs []error) *Error {
 	if status >= http.StatusInternalServerError {
 		logging.From(ctx).ErrorContext(ctx, "request failed", slog.Int("status", status), slog.String("message", msg), slog.Any("errors", errs))
-		return newError(ctx, problem.Blank(http.StatusInternalServerError, "Internal server error"))
+		return NewError(ctx, problem.Blank(http.StatusInternalServerError))
 	}
-	p := problem.Problem{
-		Kind: problem.KindInvalid, Reason: "invalid-request", Title: problem.TitleFor("invalid-request"),
-		Status: http.StatusBadRequest, Detail: humaDetail(msg, errs), Posting: -1,
+	inputs := inputErrors(errs)
+	var p problem.Problem
+	switch status {
+	case http.StatusBadRequest, http.StatusUnprocessableEntity:
+		// What the client sent could not be decoded: the same answer as the domain's input errors.
+		p = problem.Problem{
+			Kind: problem.KindInvalid, Reason: "invalid-request", Title: problem.TitleFor("invalid-request"),
+			Status: http.StatusBadRequest, Detail: humaDetail(msg, inputs), Posting: -1,
+		}
+	default:
+		// Anything else Huma refuses, such as a body over the size limit (413), keeps its status.
+		p = problem.Blank(status)
+		p.Detail = msg
 	}
-	return newError(ctx, p)
+	e := NewError(ctx, p)
+	e.Errors = inputs
+	return e
 }
 
-// humaDetail joins Huma's error details as "location: message". They describe the client's own
-// input, so they are safe to return.
-func humaDetail(msg string, errs []error) string {
-	parts := make([]string, 0, len(errs))
+// inputErrors turns Huma's error details into entries of the errors member. Huma writes the
+// location as "query.limit", "path.name", "header.Idempotency-Key" or "body"; a body error
+// carries its own pointer (see decodeJSON). The messages describe the client's own input, so they
+// are safe to return.
+func inputErrors(errs []error) []InputError {
+	out := make([]InputError, 0, len(errs))
 	for _, err := range errs {
 		var d *huma.ErrorDetail
+		if !errors.As(err, &d) {
+			if err != nil {
+				out = append(out, InputError{Detail: err.Error()})
+			}
+			continue
+		}
+		in, name, _ := strings.Cut(d.Location, ".")
+		switch in {
+		case "body":
+			pointer, detail := splitBodyMessage(d.Message)
+			out = append(out, InputError{Detail: detail, Pointer: pointer})
+		case "path", "query", "header", "cookie":
+			out = append(out, InputError{Detail: d.Message, Parameter: name, In: in})
+		default:
+			out = append(out, InputError{Detail: d.Message})
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// humaDetail joins the input errors as "where: message"; without any, Huma's message is the
+// detail.
+func humaDetail(msg string, inputs []InputError) string {
+	parts := make([]string, 0, len(inputs))
+	for _, in := range inputs {
 		switch {
-		case errors.As(err, &d) && d.Location != "":
-			parts = append(parts, d.Location+": "+d.Message)
-		case errors.As(err, &d):
-			parts = append(parts, d.Message)
-		case err != nil:
-			parts = append(parts, err.Error())
+		case in.Pointer != "":
+			parts = append(parts, "body"+strings.TrimPrefix(in.Pointer, "#")+": "+in.Detail)
+		case in.Parameter != "":
+			parts = append(parts, in.In+"."+in.Parameter+": "+in.Detail)
+		default:
+			parts = append(parts, in.Detail)
 		}
 	}
 	if len(parts) == 0 {
@@ -179,13 +264,20 @@ func (*Error) Schema(r huma.Registry) *huma.Schema {
 			Properties: map[string]*huma.Schema{
 				"type": {
 					Type: huma.TypeString, Format: "uri-reference", Default: problem.TypeBlank,
-					Description: "A URI reference that identifies the problem type.",
+					Description: "An absolute URI that identifies the problem type: `about:blank`, or the entry of\n" +
+						"the problem in the catalogue, the same in every deployment, which clients switch on:\n" +
+						"`" + problem.TypeBase + "<reason>`.\n",
+					Examples: []any{problem.TypeOf("exceeds-credits")},
 				},
-				"title":  {Type: huma.TypeString, Description: "A short, human-readable summary of the problem type."},
+				"title": {
+					Type:        huma.TypeString,
+					Description: "A short summary of the problem type, the same for every occurrence. For `about:blank` it is the HTTP status phrase.",
+				},
 				"status": {Type: huma.TypeInteger, Minimum: &statusMin, Maximum: &statusMax, Description: "The HTTP status code."},
 				"detail": {Type: huma.TypeString, Description: "A human-readable explanation specific to this occurrence."},
 				"instance": {
-					Type: huma.TypeString, Description: "A URI reference that identifies the specific occurrence.",
+					Type: huma.TypeString, Format: "uri-reference",
+					Description: "The path of the request that failed, a URI reference relative to the API.",
 				},
 				"requestId": {Type: huma.TypeString, Description: "The request ID, also returned in the X-Request-Id header."},
 				"posting": {
@@ -196,11 +288,35 @@ func (*Error) Schema(r huma.Registry) *huma.Schema {
 					Description: "The TigerBeetle result of every posting of a declined chain, in order, such as\n" +
 						"`[\"linked_event_failed\", \"exceeds_credits\"]`. Nothing was applied.\n",
 				},
+				"errors": {
+					Type: huma.TypeArray, Items: inputErrorSchema(),
+					Description: "Each parameter or body member that could not be decoded, for an `invalid-request` problem.",
+				},
 				"targetId": targetID,
 			},
 		}
 	}
 	return &huma.Schema{Ref: "#/components/schemas/Problem"}
+}
+
+// inputErrorSchema describes one entry of the errors member.
+func inputErrorSchema() *huma.Schema {
+	return &huma.Schema{
+		Type:     huma.TypeObject,
+		Required: []string{"detail"},
+		Properties: map[string]*huma.Schema{
+			"detail": {Type: huma.TypeString, Description: "What is wrong with the value."},
+			"pointer": {
+				Type: huma.TypeString, Format: "uri-reference",
+				Description: "A JSON Pointer in URI fragment form to the body member at fault, such as `#/postings/0/amount`; `#` is the whole body.",
+			},
+			"parameter": {Type: huma.TypeString, Description: "The name of the parameter at fault."},
+			"in": {
+				Type: huma.TypeString, Enum: []any{"path", "query", "header", "cookie"},
+				Description: "Where the parameter is.",
+			},
+		},
+	}
 }
 
 // problemResponseRef is the shared error response every operation documents as its default.

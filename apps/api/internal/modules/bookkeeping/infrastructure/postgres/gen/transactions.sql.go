@@ -16,12 +16,13 @@ SELECT t.id, t.ledger, t.reference, t.event_type, t.code, t.business_time, t.met
     t.request_id, t.reverts, t.committed_at, t.tb_timestamp,
     (SELECT r.id FROM transactions r WHERE r.reverts = t.id) AS reverted_by
 FROM transactions t
-WHERE t.ledger = $1 AND t.id = $2
+WHERE t.organization_id = $3 AND t.ledger = $1 AND t.id = $2
 `
 
 type GetTransactionParams struct {
-	Ledger string
-	ID     pgtype.UUID
+	Ledger         string
+	ID             pgtype.UUID
+	OrganizationID pgtype.UUID
 }
 
 type GetTransactionRow struct {
@@ -41,7 +42,7 @@ type GetTransactionRow struct {
 }
 
 func (q *Queries) GetTransaction(ctx context.Context, arg GetTransactionParams) (GetTransactionRow, error) {
-	row := q.db.QueryRow(ctx, getTransaction, arg.Ledger, arg.ID)
+	row := q.db.QueryRow(ctx, getTransaction, arg.Ledger, arg.ID, arg.OrganizationID)
 	var i GetTransactionRow
 	err := row.Scan(
 		&i.ID,
@@ -92,8 +93,8 @@ func (q *Queries) InsertPostings(ctx context.Context, arg InsertPostingsParams) 
 }
 
 const insertTransaction = `-- name: InsertTransaction :exec
-INSERT INTO transactions (id, ledger, reference, event_type, code, business_time, metadata, idempotency_key, request_id, reverts, committed_at, tb_timestamp)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+INSERT INTO transactions (organization_id, id, ledger, reference, event_type, code, business_time, metadata, idempotency_key, request_id, reverts, committed_at, tb_timestamp)
+VALUES ($13, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 ON CONFLICT (id) DO NOTHING
 `
 
@@ -110,6 +111,7 @@ type InsertTransactionParams struct {
 	Reverts        pgtype.UUID
 	CommittedAt    pgtype.Timestamptz
 	TbTimestamp    int64
+	OrganizationID pgtype.UUID
 }
 
 func (q *Queries) InsertTransaction(ctx context.Context, arg InsertTransactionParams) error {
@@ -126,6 +128,7 @@ func (q *Queries) InsertTransaction(ctx context.Context, arg InsertTransactionPa
 		arg.Reverts,
 		arg.CommittedAt,
 		arg.TbTimestamp,
+		arg.OrganizationID,
 	)
 	return err
 }
@@ -135,32 +138,33 @@ SELECT t.id, t.ledger, t.reference, t.event_type, t.code, t.business_time, t.met
     t.request_id, t.reverts, t.committed_at, t.tb_timestamp,
     (SELECT r.id FROM transactions r WHERE r.reverts = t.id) AS reverted_by
 FROM transactions t
-WHERE t.ledger = $1
-    AND ($2::uuid IS NULL OR t.id < $2::uuid)
-    AND ($3::text IS NULL OR t.reference = $3::text)
-    AND ($4::text IS NULL OR t.event_type = $4::text)
-    AND ($5::timestamptz IS NULL OR t.committed_at >= $5::timestamptz)
-    AND ($6::timestamptz IS NULL OR t.committed_at < $6::timestamptz)
+WHERE t.organization_id = $1 AND t.ledger = $2
+    AND ($3::uuid IS NULL OR t.id < $3::uuid)
+    AND ($4::text IS NULL OR t.reference = $4::text)
+    AND ($5::text IS NULL OR t.event_type = $5::text)
+    AND ($6::timestamptz IS NULL OR t.committed_at >= $6::timestamptz)
+    AND ($7::timestamptz IS NULL OR t.committed_at < $7::timestamptz)
     AND (
-        ($7::text IS NULL AND $8::text IS NULL)
+        ($8::text IS NULL AND $9::text IS NULL)
         OR EXISTS (
             SELECT 1
             FROM transaction_postings p
             JOIN accounts a ON a.id IN (p.source_account, p.destination_account)
             WHERE p.transaction_id = t.id
-                AND ($8::text IS NULL OR a.asset = $8::text)
+                AND ($9::text IS NULL OR a.asset = $9::text)
                 AND (
-                    $7::text IS NULL
-                    OR a.address = $7::text
-                    OR (a.address >= $7::text || ':' AND a.address < $7::text || ';')
+                    $8::text IS NULL
+                    OR a.address = $8::text
+                    OR (a.address >= $8::text || ':' AND a.address < $8::text || ';')
                 )
         )
     )
 ORDER BY t.id DESC
-LIMIT $9
+LIMIT $10
 `
 
 type ListTransactionsParams struct {
+	OrganizationID  pgtype.UUID
 	Ledger          string
 	BeforeID        pgtype.UUID
 	Reference       *string
@@ -190,6 +194,7 @@ type ListTransactionsRow struct {
 
 func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsParams) ([]ListTransactionsRow, error) {
 	rows, err := q.db.Query(ctx, listTransactions,
+		arg.OrganizationID,
 		arg.Ledger,
 		arg.BeforeID,
 		arg.Reference,
@@ -235,17 +240,23 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 const replaceTransactionMetadata = `-- name: ReplaceTransactionMetadata :execrows
 UPDATE transactions
 SET metadata = $3
-WHERE ledger = $1 AND id = $2
+WHERE organization_id = $4 AND ledger = $1 AND id = $2
 `
 
 type ReplaceTransactionMetadataParams struct {
-	Ledger   string
-	ID       pgtype.UUID
-	Metadata []byte
+	Ledger         string
+	ID             pgtype.UUID
+	Metadata       []byte
+	OrganizationID pgtype.UUID
 }
 
 func (q *Queries) ReplaceTransactionMetadata(ctx context.Context, arg ReplaceTransactionMetadataParams) (int64, error) {
-	result, err := q.db.Exec(ctx, replaceTransactionMetadata, arg.Ledger, arg.ID, arg.Metadata)
+	result, err := q.db.Exec(ctx, replaceTransactionMetadata,
+		arg.Ledger,
+		arg.ID,
+		arg.Metadata,
+		arg.OrganizationID,
+	)
 	if err != nil {
 		return 0, err
 	}
@@ -257,17 +268,18 @@ SELECT t.id, t.ledger, t.reference, t.event_type, t.code, t.business_time, t.met
     t.request_id, t.reverts, t.committed_at, t.tb_timestamp,
     (SELECT r.id FROM transactions r WHERE r.reverts = t.id) AS reverted_by
 FROM transactions t
-WHERE t.ledger = $1
-    AND (t.id = $2::uuid OR (t.reference IS NOT NULL AND starts_with(t.reference, $3::text)))
+WHERE t.organization_id = $1 AND t.ledger = $2
+    AND (t.id = $3::uuid OR (t.reference IS NOT NULL AND starts_with(t.reference, $4::text)))
 ORDER BY t.id DESC
-LIMIT $4
+LIMIT $5
 `
 
 type SearchTransactionsParams struct {
-	Ledger  string
-	ID      pgtype.UUID
-	Text    string
-	MaxRows int32
+	OrganizationID pgtype.UUID
+	Ledger         string
+	ID             pgtype.UUID
+	Text           string
+	MaxRows        int32
 }
 
 type SearchTransactionsRow struct {
@@ -288,6 +300,7 @@ type SearchTransactionsRow struct {
 
 func (q *Queries) SearchTransactions(ctx context.Context, arg SearchTransactionsParams) ([]SearchTransactionsRow, error) {
 	rows, err := q.db.Query(ctx, searchTransactions,
+		arg.OrganizationID,
 		arg.Ledger,
 		arg.ID,
 		arg.Text,
@@ -326,7 +339,7 @@ func (q *Queries) SearchTransactions(ctx context.Context, arg SearchTransactions
 }
 
 const transactionPostings = `-- name: TransactionPostings :many
-SELECT p.transaction_id, p.position, p.transfer_id, s.id, s.ledger, s.address, s.asset, s.tb_ledger, s.code, s.balance_limit, s.history, s.rule_pattern, s.created_at, d.id, d.ledger, d.address, d.asset, d.tb_ledger, d.code, d.balance_limit, d.history, d.rule_pattern, d.created_at
+SELECT p.transaction_id, p.position, p.transfer_id, s.id, s.ledger, s.address, s.asset, s.tb_ledger, s.code, s.balance_limit, s.history, s.rule_pattern, s.created_at, s.organization_id, d.id, d.ledger, d.address, d.asset, d.tb_ledger, d.code, d.balance_limit, d.history, d.rule_pattern, d.created_at, d.organization_id
 FROM transaction_postings p
 JOIN accounts s ON s.id = p.source_account
 JOIN accounts d ON d.id = p.destination_account
@@ -342,6 +355,7 @@ type TransactionPostingsRow struct {
 	Account_2     Account
 }
 
+// tenant-free: by transaction IDs the caller read inside its organization.
 func (q *Queries) TransactionPostings(ctx context.Context, ids []pgtype.UUID) ([]TransactionPostingsRow, error) {
 	rows, err := q.db.Query(ctx, transactionPostings, ids)
 	if err != nil {
@@ -365,6 +379,7 @@ func (q *Queries) TransactionPostings(ctx context.Context, ids []pgtype.UUID) ([
 			&i.Account.History,
 			&i.Account.RulePattern,
 			&i.Account.CreatedAt,
+			&i.Account.OrganizationID,
 			&i.Account_2.ID,
 			&i.Account_2.Ledger,
 			&i.Account_2.Address,
@@ -375,6 +390,7 @@ func (q *Queries) TransactionPostings(ctx context.Context, ids []pgtype.UUID) ([
 			&i.Account_2.History,
 			&i.Account_2.RulePattern,
 			&i.Account_2.CreatedAt,
+			&i.Account_2.OrganizationID,
 		); err != nil {
 			return nil, err
 		}

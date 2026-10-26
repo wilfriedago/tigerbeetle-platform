@@ -25,6 +25,7 @@ const (
 	ProbeRabbitMQ    = "rabbitmq"
 	ProbeNATS        = "nats"
 	ProbeKafka       = "kafka"
+	ProbeKeycloak    = "keycloak"
 )
 
 // DatabaseInfo reports the Postgres server and schema versions for GET /v1/_info.
@@ -68,10 +69,12 @@ type Dependencies struct {
 	RabbitMQ    *DependencyCheck `json:"rabbitmq,omitempty" doc:"Present when AMQP RPC or the Kafka ledger event relay is enabled."`
 	NATS        *DependencyCheck `json:"nats,omitempty" doc:"Present when NATS RPC is enabled."`
 	Kafka       *DependencyCheck `json:"kafka,omitempty" doc:"Present when the Kafka ledger event relay is enabled."`
+	Keycloak    *DependencyCheck `json:"keycloak,omitempty" doc:"The identity provider (ADR-0026). When it does not answer, tokens already issued still verify, but nobody can sign in."`
 }
 
 // Readiness is the answer of GET /readyz. degraded means Postgres and TigerBeetle answer but a
-// broker does not: the service still serves HTTP, so the answer stays 200.
+// broker or the identity provider does not: the service still serves HTTP, so the answer stays
+// 200.
 type Readiness struct {
 	Status       string       `json:"status" enum:"ready,not_ready,degraded"`
 	Dependencies Dependencies `json:"dependencies"`
@@ -175,6 +178,10 @@ func dependenciesOf(report readiness.Report) Dependencies {
 	if kafka, ok := report.Result(ProbeKafka); ok {
 		check := checkOf(kafka)
 		out.Kafka = &check
+	}
+	if kc, ok := report.Result(ProbeKeycloak); ok {
+		check := checkOf(kc)
+		out.Keycloak = &check
 	}
 	return out
 }

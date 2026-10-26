@@ -1,0 +1,27 @@
+/*
+ * The Keycloak theme's stylesheet: Tailwind and the design tokens the console uses
+ * (packages/design-tokens). Keycloak's own CSS is not loaded (doUseDefaultCss is false).
+ */
+@import 'tailwindcss';
+@import '@tigerbeetle-platform/design-tokens/tokens.css';
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-body text-foreground;
+  }
+
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+    font-variant-ligatures: none;
+  }
+}

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/devstack"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/rpc"
 )
@@ -59,7 +60,7 @@ func startReplica(t *testing.T, url, name string, concurrency int) *replica {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	srv, err := New(Options{
 		URL: url, QueueGroup: "tbp-api", Concurrency: concurrency, ShutdownTimeout: 2 * time.Second,
-		Router: router, Dispatcher: rpc.NewDispatcher(router, 30*time.Second, logger), Logger: logger,
+		Router: router, Dispatcher: rpc.NewDispatcher(router, 30*time.Second, logger, authntest.Default()), Logger: logger,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -99,7 +100,7 @@ func dialClient(t *testing.T, url string) *Client {
 func call(c *Client, method string, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	answer, err := c.Call(ctx, method, rpc.Envelope{}, "", requestid.New())
+	answer, err := c.Call(ctx, method, rpc.Envelope{}, rpc.Headers{RequestID: requestid.New()})
 	if err != nil {
 		return err
 	}
@@ -181,7 +182,7 @@ func TestNATSRPC(t *testing.T) {
 		client := dialClient(t, url)
 		msgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		answer, err := client.Call(msgCtx, "v1.whoami", rpc.Envelope{}, "", "req-1")
+		answer, err := client.Call(msgCtx, "v1.whoami", rpc.Envelope{}, rpc.Headers{RequestID: "req-1"})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -3,12 +3,21 @@
 # scales, a rule with balance history, event types, deposits, payments with fees, a revert, a
 # declined write, and holds that are open, captured and voided.
 # Usage: scripts/seed-demo.sh [ledger]   (API_URL defaults to http://localhost:8080)
+# It signs in as the dev user ada of the local Keycloak (KEYCLOAK_URL, default
+# http://localhost:18080/realms/tbp) and acts for ORGANIZATION (default "default"), ADR-0026.
 # Running it twice adds more activity to the same ledger; nothing is ever deleted.
 set -euo pipefail
 
 api="${API_URL:-http://localhost:8080}"
+keycloak="${KEYCLOAK_URL:-http://localhost:18080/realms/tbp}"
+organization="${ORGANIZATION:-default}"
 ledger="${1:-eu-payments}"
 base="$api/v1/ledgers/$ledger"
+
+# The development-only client tbp-cli allows the password grant; it exists in the local realm only.
+token="$(curl -fsS -X POST "$keycloak/protocol/openid-connect/token" \
+  -d grant_type=password -d client_id=tbp-cli -d username=ada -d password=password \
+  -d 'scope=openid organization:*' | jq -r .access_token)"
 
 key() { echo "idem_seed-$(uuidgen | tr '[:upper:]' '[:lower:]')"; }
 
@@ -16,7 +25,8 @@ key() { echo "idem_seed-$(uuidgen | tr '[:upper:]' '[:lower:]')"; }
 # to stderr and does not stop the script, because a declined write is part of the demo.
 call() {
   local method="$1" url="$2" body="${3:-}" idem="${4:-}"
-  local args=(-sS -X "$method" -H 'Content-Type: application/json' -w '\n%{http_code}')
+  local args=(-sS -X "$method" -H 'Content-Type: application/json' -w '\n%{http_code}'
+    -H "Authorization: Bearer $token" -H "X-Organization: $organization")
   [[ -n "$idem" ]] && args+=(-H "Idempotency-Key: $idem")
   [[ -n "$body" ]] && args+=(-d "$body")
   local out code

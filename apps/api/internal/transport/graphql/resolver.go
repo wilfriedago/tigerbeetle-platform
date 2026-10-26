@@ -1,6 +1,8 @@
 package graphql
 
 import (
+	accessapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/application"
+	accessgql "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/graphql"
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
 	bookkeepinggql "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/graphql"
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
@@ -12,6 +14,7 @@ import (
 
 // Modules holds what each module's resolvers call.
 type Modules struct {
+	Access      accessapp.Application
 	Health      healthdto.Source
 	Ledgers     ledgersapp.Application
 	Bookkeeping bookkeepingapp.Application
@@ -32,6 +35,8 @@ type Resolver struct {
 // Every module names its resolvers Queries and Mutations; these aliases give each embedded field
 // its own name, as Go names an embedded field after its type.
 type (
+	accessQueries        = accessgql.Queries
+	accessMutations      = accessgql.Mutations
 	healthQueries        = healthgql.Queries
 	ledgersQueries       = ledgersgql.Queries
 	ledgersMutations     = ledgersgql.Mutations
@@ -39,11 +44,13 @@ type (
 )
 
 type queryResolver struct {
+	*accessQueries
 	*healthQueries
 	*ledgersQueries
 }
 
 type mutationResolver struct {
+	*accessMutations
 	*ledgersMutations
 	*bookkeepingMutations
 }
@@ -54,10 +61,12 @@ var _ exec.ResolverRoot = (*Resolver)(nil)
 func NewResolver(m Modules) *Resolver {
 	return &Resolver{
 		query: &queryResolver{
+			accessQueries:  accessgql.NewQueries(m.Access),
 			healthQueries:  healthgql.NewQueries(m.Health),
 			ledgersQueries: ledgersgql.NewQueries(m.Ledgers),
 		},
 		mutation: &mutationResolver{
+			accessMutations:      accessgql.NewMutations(m.Access),
 			ledgersMutations:     ledgersgql.NewMutations(m.Ledgers),
 			bookkeepingMutations: bookkeepinggql.NewMutations(m.Bookkeeping),
 		},

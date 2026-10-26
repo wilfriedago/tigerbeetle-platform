@@ -62,7 +62,11 @@ func holdRow(c holdColumns) (domain.HoldRow, error) {
 
 // GetHold returns a hold with its accounts.
 func (s *Store) GetHold(ctx context.Context, ledgerName string, id ledger.ID) (domain.HoldRow, error) {
-	r, err := s.queries.GetHold(ctx, gen.GetHoldParams{Ledger: ledgerName, ID: platformpg.UUIDOf(id)})
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return domain.HoldRow{}, err
+	}
+	r, err := s.queries.GetHold(ctx, gen.GetHoldParams{OrganizationID: org, Ledger: ledgerName, ID: platformpg.UUIDOf(id)})
 	if err != nil {
 		return domain.HoldRow{}, fmt.Errorf("postgres: get hold: %w", mapError(err))
 	}
@@ -71,13 +75,18 @@ func (s *Store) GetHold(ctx context.Context, ledgerName string, id ledger.ID) (d
 
 // ListHolds returns holds newest first.
 func (s *Store) ListHolds(ctx context.Context, ledgerName string, filter domain.HoldFilter, before ledger.ID, limit int, now time.Time) ([]domain.HoldRow, error) {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := s.queries.ListHolds(ctx, gen.ListHoldsParams{
-		Ledger:   ledgerName,
-		BeforeID: platformpg.NullableUUID(before),
-		Status:   platformpg.OptionalString(string(filter.Status)),
-		Now:      platformpg.Timestamptz(now),
-		Prefix:   platformpg.OptionalString(string(filter.Address)),
-		PageSize: int32(limit),
+		OrganizationID: org,
+		Ledger:         ledgerName,
+		BeforeID:       platformpg.NullableUUID(before),
+		Status:         platformpg.OptionalString(string(filter.Status)),
+		Now:            platformpg.Timestamptz(now),
+		Prefix:         platformpg.OptionalString(string(filter.Address)),
+		PageSize:       int32(limit),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("postgres: list holds: %w", mapError(err))
@@ -96,7 +105,11 @@ func (s *Store) ListHolds(ctx context.Context, ledgerName string, filter domain.
 
 // CountHolds counts holds by visible status.
 func (s *Store) CountHolds(ctx context.Context, ledgerName string, now time.Time) (domain.HoldCounts, error) {
-	r, err := s.queries.CountHolds(ctx, gen.CountHoldsParams{Ledger: ledgerName, Now: platformpg.Timestamptz(now)})
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return domain.HoldCounts{}, err
+	}
+	r, err := s.queries.CountHolds(ctx, gen.CountHoldsParams{OrganizationID: org, Ledger: ledgerName, Now: platformpg.Timestamptz(now)})
 	if err != nil {
 		return domain.HoldCounts{}, fmt.Errorf("postgres: count holds: %w", mapError(err))
 	}
@@ -105,7 +118,11 @@ func (s *Store) CountHolds(ctx context.Context, ledgerName string, now time.Time
 
 // OpenHolds returns open, unexpired holds.
 func (s *Store) OpenHolds(ctx context.Context, ledgerName string, now time.Time, limit int) ([]domain.HoldRow, error) {
-	rows, err := s.queries.OpenHolds(ctx, gen.OpenHoldsParams{Ledger: ledgerName, Now: platformpg.Timestamptz(now), MaxRows: int32(limit)})
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.queries.OpenHolds(ctx, gen.OpenHoldsParams{OrganizationID: org, Ledger: ledgerName, Now: platformpg.Timestamptz(now), MaxRows: int32(limit)})
 	if err != nil {
 		return nil, fmt.Errorf("postgres: open holds: %w", mapError(err))
 	}
@@ -123,7 +140,11 @@ func (s *Store) OpenHolds(ctx context.Context, ledgerName string, now time.Time,
 
 // MarkHoldExpired records that TigerBeetle released the hold.
 func (s *Store) MarkHoldExpired(ctx context.Context, ledgerName string, id ledger.ID) error {
-	if err := s.queries.MarkHoldExpired(ctx, gen.MarkHoldExpiredParams{Ledger: ledgerName, ID: platformpg.UUIDOf(id)}); err != nil {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return err
+	}
+	if err := s.queries.MarkHoldExpired(ctx, gen.MarkHoldExpiredParams{OrganizationID: org, Ledger: ledgerName, ID: platformpg.UUIDOf(id)}); err != nil {
 		return fmt.Errorf("postgres: mark hold expired: %w", mapError(err))
 	}
 	return nil
@@ -131,7 +152,11 @@ func (s *Store) MarkHoldExpired(ctx context.Context, ledgerName string, id ledge
 
 // CountOpenHoldsFrom counts the open holds whose source is the address.
 func (s *Store) CountOpenHoldsFrom(ctx context.Context, ledgerName string, address ledger.Address, now time.Time) (int64, error) {
-	n, err := s.queries.CountOpenHoldsFrom(ctx, gen.CountOpenHoldsFromParams{Ledger: ledgerName, Address: string(address), Now: platformpg.Timestamptz(now)})
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return 0, err
+	}
+	n, err := s.queries.CountOpenHoldsFrom(ctx, gen.CountOpenHoldsFromParams{OrganizationID: org, Ledger: ledgerName, Address: string(address), Now: platformpg.Timestamptz(now)})
 	if err != nil {
 		return 0, fmt.Errorf("postgres: count open holds: %w", mapError(err))
 	}

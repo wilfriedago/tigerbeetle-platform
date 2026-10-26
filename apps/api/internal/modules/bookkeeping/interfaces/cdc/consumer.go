@@ -4,6 +4,7 @@ package cdc
 
 import (
 	"context"
+	"crypto/tls"
 	"log/slog"
 	"time"
 
@@ -29,6 +30,8 @@ type Options struct {
 	Queue  string
 	Relay  Relayer
 	Logger *slog.Logger
+	// TLS configures an amqps:// connection; nil trusts the system's CAs.
+	TLS *tls.Config
 }
 
 // Consumer relays the queue one event at a time, in TigerBeetle timestamp order, and acknowledges
@@ -45,7 +48,7 @@ type Consumer struct {
 func NewConsumer(opts Options) *Consumer {
 	return &Consumer{
 		opts:       opts,
-		supervisor: amqp.New(opts.URL, "tbp-api cdc relay", opts.Logger),
+		supervisor: amqp.New(opts.URL, "tbp-api cdc relay", opts.Logger, opts.TLS),
 		minBackoff: 200 * time.Millisecond,
 		maxBackoff: 10 * time.Second,
 	}

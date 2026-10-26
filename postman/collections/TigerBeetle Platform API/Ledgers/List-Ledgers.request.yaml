@@ -1,0 +1,14 @@
+$kind: http-request
+name: List Ledgers
+order: 1000
+method: GET
+url: '{{baseUrl}}/v1/ledgers'
+queryParams:
+  - key: cursor
+    value: ''
+    description: Opaque cursor from the previous page's `next` field
+    disabled: true
+  - key: limit
+    value: '25'
+    description: 'Page size (1–100, default 25)'
+    disabled: true

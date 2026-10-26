@@ -17,7 +17,7 @@ type ReconcilerServer struct {
 
 // NewReconcilerServer builds the reconciler method.
 func NewReconcilerServer(app application.Application) *ReconcilerServer {
-	return &ReconcilerServer{reconciler: app.Reconciler}
+	return &ReconcilerServer{reconciler: app.ReconcilerQueries}
 }
 
 // GetReconcilerStatus reads the state of the reconciler.

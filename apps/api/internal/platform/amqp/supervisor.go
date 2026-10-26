@@ -6,6 +6,7 @@ package amqp
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -21,6 +22,7 @@ type Session func(ctx context.Context, conn *amqp091.Connection) error
 
 // Supervisor owns one connection at a time.
 type Supervisor struct {
+	tls    *tls.Config
 	url    string
 	name   string
 	logger *slog.Logger
@@ -32,8 +34,8 @@ type Supervisor struct {
 }
 
 // New returns a supervisor for url. name shows in the RabbitMQ management UI.
-func New(url, name string, logger *slog.Logger) *Supervisor {
-	return &Supervisor{url: url, name: name, logger: logger, minBackoff: 100 * time.Millisecond, maxBackoff: 5 * time.Second}
+func New(url, name string, logger *slog.Logger, tlsConfig *tls.Config) *Supervisor {
+	return &Supervisor{url: url, name: name, logger: logger, tls: tlsConfig, minBackoff: 100 * time.Millisecond, maxBackoff: 5 * time.Second}
 }
 
 // Run dials and runs session until ctx ends, redialling whenever the connection drops. It returns
@@ -44,6 +46,8 @@ func (s *Supervisor) Run(ctx context.Context, session Session) error {
 		conn, err := amqp091.DialConfig(s.url, amqp091.Config{
 			Properties: amqp091.Table{"connection_name": s.name},
 			Dial:       amqp091.DefaultDial(10 * time.Second),
+			// Used with an amqps:// URL; nil trusts the system's CAs.
+			TLSClientConfig: s.tls,
 		})
 		if err == nil {
 			backoff = s.minBackoff

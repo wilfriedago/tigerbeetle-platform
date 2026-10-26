@@ -1,6 +1,6 @@
 # 22. Ledger events to Kafka through TigerBeetle CDC
 
-Status: Accepted
+Status: Accepted, amended by [ADR-0032](0032-authenticated-transports-and-strict-request-bodies.md)
 Date: 2026-10-25
 
 ## Context and Problem Statement

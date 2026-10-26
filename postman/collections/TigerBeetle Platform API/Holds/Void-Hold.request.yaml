@@ -1,0 +1,10 @@
+$kind: http-request
+name: Void Hold
+order: 5000
+method: POST
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/holds/{{holdId}}/void'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+  - key: id
+    value: '{{holdId}}'

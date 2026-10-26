@@ -1,12 +1,16 @@
 package bootstrap
 
-import "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
+import (
+	accessdomain "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/domain"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
+)
 
 // Option adjusts the build. Only tests use options.
 type Option func(*options)
 
 type options struct {
 	wrapLedgerStore func(domain.LedgerStore) domain.LedgerStore
+	directory       accessdomain.Directory
 }
 
 func newOptions(opts []Option) options {
@@ -21,4 +25,10 @@ func newOptions(opts []Option) options {
 // faults between the API and the cluster, such as the crash windows of ADR-0007.
 func WithLedgerStore(wrap func(domain.LedgerStore) domain.LedgerStore) Option {
 	return func(o *options) { o.wrapLedgerStore = wrap }
+}
+
+// WithDirectory replaces Keycloak's admin API with another directory, so a test can run the
+// organization and member operations without a Keycloak.
+func WithDirectory(d accessdomain.Directory) Option {
+	return func(o *options) { o.directory = d }
 }

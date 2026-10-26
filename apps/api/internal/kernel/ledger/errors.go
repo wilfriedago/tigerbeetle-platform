@@ -23,12 +23,17 @@ var (
 	// the same Idempotency-Key is still in flight, a hold is already resolved, a transaction is
 	// already reverted.
 	ErrConflict = errors.New("conflict")
+	// ErrUnauthenticated means the call carries no credential, or one that is not valid: a bad or
+	// expired token, a revoked API key (ADR-0026).
+	ErrUnauthenticated = errors.New("unauthenticated")
+	// ErrForbidden means the caller is known but may not do this (ADR-0028).
+	ErrForbidden = errors.New("forbidden")
 )
 
 // Problem is a domain error with a stable, kebab-case reason that clients can branch on, such as
 // "exceeds-credits" or "request-in-flight". Kind is one of the sentinels above and decides the
-// status class; errors.Is(problem, Kind) holds. The HTTP adapter turns the reason into the problem
-// type "/problems/<reason>".
+// status class; errors.Is(problem, Kind) holds. The transports turn the reason into the problem
+// type, the URI of its entry in docs/problems.md (ADR-0025).
 type Problem struct {
 	Kind   error
 	Reason string

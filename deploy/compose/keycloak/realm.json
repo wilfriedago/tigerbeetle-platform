@@ -1,0 +1,322 @@
+{
+  "realm": "tbp",
+  "displayName": "TigerBeetle Platform",
+  "enabled": true,
+  "organizationsEnabled": true,
+  "loginTheme": "tbp",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "keycloak@tbp.local",
+    "fromDisplayName": "TigerBeetle Platform"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "tbp-staff",
+        "description": "People who run the platform: they manage organizations and hold no permission inside one without a grant (ADR-0028)."
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "tbp-api",
+      "name": "TigerBeetle Platform API",
+      "description": "The audience of access tokens (ADR-0026). It signs no one in.",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "tbp-console",
+      "name": "TigerBeetle Platform console",
+      "description": "The console's backend-for-frontend in the API (ADR-0030).",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "tbp-console-dev-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:5173/api/auth/callback"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience tbp-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "tbp-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm roles as roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ],
+      "baseUrl": "http://localhost:5173/"
+    },
+    {
+      "clientId": "tbp-cli",
+      "name": "Local development scripts",
+      "description": "Development only: lets the seed script and the end-to-end tests sign in with a password. Never create it outside the local stack.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "audience tbp-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "tbp-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm roles as roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "tbp-admin",
+      "name": "TigerBeetle Platform API, admin access",
+      "description": "The service account the API uses for Keycloak's admin API: organizations, members, invitations and machine clients (ADR-0027, ADR-0029). Only the roles it needs.",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "tbp-admin-dev-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "id": "00000000-0000-4000-8000-0000000057af",
+      "username": "staff",
+      "enabled": true,
+      "email": "staff@tbp.local",
+      "emailVerified": true,
+      "firstName": "Sam",
+      "lastName": "Staff",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-tbp", "tbp-staff"]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000ada",
+      "username": "ada",
+      "enabled": true,
+      "email": "ada@tbp.local",
+      "emailVerified": true,
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-tbp"]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000b0b",
+      "username": "bob",
+      "enabled": true,
+      "email": "bob@tbp.local",
+      "emailVerified": true,
+      "firstName": "Bob",
+      "lastName": "Builder",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-tbp"]
+    },
+    {
+      "id": "00000000-0000-4000-8000-0000000ca201",
+      "username": "carol",
+      "enabled": true,
+      "email": "carol@tbp.local",
+      "emailVerified": true,
+      "firstName": "Carol",
+      "lastName": "Shaw",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-tbp"]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000da1",
+      "username": "dave",
+      "enabled": true,
+      "email": "dave@tbp.local",
+      "emailVerified": true,
+      "firstName": "Dave",
+      "lastName": "Operator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-tbp"]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000e21",
+      "username": "erin",
+      "enabled": true,
+      "email": "erin@tbp.local",
+      "emailVerified": true,
+      "firstName": "Erin",
+      "lastName": "Viewer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-tbp"]
+    },
+    {
+      "username": "service-account-tbp-admin",
+      "enabled": true,
+      "serviceAccountClientId": "tbp-admin",
+      "clientRoles": {
+        "realm-management": [
+          "manage-organizations",
+          "view-organizations",
+          "manage-users",
+          "view-users",
+          "query-users",
+          "manage-clients",
+          "view-clients",
+          "query-clients"
+        ]
+      }
+    }
+  ],
+  "organizations": [
+    {
+      "name": "Default",
+      "alias": "default",
+      "enabled": true,
+      "description": "Pre-alpha data (ADR-0027).",
+      "members": [
+        {
+          "username": "ada",
+          "membershipType": "UNMANAGED"
+        }
+      ]
+    },
+    {
+      "name": "Acme",
+      "alias": "acme",
+      "enabled": true,
+      "members": [
+        {
+          "username": "ada",
+          "membershipType": "UNMANAGED"
+        },
+        {
+          "username": "carol",
+          "membershipType": "UNMANAGED"
+        },
+        {
+          "username": "dave",
+          "membershipType": "UNMANAGED"
+        },
+        {
+          "username": "erin",
+          "membershipType": "UNMANAGED"
+        }
+      ]
+    },
+    {
+      "name": "Globex",
+      "alias": "globex",
+      "enabled": true,
+      "members": [
+        {
+          "username": "bob",
+          "membershipType": "UNMANAGED"
+        },
+        {
+          "username": "carol",
+          "membershipType": "UNMANAGED"
+        }
+      ]
+    }
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}"
+          ]
+        }
+      }
+    ]
+  }
+}

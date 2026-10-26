@@ -27,16 +27,18 @@ import { Tabs, TabsContent, TabsCount, TabsList, TabsTrigger } from '~/component
 
 import { apiPath, curlCommand } from '~/lib/curl'
 import { netEffect } from '~/lib/net-effect'
+import { useOrganization } from '~/lib/organization'
 
 import { transactionQueries, useReplaceTransactionMetadata } from './api'
 import { RevertDialog } from './components/revert-dialog'
 import { requestBodyOf } from './request-body'
 
-const route = getRouteApi('/_console/ledgers/$ledger/transactions/$txId')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/transactions/$txId')
 
 type Tab = 'postings' | 'metadata' | 'technical'
 
 export function TransactionPage() {
+  const org = useOrganization()
   const { ledger, txId } = route.useParams()
   const { tab = 'postings' } = route.useSearch()
   const navigate = route.useNavigate()
@@ -86,7 +88,9 @@ export function TransactionPage() {
                   <PencilIcon />
                   Edit metadata
                 </DropdownMenuItem>
-                <DropdownMenuLinkItem render={<Link to="/ledgers/$ledger/requests" params={{ ledger }} search={{ key: tx.idempotencyKey }} />}>
+                <DropdownMenuLinkItem
+                  render={<Link to="/$org/ledgers/$ledger/requests" params={{ ledger, org }} search={{ key: tx.idempotencyKey }} />}
+                >
                   <InboxIcon />
                   Open the write request
                 </DropdownMenuLinkItem>
@@ -147,8 +151,8 @@ export function TransactionPage() {
                 </DescriptionItem>
                 <DescriptionItem term="Event type" termWidth="sm">
                   <Link
-                    to="/ledgers/$ledger/transactions"
-                    params={{ ledger }}
+                    to="/$org/ledgers/$ledger/transactions"
+                    params={{ ledger, org }}
                     search={{ eventType: tx.eventType.name }}
                     className="font-mono hover:text-primary-text hover:underline"
                   >
@@ -158,8 +162,8 @@ export function TransactionPage() {
                 </DescriptionItem>
                 <DescriptionItem term="Idempotency-Key" mono termWidth="sm">
                   <Link
-                    to="/ledgers/$ledger/requests"
-                    params={{ ledger }}
+                    to="/$org/ledgers/$ledger/requests"
+                    params={{ ledger, org }}
                     search={{ key: tx.idempotencyKey }}
                     className="break-all hover:text-primary-text hover:underline"
                   >
@@ -207,8 +211,8 @@ export function TransactionPage() {
                 <p>
                   Reverts{' '}
                   <Link
-                    to="/ledgers/$ledger/transactions/$txId"
-                    params={{ ledger, txId: tx.reverts }}
+                    to="/$org/ledgers/$ledger/transactions/$txId"
+                    params={{ ledger, org, txId: tx.reverts }}
                     className="font-mono text-primary-text hover:underline"
                   >
                     <IdText value={tx.reverts} copy={false} className="text-primary-text" />
@@ -220,8 +224,8 @@ export function TransactionPage() {
                 <p>
                   Reverted by{' '}
                   <Link
-                    to="/ledgers/$ledger/transactions/$txId"
-                    params={{ ledger, txId: tx.revertedBy }}
+                    to="/$org/ledgers/$ledger/transactions/$txId"
+                    params={{ ledger, org, txId: tx.revertedBy }}
                     className="font-mono text-primary-text hover:underline"
                   >
                     <IdText value={tx.revertedBy} copy={false} className="text-primary-text" />

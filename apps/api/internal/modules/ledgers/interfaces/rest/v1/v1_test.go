@@ -14,6 +14,7 @@ import (
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/application"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 )
 
@@ -44,9 +45,11 @@ func serve(t *testing.T, f fakeLedgers, method, path, body string) *httptest.Res
 	mux := http.NewServeMux()
 	api := restapi.NewAPI(mux)
 	Register(api, Deps{LedgerCommands: f, LedgerQueries: f, SettingsCommands: f})
-	h := restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	h := restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), restapi.Options{Auth: authntest.Default()})
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(method, path, strings.NewReader(body)))
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	h.ServeHTTP(rec, req)
 	return rec
 }
 

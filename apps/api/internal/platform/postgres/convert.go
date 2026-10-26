@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -124,4 +125,14 @@ func DecodeMetadata(raw []byte) (map[string]string, error) {
 		return nil, fmt.Errorf("postgres: decode metadata: %w", err)
 	}
 	return m, nil
+}
+
+// TenantOf returns the organization of the call, as the uuid every tenant query filters on
+// (ADR-0027). A context without a tenant fails instead of reading across organizations.
+func TenantOf(ctx context.Context) (pgtype.UUID, error) {
+	t, err := ledger.RequireTenant(ctx)
+	if err != nil {
+		return pgtype.UUID{}, fmt.Errorf("postgres: %w", err)
+	}
+	return UUIDOf(t.ID), nil
 }

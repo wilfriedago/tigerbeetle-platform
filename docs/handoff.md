@@ -1,10 +1,190 @@
 # Handoff
 
-Updated on 2026-10-25 for the next coding agent. It records what exists, what was verified, what
+Updated on 2026-10-26 for the next coding agent. It records what exists, what was verified, what
 was decided along the way, and what to do next. Read AGENTS.md first for the conventions; read
 this file for the state of the work.
 
 ## Where things stand
+
+### Authentication, authorization and multi-tenancy (phases 0 to 7 done, not merged)
+
+Planned in `docs/plans/auth/plan.md`, approved by the owner on 2026-10-26, on the branch
+`feat/auth` (worktree `../tigerbeetle-platform-worktrees/auth`, so the owner's uncommitted edits
+in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
+
+- Phase 0 (documentation) is done: the plan, ADR-0026 to ADR-0032, the amended status lines, and
+  pointers in AGENTS.md and docs/architecture.md.
+- Phase 1 (tenancy in the data model) is done, from dda1c65:
+  - Migration 00009: `organizations`, and `organization_id` leading the keys of `ledgers` and the
+    eight tables that name a ledger. Pre-alpha data is in the organization `default`
+    (`ledger.DefaultOrganizationID`, `00000000-0000-0000-0000-000000000001`).
+  - `ledger.Tenant` travels in the context; repositories read it with `platformpg.TenantOf` and
+    fail closed without one. Until phase 2, the HTTP middleware, the gRPC interceptors and the
+    RPC dispatcher put `ledger.DefaultTenant` in every context.
+  - Write records carry their organization; the reconciler settles each record inside it.
+  - `apps/api/migrations/tenancy_test.go` fails when a query touches a tenant table without
+    `organization_id`; `-- tenant-free:` comments mark the four queries that may cross.
+  - Deviation from the plan, recorded in ADR-0027: composite keys and the tenant from the
+    context, not a platform-wide ledger ID (that would have changed about 350 signatures).
+  - Verified: `just lint`, Go unit and integration tests (with an isolation test per store),
+    `just generate-check`. Not run: the e2e suite against the compose stack.
+  - Known gap for phase 3: the reconciler status (`getReconcilerStatus`) still counts pending
+    writes across every organization; it must be filtered by tenant once tenants are real.
+- Phase 2 (authentication) is done, from 1bb4d50:
+  - Every call except liveness, readiness, gRPC health and reflection carries a bearer token,
+    verified by `internal/platform/oidc` (go-oidc v3.21.0) and turned into a principal and a
+    tenant by `internal/platform/authn`, on REST, GraphQL, gRPC, AMQP RPC and NATS RPC alike.
+    The tenant comes from `X-Organization` (gRPC `x-organization`, broker `organization`),
+    checked against the token's `organization` claim; anything else is 404
+    organization-not-found, a suspended organization 403, a ledger call without one 400.
+  - The access module resolves aliases to the platform's `organizations` rows.
+  - The local stack runs Keycloak 26.8.1 (port 18080, admin / admin, realm `tbp` from
+    `deploy/compose/keycloak/realm.json`, every user's password `password`) and Mailpit (18025).
+    Keycloak names `http://localhost:18080` in tokens; the API reads discovery at
+    `http://keycloak:8080` (`AUTH_DISCOVERY_URL`). Requesting the scope `organization:*` gives
+    the list of a person's organization aliases, verified against Keycloak on 2026-10-26.
+  - The one-shot `organizations-seed` service inserts the platform rows of acme and globex until
+    staff create organizations (phase 5).
+  - The e2e suite and `scripts/seed-demo.sh` sign in as ada through the development-only client
+    `tbp-cli` (password grant). Verified: `just lint`, Go unit and integration tests (with
+    `TestAuthenticationEndToEnd`), and `just test-e2e` against a second compose stack.
+  - Running a second stack next to the main one needs another subnet: the compose network pins
+    `172.30.231.0/24` for the CDC job. An override file with `172.30.232.0/24` for the network,
+    TigerBeetle and RabbitMQ, the CDC job's `command` with those addresses, plus other host
+    ports and `COMPOSE_PROJECT_NAME`, works.
+  - The console cannot sign in until phase 4: its calls now answer 401.
+  - Deferred to phase 7: `/readyz` reporting Keycloak (it changes the readiness payload of
+    REST, GraphQL and gRPC).
+- Phase 3 (authorization) is done, from 001cd1e:
+  - Roles and permissions in `kernel/ledger/permission.go`; `grants` (migration 00010) in the
+    access module, whose authorizer reads the caller's grants on every call. Organization roles
+    member, admin, owner; ledger roles viewer, operator, admin; staff hold only
+    `platform.organizations`.
+  - `application/authorize.go` in ledgers and bookkeeping wraps every use case;
+    `TestEveryUseCaseIsChecked` calls each method behind a refusing authorizer and fails when one
+    reaches the real use case. The ledger list is filtered in SQL. The reconciler status shows
+    only the organization's own backlog.
+  - Idempotency keys replay only for their actor (migration 00011, ADR-0031).
+  - The spec (SpecVersion 0.2.0) declares `bearerAuth` and `X-Organization`; 33 accepted
+    breaking lines are in `packages/openapi/oasdiff-ignore.txt`. `jsonBodies` is gone: a non-JSON
+    body answers 415 (`unsupported-media-type`) from the `jsonOnly` middleware, because Huma maps
+    an unknown content type to 400 when body validation is skipped. The REST client takes
+    `accessToken` and `organization` options; orval strips `X-Organization` like `X-Request-Id`.
+  - Dev users keep fixed Keycloak IDs; `deploy/compose/dev-seed.sql` grants their organization
+    roles (ada owns default and acme, carol is acme admin, bob owns globex).
+  - Deviation: the plan's "creator becomes the ledger's admin" is not built. Only organization
+    admins and owners hold `org.ledgers`, and they already hold every ledger permission.
+  - Verified: `just lint`, unit, integration (`TestAuthorizationEndToEnd` covers REST, GraphQL and
+    gRPC, two organizations with the same ledger name, viewer and operator, the key rule),
+    `just test-e2e` and `scripts/seed-demo.sh` against Keycloak in the second compose stack.
+- Phase 4 (console sign-in) is done, from 367a382:
+  - The API's backend-for-frontend: `/auth/login`, `/auth/callback`, `/auth/logout`,
+    `/auth/session` in `access/interfaces/web`; sessions (migration 00012) keep only the hash of
+    the cookie's ID and the tokens sealed by `platform/sealed`. The middleware turns the cookie
+    into a bearer token, refreshes it before it expires (one refresh per session), and refuses a
+    cookie-authenticated write whose `Sec-Fetch-Site`/`Origin` is not the console's.
+  - Deviation: the person, their organizations and roles come from `GET /auth/session`, not from
+    a GraphQL `viewer` query. It needs no schema change and is the console's own route.
+  - The console: `_console` and `/` call `requireSession`; pages of an organization moved under
+    `src/routes/_console/$org/`; every link passes `org` (81 links in 26 files); switching
+    organizations drops the cached answers of the previous one; the organization switcher, the
+    account menu with sign-out, `useCan` and `canCreateLedgers` hide what a role cannot do; a 401
+    anywhere sends the browser to sign in. "Copy as curl" adds `Authorization: Bearer $TOKEN` and
+    `X-Organization`.
+  - Verified: Go unit and integration tests (`TestConsoleSignInEndToEnd` runs the code flow, the
+    cookie, the CSRF check, a refresh and sign-out against the test issuer), the console's tests,
+    and a real browser against Keycloak in the second stack: sign-in as carol, the Acme and Globex
+    ledger lists, every ledger page, a GraphQL write with the cookie, sign-out. The second stack's
+    console port needed its redirect URI added to the realm's client at run time.
+  - Note: agent-browser's clicks did not open the base-ui menus in that session (dispatched DOM
+    pointer events did); the main stack's menus opened with the same tool.
+- Rebased onto `feat/rfc9457-problems` on 2026-10-26, which landed first and took ADR-0025
+  (problem details). The auth ADRs moved to 0026-0032 (bdaedb9) and the auth reasons are entries
+  in `internal/platform/problem/catalog.go`, so their types are absolute URIs into
+  `docs/problems.md`. The hashes above are after the rebase. Some commits in the middle of the
+  rebased range do not build on their own (they call `writeProblem`, which the problems branch
+  renamed to `restapi.WriteProblem`); the tip builds and passes `just lint`, `just test`,
+  `just test-integration` and `just generate-check`. Bisecting through phases 1 to 4 needs
+  `git bisect skip` on those commits.
+- Phase 5 (organizations and members) is done, from fc204eb:
+  - The O6 spike settled how a person without an account is invited (ADR-0027): the API creates
+    the account and Keycloak emails the required actions; a person with an account gets
+    Keycloak's invitation. Keycloak's own registration link was rejected: it makes a managed
+    member. Roles go to the person's subject at once; there is no pending-grant table (deviation
+    from plan 5.3, recorded there).
+  - `internal/platform/keycloak` is the admin API client, used by the service account `tbp-admin`
+    (realm file, `AUTH_ADMIN_CLIENT_ID`/`AUTH_ADMIN_CLIENT_SECRET`; without them the calls answer
+    503). `access/infrastructure/keycloak` adapts it to the `Directory` port.
+  - Staff: list, create (retry-safe by alias), rename, suspend with a reason, reactivate.
+    Members: list (every member may read it), invite with an organization role and ledger roles,
+    set roles, remove or leave, resend and withdraw invitations, ledger roles by ledger admins.
+    REST (`organizations`, `members` tags) and GraphQL; no broker or gRPC methods (ADR-0027).
+  - The console follows `.design/auth.pen`: Members with an Invitations tab and the invite
+    dialog, Member, a ledger's Access, Roles and permissions, Organization settings, Profile,
+    the staff's Organizations, and the suspended and welcome pages. `docs/console.md` lists them.
+  - Migration 00013 was extended after its first commit (creator name, suspension reason, granter
+    name). A database that ran the first version needs it re-run: drop `created_by_issuer` and
+    `created_by_subject`, delete version 13 from `goose_db_version`, restart the API.
+  - Verified: Go unit and integration tests (`TestOrganizationsAndMembersEndToEnd` with the
+    in-memory directory, store tests for the new queries), console tests, every flow against
+    Keycloak 26.8.1 in the second stack (staff create, invite with and without an account, the
+    setup email to a working sign-in, suspension and the 403 with its reason), and every new page
+    in a browser as ada (owner), staff and ivy (owner of a suspended organization).
+  - Not done from the design: the identity provider and email domain panels, passkeys and active
+    sessions (Keycloak's account console has them; the profile links to it), API key and machine
+    client counts (phase 6), "last opened" in the organization chooser. The pages Keycloak itself
+    renders (sign-in, invitation, setup, emails) are the Keycloakify theme below.
+- The Keycloak theme is done, from e0ee199 (ADR-0033, the owner's suggestion):
+  - `packages/design-tokens` now holds the console's tokens; the console imports it, unchanged.
+  - `apps/keycloak-theme` (Keycloakify 11.16.1, theme `tbp`) draws the "Keycloak:" frames of
+    `.design/auth.pen`; other pages are Keycloakify's defaults in the same frame, styled through
+    Keycloak's class keys. `pnpm --filter keycloak-theme dev` previews any page with a mock.
+  - The compose Keycloak is now built by `deploy/compose/keycloak.Dockerfile` (Maven in a build
+    stage); the realm file sets `loginTheme: tbp`. An existing stack keeps its realm: set the
+    login theme in the admin console or rebuild Keycloak's database.
+  - Verified in the second stack: identity-first sign-in to the console, the account setup email
+    of a new invitee through verify, password and profile, and every designed page in the mock.
+  - Keycloak's user profile no longer requires a last name (realm.json `components`), so an
+    invitee given only a first name is not asked for one.
+  - Not done: Keycloak's emails keep Keycloak's look; the owner designs them, then an email
+    theme in `apps/keycloak-theme` implements them.
+- Phase 6 (machine access) is done, from 79fd433:
+  - API keys (`tbp_<id>_<secret>`, HMAC under `AUTH_API_KEY_PEPPER`) and machine clients
+    (confidential Keycloak clients created by `tbp-admin`, five-minute tokens), migration 00014,
+    REST (`api-keys`, `machine-clients` tags) and GraphQL; no broker methods, as for members.
+  - Authentication: a `tbp_` bearer value is a key; a token with a `client_id` claim is a machine
+    client's, whose organization is the platform's record, not a claim. Either acts for its own
+    organization; another `X-Organization` is 403.
+  - Console pages per `.design/auth.pen`; the Access page of a ledger lists keys and clients too.
+    `docs/integrators.md` is the guide for every transport.
+  - Verified: `TestCredentialsEndToEnd` (REST, GraphQL and gRPC with a key and a machine token,
+    roles, revocation, deletion), and against Keycloak 26.8.1 in the second stack: a client
+    created by the API, its token (`client_id`, the `tbp-api` audience, 300 seconds), a call with
+    it and with a key, secret regeneration, and every page in a browser.
+  - The "recent writes" panel: `listWriteRequests` gained an `actor` filter (the subject, or a
+    key's ID) on every transport, with migration 00015 for its index.
+  - `tbp-admin` keeps realm-wide roles, by the owner's decision; `docs/keycloak.md` explains the
+    realm, the clients and how to contain that account.
+- Phase 7 (exposure) is done:
+  - `internal/platform/tlsconfig` builds the TLS settings: gRPC serves TLS with
+    `GRPC_TLS_CERT_FILE` and `GRPC_TLS_KEY_FILE`; AMQP (RPC and the CDC relay), NATS and Kafka
+    connect with TLS through `amqps://`, `tls://`, `KAFKA_TLS` or a CA file. Kafka gains SASL
+    PLAIN, SCRAM-SHA-256 and SCRAM-SHA-512 (`KAFKA_SASL_*`). A bad certificate stops start-up.
+  - gRPC stays off by default (ADR-0032) but is no longer development-only; AMQP RPC, NATS RPC
+    and the Kafka topic serve the platform's own services. AGENTS.md says so.
+  - Compose has no guest account any more: RabbitMQ users `tbp-admin` (management UI),
+    `tbp-api`, `tbp-cdc` and `tbp-service`, each with the narrowest permissions that work; NATS
+    users `tbp-api` and `tbp-service` (no subject permissions); Kafka listeners require SASL
+    PLAIN (`tbp-api`, `tbp-dev` for tools through `deploy/compose/kafka-client.properties`,
+    `tbp-broker`), with no authorizer. Passwords are `<user>-dev`, for the local stack only.
+  - `/readyz` reports Keycloak as an optional dependency, and the API starts without it:
+    `internal/platform/oidc` reads discovery on first use, retried at most every 2 seconds, and
+    calls with a token answer 503 until then (the image's smoke test starts it that way).
+  - Verified: `TestTLS` (a TLS gRPC server answers a client that trusts it and refuses a
+    plaintext one), the config validation, and in the second stack: every dependency up,
+    `just test-e2e` over REST, GraphQL, gRPC, AMQP and NATS with the `tbp-service` users, a
+    ledger event read from Kafka with SASL, guest and unauthenticated Kafka clients refused.
+    Not verified: TLS against real brokers (the compose stack has no certificates).
 
 A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
 owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the
@@ -412,6 +592,11 @@ Earlier, during the console work, the owner approved these on 2026-10-24; the AD
 - **Event types are per ledger** (ADR-0013); codes start at 2, `default` is code 1.
 - **The console is a TanStack Router single-page app, not TanStack Start** (ADR-0014): it has no
   data of its own and must stay deployable as static files behind any proxy.
+
+On 2026-10-26 the owner chose, for RFC 9457 (ADR-0025), absolute problem types that point at the
+generated catalogue on GitHub (`docs/problems.md#<reason>`, the same in every deployment), a
+`not-ready` problem for the 503 of `/readyz`, and an `errors` member for the input errors Huma
+raises. ADR-0013, 0018 and 0021 carry the amended status.
 
 ## Code map
 

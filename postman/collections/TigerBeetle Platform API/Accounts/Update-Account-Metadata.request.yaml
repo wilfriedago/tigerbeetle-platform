@@ -1,0 +1,20 @@
+$kind: http-request
+name: Update Account Metadata
+order: 4000
+method: PUT
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/accounts/{{address}}/metadata'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+  - key: address
+    value: '{{address}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "tier": "premium",
+      "kyc": "verified"
+    }

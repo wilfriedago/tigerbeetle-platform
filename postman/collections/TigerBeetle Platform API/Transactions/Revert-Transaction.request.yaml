@@ -1,0 +1,22 @@
+$kind: http-request
+name: Revert Transaction
+order: 5000
+method: POST
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/transactions/{{transactionId}}/revert'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+  - key: id
+    value: '{{transactionId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reference": "revert-order-ref-001",
+      "metadata": {
+        "reason": "customer requested refund"
+      }
+    }

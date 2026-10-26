@@ -12,15 +12,16 @@ import (
 )
 
 const createEventType = `-- name: CreateEventType :one
-INSERT INTO event_types (ledger, name, code)
-VALUES ($1, $2, $3)
+INSERT INTO event_types (organization_id, ledger, name, code)
+VALUES ($4, $1, $2, $3)
 RETURNING name, code, created_at
 `
 
 type CreateEventTypeParams struct {
-	Ledger string
-	Name   string
-	Code   int32
+	Ledger         string
+	Name           string
+	Code           int32
+	OrganizationID pgtype.UUID
 }
 
 type CreateEventTypeRow struct {
@@ -30,7 +31,12 @@ type CreateEventTypeRow struct {
 }
 
 func (q *Queries) CreateEventType(ctx context.Context, arg CreateEventTypeParams) (CreateEventTypeRow, error) {
-	row := q.db.QueryRow(ctx, createEventType, arg.Ledger, arg.Name, arg.Code)
+	row := q.db.QueryRow(ctx, createEventType,
+		arg.Ledger,
+		arg.Name,
+		arg.Code,
+		arg.OrganizationID,
+	)
 	var i CreateEventTypeRow
 	err := row.Scan(&i.Name, &i.Code, &i.CreatedAt)
 	return i, err
@@ -38,16 +44,17 @@ func (q *Queries) CreateEventType(ctx context.Context, arg CreateEventTypeParams
 
 const deleteRule = `-- name: DeleteRule :execrows
 DELETE FROM account_rules
-WHERE ledger = $1 AND pattern = $2
+WHERE organization_id = $3 AND ledger = $1 AND pattern = $2
 `
 
 type DeleteRuleParams struct {
-	Ledger  string
-	Pattern string
+	Ledger         string
+	Pattern        string
+	OrganizationID pgtype.UUID
 }
 
 func (q *Queries) DeleteRule(ctx context.Context, arg DeleteRuleParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteRule, arg.Ledger, arg.Pattern)
+	result, err := q.db.Exec(ctx, deleteRule, arg.Ledger, arg.Pattern, arg.OrganizationID)
 	if err != nil {
 		return 0, err
 	}
@@ -57,12 +64,13 @@ func (q *Queries) DeleteRule(ctx context.Context, arg DeleteRuleParams) (int64, 
 const getEventType = `-- name: GetEventType :one
 SELECT name, code, created_at
 FROM event_types
-WHERE ledger = $1 AND name = $2
+WHERE organization_id = $3 AND ledger = $1 AND name = $2
 `
 
 type GetEventTypeParams struct {
-	Ledger string
-	Name   string
+	Ledger         string
+	Name           string
+	OrganizationID pgtype.UUID
 }
 
 type GetEventTypeRow struct {
@@ -72,7 +80,7 @@ type GetEventTypeRow struct {
 }
 
 func (q *Queries) GetEventType(ctx context.Context, arg GetEventTypeParams) (GetEventTypeRow, error) {
-	row := q.db.QueryRow(ctx, getEventType, arg.Ledger, arg.Name)
+	row := q.db.QueryRow(ctx, getEventType, arg.Ledger, arg.Name, arg.OrganizationID)
 	var i GetEventTypeRow
 	err := row.Scan(&i.Name, &i.Code, &i.CreatedAt)
 	return i, err
@@ -81,9 +89,14 @@ func (q *Queries) GetEventType(ctx context.Context, arg GetEventTypeParams) (Get
 const listEventTypes = `-- name: ListEventTypes :many
 SELECT name, code, created_at
 FROM event_types
-WHERE ledger = $1
+WHERE organization_id = $2 AND ledger = $1
 ORDER BY code
 `
+
+type ListEventTypesParams struct {
+	Ledger         string
+	OrganizationID pgtype.UUID
+}
 
 type ListEventTypesRow struct {
 	Name      string
@@ -91,8 +104,8 @@ type ListEventTypesRow struct {
 	CreatedAt pgtype.Timestamptz
 }
 
-func (q *Queries) ListEventTypes(ctx context.Context, ledger string) ([]ListEventTypesRow, error) {
-	rows, err := q.db.Query(ctx, listEventTypes, ledger)
+func (q *Queries) ListEventTypes(ctx context.Context, arg ListEventTypesParams) ([]ListEventTypesRow, error) {
+	rows, err := q.db.Query(ctx, listEventTypes, arg.Ledger, arg.OrganizationID)
 	if err != nil {
 		return nil, err
 	}
@@ -114,8 +127,13 @@ func (q *Queries) ListEventTypes(ctx context.Context, ledger string) ([]ListEven
 const listRules = `-- name: ListRules :many
 SELECT pattern, balance_limit, history, code, created_at, updated_at
 FROM account_rules
-WHERE ledger = $1
+WHERE organization_id = $2 AND ledger = $1
 `
+
+type ListRulesParams struct {
+	Ledger         string
+	OrganizationID pgtype.UUID
+}
 
 type ListRulesRow struct {
 	Pattern      string
@@ -126,8 +144,8 @@ type ListRulesRow struct {
 	UpdatedAt    pgtype.Timestamptz
 }
 
-func (q *Queries) ListRules(ctx context.Context, ledger string) ([]ListRulesRow, error) {
-	rows, err := q.db.Query(ctx, listRules, ledger)
+func (q *Queries) ListRules(ctx context.Context, arg ListRulesParams) ([]ListRulesRow, error) {
+	rows, err := q.db.Query(ctx, listRules, arg.Ledger, arg.OrganizationID)
 	if err != nil {
 		return nil, err
 	}
@@ -156,20 +174,25 @@ func (q *Queries) ListRules(ctx context.Context, ledger string) ([]ListRulesRow,
 const nextEventTypeCode = `-- name: NextEventTypeCode :one
 SELECT (COALESCE(max(code), 1) + 1)::integer AS code
 FROM event_types
-WHERE ledger = $1
+WHERE organization_id = $2 AND ledger = $1
 `
 
-func (q *Queries) NextEventTypeCode(ctx context.Context, ledger string) (int32, error) {
-	row := q.db.QueryRow(ctx, nextEventTypeCode, ledger)
+type NextEventTypeCodeParams struct {
+	Ledger         string
+	OrganizationID pgtype.UUID
+}
+
+func (q *Queries) NextEventTypeCode(ctx context.Context, arg NextEventTypeCodeParams) (int32, error) {
+	row := q.db.QueryRow(ctx, nextEventTypeCode, arg.Ledger, arg.OrganizationID)
 	var code int32
 	err := row.Scan(&code)
 	return code, err
 }
 
 const putRule = `-- name: PutRule :one
-INSERT INTO account_rules (ledger, pattern, balance_limit, history, code, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $6)
-ON CONFLICT (ledger, pattern) DO UPDATE
+INSERT INTO account_rules (organization_id, ledger, pattern, balance_limit, history, code, created_at, updated_at)
+VALUES ($7, $1, $2, $3, $4, $5, $6, $6)
+ON CONFLICT (organization_id, ledger, pattern) DO UPDATE
 SET balance_limit = EXCLUDED.balance_limit,
     history = EXCLUDED.history,
     code = EXCLUDED.code,
@@ -178,12 +201,13 @@ RETURNING pattern, balance_limit, history, code, created_at, updated_at
 `
 
 type PutRuleParams struct {
-	Ledger       string
-	Pattern      string
-	BalanceLimit string
-	History      bool
-	Code         int32
-	CreatedAt    pgtype.Timestamptz
+	Ledger         string
+	Pattern        string
+	BalanceLimit   string
+	History        bool
+	Code           int32
+	CreatedAt      pgtype.Timestamptz
+	OrganizationID pgtype.UUID
 }
 
 type PutRuleRow struct {
@@ -203,6 +227,7 @@ func (q *Queries) PutRule(ctx context.Context, arg PutRuleParams) (PutRuleRow, e
 		arg.History,
 		arg.Code,
 		arg.CreatedAt,
+		arg.OrganizationID,
 	)
 	var i PutRuleRow
 	err := row.Scan(

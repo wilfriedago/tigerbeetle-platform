@@ -275,7 +275,10 @@ type ListWriteRequestsRequest struct {
 	// Every operation when unspecified.
 	Operation Operation `protobuf:"varint,5,opt,name=operation,proto3,enum=tigerbeetle.platform.v1.Operation" json:"operation,omitempty"`
 	// An Idempotency-Key, or the start of one, or a request ID.
-	Search        *string `protobuf:"bytes,6,opt,name=search,proto3,oneof" json:"search,omitempty"`
+	Search *string `protobuf:"bytes,6,opt,name=search,proto3,oneof" json:"search,omitempty"`
+	// Only the writes of this principal: a person's or a machine client's subject, or an API key's
+	// ID.
+	Actor         *string `protobuf:"bytes,7,opt,name=actor,proto3,oneof" json:"actor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -348,6 +351,13 @@ func (x *ListWriteRequestsRequest) GetOperation() Operation {
 func (x *ListWriteRequestsRequest) GetSearch() string {
 	if x != nil && x.Search != nil {
 		return *x.Search
+	}
+	return ""
+}
+
+func (x *ListWriteRequestsRequest) GetActor() string {
+	if x != nil && x.Actor != nil {
+		return *x.Actor
 	}
 	return ""
 }
@@ -551,7 +561,7 @@ const file_tigerbeetle_platform_v1_requests_proto_rawDesc = "" +
 	"\battempts\x18\v \x01(\x05R\battemptsB\x0f\n" +
 	"\r_problem_typeB\x12\n" +
 	"\x10_response_statusB\r\n" +
-	"\v_request_id\"\x98\x02\n" +
+	"\v_request_id\"\xbd\x02\n" +
 	"\x18ListWriteRequestsRequest\x12\x16\n" +
 	"\x06ledger\x18\x01 \x01(\tR\x06ledger\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
@@ -559,8 +569,10 @@ const file_tigerbeetle_platform_v1_requests_proto_rawDesc = "" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\x12>\n" +
 	"\x06status\x18\x04 \x01(\x0e2&.tigerbeetle.platform.v1.RequestStatusR\x06status\x12@\n" +
 	"\toperation\x18\x05 \x01(\x0e2\".tigerbeetle.platform.v1.OperationR\toperation\x12\x1b\n" +
-	"\x06search\x18\x06 \x01(\tH\x00R\x06search\x88\x01\x01B\t\n" +
-	"\a_search\"\x86\x01\n" +
+	"\x06search\x18\x06 \x01(\tH\x00R\x06search\x88\x01\x01\x12\x19\n" +
+	"\x05actor\x18\a \x01(\tH\x01R\x05actor\x88\x01\x01B\t\n" +
+	"\a_searchB\b\n" +
+	"\x06_actor\"\x86\x01\n" +
 	"\x19ListWriteRequestsResponse\x12A\n" +
 	"\brequests\x18\x01 \x03(\v2%.tigerbeetle.platform.v1.WriteRequestR\brequests\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"B\n" +

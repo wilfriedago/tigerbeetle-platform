@@ -1,0 +1,20 @@
+$kind: http-request
+name: Update Transaction Metadata
+order: 4000
+method: PUT
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/transactions/{{transactionId}}/metadata'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+  - key: id
+    value: '{{transactionId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reconciled": "true",
+      "note": "verified by finance"
+    }

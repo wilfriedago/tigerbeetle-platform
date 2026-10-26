@@ -8,6 +8,7 @@ package amqprpc
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"log/slog"
 	"time"
@@ -31,6 +32,8 @@ type Options struct {
 	ShutdownTimeout time.Duration
 	Dispatcher      *rpc.Dispatcher
 	Logger          *slog.Logger
+	// TLS configures an amqps:// connection; nil trusts the system's CAs.
+	TLS *tls.Config
 }
 
 // Server consumes the request queue and answers on the reply queues.
@@ -44,7 +47,7 @@ type Server struct {
 func New(opts Options) *Server {
 	return &Server{
 		opts:       opts,
-		supervisor: amqp.New(opts.URL, "tbp-api rpc", opts.Logger),
+		supervisor: amqp.New(opts.URL, "tbp-api rpc", opts.Logger, opts.TLS),
 		pool:       rpc.NewPool(opts.Concurrency),
 	}
 }
@@ -129,6 +132,8 @@ func (s *Server) handle(ctx context.Context, ch *amqp091.Channel, d amqp091.Deli
 		RequestID:      header(d.Headers, rpc.HeaderRequestID),
 		IdempotencyKey: header(d.Headers, rpc.HeaderIdempotencyKey),
 		Deadline:       header(d.Headers, rpc.HeaderDeadline),
+		Authorization:  header(d.Headers, rpc.HeaderAuthorization),
+		Organization:   header(d.Headers, rpc.HeaderOrganization),
 	})
 	if d.ReplyTo != "" {
 		publish, cancel := context.WithTimeout(ctx, 5*time.Second)

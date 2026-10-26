@@ -15,7 +15,7 @@ import (
 
 // SpecVersion is info.version of the REST contract. It changes when the contract changes, not
 // with every build of the service.
-const SpecVersion = "0.1.0"
+const SpecVersion = "0.2.0"
 
 // hooks guards Huma's package-level settings. Huma reads its error model and its array
 // nullability from package variables; they are assigned once, here, and never change afterwards.
@@ -60,13 +60,23 @@ func NewAPI(mux *http.ServeMux) huma.API {
 	cfg.Extensions = map[string]any{"security": []any{}}
 	cfg.Servers = []*huma.Server{{URL: "http://localhost:8080", Description: "Local compose stack"}}
 	cfg.Tags = specTags()
+	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
+		SecurityScheme: {
+			Type: "http", Scheme: "bearer", BearerFormat: "JWT",
+			Description: "An access token from the platform's identity provider (ADR-0026).",
+		},
+	}
 	cfg.Components.Schemas.RegisterTypeAlias(reflect.TypeFor[int](), reflect.TypeFor[integer]())
 	cfg.Transformers = append(cfg.Transformers, problemHeaders)
+	cfg.Formats = map[string]huma.Format{"application/json": jsonFormat, "json": jsonFormat}
 
 	api := humago.New(mux, cfg)
 	registerComponents(api.OpenAPI())
 	return api
 }
+
+// SecurityScheme names the bearer token scheme every non-public operation requires.
+const SecurityScheme = "bearerAuth"
 
 // specTags lists the tags in their published order. They shape the generated client, one module
 // per tag, so they change only on purpose.
@@ -98,5 +108,14 @@ in flight answers 409 with ` + "`Retry-After`" + `. A declined write stays decli
 with a new key (ADR-0007).
 
 Errors use RFC 9457 problem details with the ` + "`application/problem+json`" + ` media type. The
-` + "`type`" + ` is a stable URI such as ` + "`/problems/exceeds-credits`" + `.
+` + "`type`" + ` is a stable absolute URI, the same in every deployment, that opens the problem's entry in
+the catalogue (` + "`docs/problems.md`" + `): for example
+` + "`" + `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#exceeds-credits` + "`" + `.
+A problem the HTTP status describes on its own has the type ` + "`about:blank`" + `.
+
+Every operation except the health probes needs an access token, ` + "`Authorization: Bearer <token>`" + `
+(ADR-0026), and answers 401 without a valid one. A person names the organization a call acts
+for with ` + "`X-Organization`" + `; ledger names are unique within an organization (ADR-0027). A caller
+without a role on a ledger gets 404, one whose role lacks the permission 403 (ADR-0028). Request
+bodies must be sent as ` + "`application/json`" + `; anything else answers 415 (ADR-0032).
 `

@@ -1,0 +1,125 @@
+# 27. Organizations as tenants, owned by Keycloak Organizations
+
+Status: Accepted
+Date: 2026-10-26
+
+## Context and Problem Statement
+
+The platform serves several organizations from day 1. Today a ledger name is the primary key of
+`ledgers` (`apps/api/migrations/00001_create_ledgers.sql`), eight tables point at it by name
+(`ledger_assets`, `account_rules`, `event_types`, `addresses`, `accounts`, `write_requests`,
+`transactions`, `holds`), and ADR-0004 describes ledgers as one global namespace. Two tenants
+could not both have a ledger called `payments`, and a name taken by one would reveal itself to
+the other.
+
+Three questions follow: who owns organizations and their members, how a call names its
+organization, and how the data model keeps one tenant's rows away from another's.
+
+This record replaces only the "ledgers are one global namespace" part of ADR-0004 (ledger names
+are now unique per organization) and adds the platform's organization tables to the list of
+what Postgres holds in ADR-0002; everything else in both stands.
+
+## Decision Drivers
+
+- No cross-tenant read or write, by construction rather than by every query remembering a filter.
+- Invitations and per-organization single sign-on without building them (ADR-0026).
+- REST paths, protos and GraphQL arguments stay as they are.
+- Removing someone from one organization never touches their other memberships.
+- TigerBeetle stays the only source of truth for money (ADR-0002).
+
+## Considered Options
+
+1. Keycloak Organizations own organizations and membership; the platform keeps a copy of each
+   organization for its foreign keys, and owns everything inside.
+2. The platform owns organizations and membership in Postgres; Keycloak only signs people in.
+3. One Keycloak realm per organization.
+
+Option 2 was the first proposal: vendor-neutral, but invitations and per-organization SSO would
+have to be built or bolted on later. Option 3 isolates best but makes the API trust one issuer
+per tenant and does not scale to many tenants in Keycloak. The owner chose option 1.
+
+## Decision Outcome
+
+Chosen option: 1.
+
+- Keycloak owns each organization: name, alias, email domains, identity providers, members and
+  invitations. Every membership is unmanaged in Keycloak's terms, so removing a membership never
+  deletes the account. The platform never deletes a Keycloak organization.
+- The platform's `organizations` table keeps its own ID (what platform tables point at), the
+  alias (unique and immutable in Keycloak, so the link between the two), the Keycloak ID once
+  known, the name, and a status, `active` or `suspended`. Suspension is enforced by the platform:
+  every call in the organization's name answers 403 `organization-suspended`.
+- Only staff create organizations, for now (ADR-0028). Creating one creates it in Keycloak, then
+  the copy, then invites the first owner; retrying with the same alias finishes the job.
+- The tenant of a call comes from its credential: an API key or a machine client belongs to one
+  organization (ADR-0029). A person names the organization with the `X-Organization` header (the
+  alias); people's tokens are requested with the scope `organization:*`, so their `organization`
+  claim lists every membership, and the API checks the header against it. A non-member gets 404.
+  The header travels like the request ID: an HTTP header, `x-organization` gRPC metadata, an
+  `organization` message header on the brokers.
+- A ledger is (organization, name). `ledgers` and the eight tables that name a ledger gain
+  `organization_id`; their primary, unique and foreign keys lead with it, so a row can only point
+  at a ledger of its own organization. Use cases keep working with ledger names: the repositories
+  read the tenant from the request context (`ledger.RequireTenant`) and every query filters or
+  writes by it. A context without a tenant fails instead of reading every organization.
+- `apps/api/migrations/tenancy_test.go` reads every sqlc query and fails when one touches a tenant
+  table without `organization_id`. The few queries that may cross organizations (the reconciler's
+  backlog, lookups by IDs unique across the platform) say why in a `-- tenant-free:` comment.
+- The reconciler reads pending writes of every organization; each record carries its
+  organization, and the reconciler acts for it while settling the record.
+- TigerBeetle is unchanged: ledger numbers are allocated per (ledger, asset) from one sequence,
+  so they are unique across the cluster, and transfers cannot cross TigerBeetle ledgers.
+- Pre-alpha data moves into an organization with the alias `default`.
+- Inviting a person (question O6 of the plan, settled by a spike against Keycloak 26.8.1 on
+  2026-10-26). The API looks the email up among Keycloak's users:
+  - When the person has an account, Keycloak's `invite-existing-user` sends the invitation. The
+    link in the email makes them a member when followed, without signing in, and the membership
+    is unmanaged. Until then Keycloak lists the invitation, which can be resent or deleted.
+  - When they have none, the API creates the account (the email as username, not yet verified),
+    adds it to the organization as an unmanaged member, and asks Keycloak to email the required
+    actions `VERIFY_EMAIL` and `UPDATE_PASSWORD`. Following that one link verifies the address
+    and sets the password. There is no public registration page.
+  - Keycloak's `invite-user` for an unknown email was rejected: its link opens registration even
+    with self-registration off, but the account it creates is a managed member (removing the
+    membership deletes the account), its email stays unverified, and the person picks their own
+    username.
+  - Either way the API knows the person's Keycloak ID, the subject of their tokens, so their roles
+    are granted to that subject at once, not kept as pending grants keyed by email. A grant does
+    nothing until the person is a member: the organization must be in their token's claim before
+    a call can name it.
+- Staff see each organization's owners and its member and ledger counts, never its ledgers'
+  contents. A suspension carries a reason, which the organization's members get in the 403
+  `organization-suspended` problem and on the console's suspended page.
+- Organizations and members are managed by people, through REST and GraphQL. Broker RPC serves
+  the platform's own services, so it has no access methods; gRPC gains them only if integrators
+  ask (plan section 7.1).
+- The API calls Keycloak's admin API through `internal/platform/keycloak` as the service account
+  `tbp-admin`, holding only realm-management's `manage-organizations`, `view-organizations`,
+  `manage-users`, `view-users` and `query-users`. Narrowing it further with fine-grained admin
+  permissions v2 is later work.
+
+### Consequences
+
+- Good: tenant isolation is a property of the data model; the isolation tests target one
+  resolution step and the tenant middleware.
+- Good: invitations, member lists, and SSO by email domain come from Keycloak.
+- Good: no contract path changes; machine callers need nothing extra.
+- Bad: membership is read from the token, so a removed member keeps access until the token
+  expires, at most five minutes. Grants (ADR-0028) are checked on every call and revoke at once.
+- Bad: the API depends on Keycloak's admin API for organizations and invitations, with a service
+  account that needs `manage-organizations` and `manage-users`.
+- Bad: once any organization exists, Keycloak's login asks for the username or email first.
+- Bad: the ledger migration rewrites the keys of eight tables.
+- Bad: isolation relies on every query naming the organization; the guard test and the composite
+  foreign keys make a forgotten filter fail in CI, but it is a convention, not a type. The first
+  plan resolved the name once to a platform-wide ledger ID instead; that would have changed about
+  350 signatures in the application and domain layers, so it was not built.
+
+## More Information
+
+- `docs/plans/auth/plan.md`, section 4.3 (the Keycloak Organizations facts) and section 5.
+- [ADR-0002](0002-tigerbeetle-source-of-truth-postgres-context.md),
+  [ADR-0004](0004-ledger-api-surface.md): the records this one amends.
+- [ADR-0028](0028-authorization-through-platform-grants.md): roles inside an organization.
+- Keycloak, managing organizations: https://www.keycloak.org/docs/latest/server_admin/#_managing_organizations
+- TigerBeetle ledgers: https://docs.tigerbeetle.com/coding/data-modeling/#ledgers

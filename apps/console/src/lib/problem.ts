@@ -60,7 +60,7 @@ function isUnreachable(error: unknown): boolean {
   return error instanceof TypeError || (error instanceof DOMException && error.name === 'TimeoutError')
 }
 
-/** The problem type of an error, when the API sent one: "/problems/exceeds-credits". */
+/** The problem type of an error, when the API sent one: problemTypeOf('exceeds-credits') or "about:blank". */
 export function problemType(error: unknown): string | undefined {
   return error instanceof ApiError ? error.problem.type : undefined
 }

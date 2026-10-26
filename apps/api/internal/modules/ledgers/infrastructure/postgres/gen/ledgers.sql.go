@@ -11,53 +11,119 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countLedgers = `-- name: CountLedgers :many
+SELECT organization_id, count(*) AS ledgers
+FROM ledgers
+WHERE organization_id = ANY($1::uuid[])
+GROUP BY organization_id
+`
+
+type CountLedgersRow struct {
+	OrganizationID pgtype.UUID
+	Ledgers        int64
+}
+
+// How many ledgers each of several organizations has, for the staff's organization pages (counts
+// only, ADR-0027).
+func (q *Queries) CountLedgers(ctx context.Context, organizationIds []pgtype.UUID) ([]CountLedgersRow, error) {
+	rows, err := q.db.Query(ctx, countLedgers, organizationIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CountLedgersRow{}
+	for rows.Next() {
+		var i CountLedgersRow
+		if err := rows.Scan(&i.OrganizationID, &i.Ledgers); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createLedger = `-- name: CreateLedger :one
-INSERT INTO ledgers (name, metadata, created_at)
-VALUES ($1, $2, $3)
-RETURNING name, metadata, created_at
+INSERT INTO ledgers (organization_id, name, metadata, created_at)
+VALUES ($4, $1, $2, $3)
+RETURNING name, metadata, created_at, organization_id
 `
 
 type CreateLedgerParams struct {
-	Name      string
-	Metadata  []byte
-	CreatedAt pgtype.Timestamptz
+	Name           string
+	Metadata       []byte
+	CreatedAt      pgtype.Timestamptz
+	OrganizationID pgtype.UUID
 }
 
 func (q *Queries) CreateLedger(ctx context.Context, arg CreateLedgerParams) (Ledger, error) {
-	row := q.db.QueryRow(ctx, createLedger, arg.Name, arg.Metadata, arg.CreatedAt)
+	row := q.db.QueryRow(ctx, createLedger,
+		arg.Name,
+		arg.Metadata,
+		arg.CreatedAt,
+		arg.OrganizationID,
+	)
 	var i Ledger
-	err := row.Scan(&i.Name, &i.Metadata, &i.CreatedAt)
+	err := row.Scan(
+		&i.Name,
+		&i.Metadata,
+		&i.CreatedAt,
+		&i.OrganizationID,
+	)
 	return i, err
 }
 
 const getLedger = `-- name: GetLedger :one
-SELECT name, metadata, created_at
+SELECT name, metadata, created_at, organization_id
 FROM ledgers
-WHERE name = $1
+WHERE organization_id = $2 AND name = $1
 `
 
-func (q *Queries) GetLedger(ctx context.Context, name string) (Ledger, error) {
-	row := q.db.QueryRow(ctx, getLedger, name)
+type GetLedgerParams struct {
+	Name           string
+	OrganizationID pgtype.UUID
+}
+
+func (q *Queries) GetLedger(ctx context.Context, arg GetLedgerParams) (Ledger, error) {
+	row := q.db.QueryRow(ctx, getLedger, arg.Name, arg.OrganizationID)
 	var i Ledger
-	err := row.Scan(&i.Name, &i.Metadata, &i.CreatedAt)
+	err := row.Scan(
+		&i.Name,
+		&i.Metadata,
+		&i.CreatedAt,
+		&i.OrganizationID,
+	)
 	return i, err
 }
 
 const listLedgers = `-- name: ListLedgers :many
-SELECT name, metadata, created_at
+SELECT name, metadata, created_at, organization_id
 FROM ledgers
-WHERE name > $1::text
+WHERE organization_id = $1 AND name > $2::text
+    -- Only the ledgers the caller may read (ADR-0028): all of them, or the named ones.
+    AND ($3::boolean OR name = ANY($4::text[]))
 ORDER BY name
-LIMIT $2
+LIMIT $5
 `
 
 type ListLedgersParams struct {
-	After    string
-	PageSize int32
+	OrganizationID pgtype.UUID
+	After          string
+	AllLedgers     bool
+	Names          []string
+	PageSize       int32
 }
 
 func (q *Queries) ListLedgers(ctx context.Context, arg ListLedgersParams) ([]Ledger, error) {
-	rows, err := q.db.Query(ctx, listLedgers, arg.After, arg.PageSize)
+	rows, err := q.db.Query(ctx, listLedgers,
+		arg.OrganizationID,
+		arg.After,
+		arg.AllLedgers,
+		arg.Names,
+		arg.PageSize,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +131,12 @@ func (q *Queries) ListLedgers(ctx context.Context, arg ListLedgersParams) ([]Led
 	items := []Ledger{}
 	for rows.Next() {
 		var i Ledger
-		if err := rows.Scan(&i.Name, &i.Metadata, &i.CreatedAt); err != nil {
+		if err := rows.Scan(
+			&i.Name,
+			&i.Metadata,
+			&i.CreatedAt,
+			&i.OrganizationID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -79,16 +150,17 @@ func (q *Queries) ListLedgers(ctx context.Context, arg ListLedgersParams) ([]Led
 const replaceLedgerMetadata = `-- name: ReplaceLedgerMetadata :execrows
 UPDATE ledgers
 SET metadata = $2
-WHERE name = $1
+WHERE organization_id = $3 AND name = $1
 `
 
 type ReplaceLedgerMetadataParams struct {
-	Name     string
-	Metadata []byte
+	Name           string
+	Metadata       []byte
+	OrganizationID pgtype.UUID
 }
 
 func (q *Queries) ReplaceLedgerMetadata(ctx context.Context, arg ReplaceLedgerMetadataParams) (int64, error) {
-	result, err := q.db.Exec(ctx, replaceLedgerMetadata, arg.Name, arg.Metadata)
+	result, err := q.db.Exec(ctx, replaceLedgerMetadata, arg.Name, arg.Metadata, arg.OrganizationID)
 	if err != nil {
 		return 0, err
 	}

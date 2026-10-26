@@ -56,9 +56,11 @@ func HoldFrom(v *application.HoldView) Hold {
 		ResolutionTransferID: scalar.OptionalID(v.ResolutionTransferID),
 		TbLedger:             int64(v.TBLedger),
 	}
+
 	if v.CapturedAmount != nil {
 		c := scalar.AmountOf(*v.CapturedAmount)
 		out.CapturedAmount = &c
 	}
+
 	return out
 }

@@ -10,6 +10,13 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
 
+// Authorizer is answered by the access module (ADR-0028): whether the caller holds a permission,
+// on a ledger or in the organization of the call, and which ledgers it may see.
+type Authorizer interface {
+	Require(ctx context.Context, perm ledger.Permission, ledgerName string) error
+	VisibleLedgers(ctx context.Context) (all bool, names []string, err error)
+}
+
 // Footprints is answered by bookkeeping: the assets and address count shown with each ledger, for
 // a whole page of ledgers in one round trip. A ledger without accounts is absent from the map.
 type Footprints interface {

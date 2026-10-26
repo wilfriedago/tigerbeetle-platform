@@ -1,4 +1,4 @@
-import { ApiError, HttpStatusError } from '@tigerbeetle-platform/api-client'
+import { ApiError, HttpStatusError, problemTypeOf } from '@tigerbeetle-platform/api-client'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { toProblem } from './problem'
@@ -6,7 +6,7 @@ import { toProblem } from './problem'
 describe('toProblem', () => {
   it('keeps the members of a problem, its extensions and the Retry-After of the answer', () => {
     const error = new ApiError(
-      { detail: 'still running', results: ['ok'], status: 409, title: 'Request in flight', type: '/problems/request-in-flight' },
+      { detail: 'still running', results: ['ok'], status: 409, title: 'Request in flight', type: problemTypeOf('request-in-flight') },
       'req-1',
       2
     )
@@ -17,12 +17,12 @@ describe('toProblem', () => {
       retryAfter: 2,
       status: 409,
       title: 'Request in flight',
-      type: '/problems/request-in-flight'
+      type: problemTypeOf('request-in-flight')
     })
   })
 
   it('has no Retry-After when the answer had none', () => {
-    expect(toProblem(new ApiError({ status: 404, title: 'Not found', type: '/problems/not-found' }))).not.toHaveProperty('retryAfter')
+    expect(toProblem(new ApiError({ status: 404, title: 'Not found', type: problemTypeOf('not-found') }))).not.toHaveProperty('retryAfter')
   })
 
   it('describes a non-problem status and an unreachable API', () => {

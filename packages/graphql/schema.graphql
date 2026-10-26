@@ -65,6 +65,25 @@ enum RequestStatus {
 type Query {
   "Service name and version, runtime versions, and the reachability of Postgres and TigerBeetle."
   serviceInfo: Info!
+  "Every organization in alias order. Staff only."
+  organizations(
+    "Page size, 1 to 100."
+    first: Int = 25
+    "The endCursor of the previous page."
+    after: String
+  ): OrganizationConnection!
+  "An organization by alias, or null. Staff only."
+  organization(alias: String!): Organization
+  "The members of the organization of the call and the people invited to it, in name order. Every member may read it."
+  members: [Member!]!
+  "The organization's API keys, active ones first. Needs org.credentials."
+  apiKeys: [APIKey!]!
+  "One API key, or null. Needs org.credentials."
+  apiKey(id: String!): APIKey
+  "The organization's machine clients, active ones first. Needs org.credentials."
+  machineClients: [MachineClient!]!
+  "One machine client, or null. Needs org.credentials."
+  machineClient(clientId: String!): MachineClient
   "A ledger by name, or null when no ledger has that name."
   ledger(name: String!): Ledger
   "Every ledger in name order."
@@ -77,6 +96,38 @@ type Query {
 }
 
 type Mutation {
+  "Creates an organization and invites its first owner. Retrying with the same alias finishes an interrupted creation. Staff only."
+  createOrganization(input: CreateOrganizationInput!): Organization!
+  "Renames, suspends or reactivates an organization. Staff only."
+  updateOrganization(input: UpdateOrganizationInput!): Organization!
+  "Brings a person into the organization with an organization role: an invitation for a person with an account, an account and a setup email otherwise."
+  inviteMember(input: InviteMemberInput!): Member!
+  "Replaces a person's organization role. Owner changes need an owner; the last owner stays."
+  setMemberRole(input: SetMemberRoleInput!): Boolean!
+  "Ends a membership and removes the person's roles in the organization. Their account stays."
+  removeMember(input: MemberInput!): Boolean!
+  "Gives a member a role on one ledger. Needs ledger.members."
+  setLedgerRole(input: SetLedgerRoleInput!): Boolean!
+  "Removes a person's role on one ledger. Needs ledger.members."
+  revokeLedgerRole(input: RevokeLedgerRoleInput!): Boolean!
+  "Sends an invitation again with a new expiry."
+  resendInvitation(input: InvitationInput!): Boolean!
+  "Withdraws an invitation and the roles waiting for the person."
+  deleteInvitation(input: InvitationInput!): Boolean!
+  "Creates an API key with its ledger roles and answers its secret, shown once."
+  createApiKey(input: CreateAPIKeyInput!): CreatedAPIKey!
+  "Revokes an API key from its next request."
+  revokeApiKey(input: APIKeyInput!): Boolean!
+  "Creates a confidential client in Keycloak whose tokens act for the organization, and answers its secret, shown once."
+  createMachineClient(input: CreateMachineClientInput!): CreatedMachineClient!
+  "Replaces a machine client's secret; the old one stops at once."
+  regenerateMachineClientSecret(input: MachineClientInput!): ClientSecret!
+  "Deletes a machine client in Keycloak."
+  deleteMachineClient(input: MachineClientInput!): Boolean!
+  "Gives an API key or a machine client a role on one ledger."
+  setCredentialRole(input: SetCredentialRoleInput!): Boolean!
+  "Removes an API key's or a machine client's role on one ledger."
+  revokeCredentialRole(input: RevokeCredentialRoleInput!): Boolean!
   "Creates a ledger. The name is permanent; a ledger cannot be deleted, because TigerBeetle accounts and transfers are permanent."
   createLedger(input: CreateLedgerInput!): Ledger!
   "Replaces the metadata of a ledger."
@@ -101,6 +152,22 @@ type Mutation {
   voidHold(input: VoidHoldInput!): Hold!
   "Replaces the metadata of an existing account."
   replaceAccountMetadata(input: ReplaceAccountMetadataInput!): Account!
+}
+
+"An API key of the organization, without its secret."
+type APIKey {
+  "The key ID, the middle of tbp_<id>_<secret>. The principal of the key is tbp:api-key/<id>."
+  id: String!
+  name: String!
+  status: String!
+  expiresAt: DateTime
+  "Updated at most once a minute."
+  lastUsedAt: DateTime
+  revokedAt: DateTime
+  createdAt: DateTime!
+  createdBy: String
+  "The ledger roles the key acts with."
+  ledgers: [LedgerRole!]!
 }
 
 "An address with one TigerBeetle account per asset, and its open holds."
@@ -203,6 +270,27 @@ type BalancePoint {
   debits: Amount!
 }
 
+"A machine client's new secret, shown once."
+type ClientSecret {
+  secret: String!
+}
+
+"A new API key and its secret, shown once."
+type CreatedAPIKey {
+  key: APIKey!
+  "The whole key, tbp_<id>_<secret>. It is not stored and cannot be shown again."
+  secret: String!
+}
+
+"A new machine client and its secret, shown once."
+type CreatedMachineClient {
+  client: MachineClient!
+  "The client secret. Only a Keycloak realm administrator can see it again; regenerate it if it is lost."
+  secret: String!
+  "Where the client trades its secret for a token, with the client credentials grant."
+  tokenUrl: String!
+}
+
 type DeclinedReason {
   reason: String!
   count: Int64!
@@ -223,6 +311,8 @@ type Dependencies {
   nats: DependencyCheck
   "Present when the Kafka ledger event relay is enabled."
   kafka: DependencyCheck
+  "The identity provider (ADR-0026). When it does not answer, tokens already issued still verify, but nobody can sign in."
+  keycloak: DependencyCheck
 }
 
 "The result of probing one dependency."
@@ -294,6 +384,15 @@ type Info {
   version: String!
   dependencies: Dependencies!
   runtime: Runtime
+}
+
+"An invitation the person has not yet accepted."
+type Invitation {
+  id: String!
+  sentAt: DateTime!
+  expiresAt: DateTime!
+  "An expired invitation can be resent."
+  expired: Boolean!
 }
 
 "A ledger is a namespace for accounts and transactions. Money never crosses ledgers."
@@ -386,6 +485,8 @@ type Ledger {
     operation: Operation
     "An Idempotency-Key, or the start of one, or a request ID."
     search: String
+    "Only the writes of this principal: a person's or a machine client's subject, or an API key's ID."
+    actor: String
   ): WriteRequestConnection!
   "A write request by Idempotency-Key, or null."
   request(
@@ -404,6 +505,15 @@ type LedgerConnection {
   pageInfo: PageInfo!
 }
 
+"A role on one ledger."
+type LedgerRole {
+  ledger: String!
+  role: String!
+  grantedAt: DateTime!
+  "The name of who granted it, as it was then."
+  grantedBy: String
+}
+
 "The figures of the ledger overview."
 type LedgerStats {
   accounts: Int64!
@@ -412,6 +522,83 @@ type LedgerStats {
   assets: [AssetSummary!]!
   holds: HoldStats!
   declined: DeclinedStats!
+}
+
+"An OAuth client of the organization in Keycloak."
+type MachineClient {
+  "Keycloak's client ID: <organization>-<name>."
+  clientId: String!
+  name: String!
+  "The client's service account: the sub of its tokens."
+  subject: String!
+  status: String!
+  secretSetAt: DateTime!
+  "When the API last saw one of its tokens; updated at most once a minute."
+  lastTokenAt: DateTime
+  deletedAt: DateTime
+  createdAt: DateTime!
+  createdBy: String
+  "The ledger roles its tokens act with."
+  ledgers: [LedgerRole!]!
+}
+
+"A person of the organization with the roles the platform gives them (ADR-0028)."
+type Member {
+  "The identity provider's ID of the person: the subject of their tokens."
+  subject: String!
+  email: String!
+  emailVerified: Boolean!
+  name: String!
+  "setup-pending: the platform created the account and the person has not yet set a password. invited: the person has not yet accepted the invitation."
+  status: String!
+  "The organization role; absent when the person holds none."
+  role: String
+  "When the organization role was granted."
+  addedAt: DateTime
+  "The name of who granted the organization role, as it was then."
+  addedBy: String
+  ledgers: [LedgerRole!]!
+  "Present while status is invited."
+  invitation: Invitation
+}
+
+"A tenant of the platform, as staff see it (ADR-0027)."
+type Organization {
+  "The platform's ID of the organization."
+  id: String!
+  "Keycloak's ID of the organization."
+  keycloakId: String!
+  "Unique and permanent: the value of X-Organization and the organization's URL segment."
+  alias: String!
+  name: String!
+  "A suspended organization answers 403 organization-suspended to every call made in its name."
+  status: String!
+  "Why staff suspended it, shown to its members."
+  suspensionReason: String
+  createdAt: DateTime!
+  "The staff member who created it; absent for a seeded organization."
+  createdBy: String
+  "The owners, oldest first, and the first owner while on the way in."
+  owners: [Owner!]!
+  "The number of members in Keycloak."
+  members: Int!
+  "The number of ledgers."
+  ledgers: Int!
+}
+
+type OrganizationConnection {
+  nodes: [Organization!]!
+  pageInfo: PageInfo!
+}
+
+"An owner of an organization, or its first owner on the way in."
+type Owner {
+  subject: String!
+  email: String!
+  name: String!
+  status: String!
+  "When the owner role was granted."
+  since: DateTime!
 }
 
 type PageInfo {
@@ -589,12 +776,25 @@ type WriteRequestDetail {
   transferIds: [U128!]!
 }
 
+input APIKeyInput {
+  id: String!
+}
+
 input CaptureHoldInput {
   ledger: String!
   id: U128!
   idempotencyKey: String!
   "The amount to capture; the full hold when absent. Must not be zero."
   amount: Amount
+}
+
+input CreateAPIKeyInput {
+  "Lowercase letters, digits and dashes."
+  name: String!
+  "Absent for a key that does not expire."
+  expiresAt: DateTime
+  "The ledger roles the key acts with; at least one."
+  ledgers: [LedgerRoleInput!]!
 }
 
 input CreateEventTypeInput {
@@ -625,6 +825,20 @@ input CreateLedgerInput {
   metadata: Metadata
 }
 
+input CreateMachineClientInput {
+  "The client ID becomes <organization>-<name>."
+  name: String!
+  "The ledger roles its tokens act with; at least one."
+  ledgers: [LedgerRoleInput!]!
+}
+
+input CreateOrganizationInput {
+  "Lowercase letters, digits and dashes, 1 to 63 characters. It cannot change."
+  alias: String!
+  name: String!
+  owner: NewMemberInput!
+}
+
 input CreateTransactionInput {
   ledger: String!
   "Makes the write safe to retry: the same key and input replay the first answer (ADR-0007)."
@@ -642,6 +856,40 @@ input CreateTransactionInput {
 input DeleteRuleInput {
   ledger: String!
   pattern: String!
+}
+
+input InvitationInput {
+  id: String!
+}
+
+input InviteMemberInput {
+  person: NewMemberInput!
+  "member, admin or owner; member when absent. Only an owner can invite an owner."
+  role: String
+  "Roles on single ledgers, granted with the organization role."
+  ledgers: [LedgerRoleInput!]!
+}
+
+input LedgerRoleInput {
+  ledger: String!
+  "viewer, operator or admin."
+  role: String!
+}
+
+input MachineClientInput {
+  clientId: String!
+}
+
+input MemberInput {
+  subject: String!
+}
+
+input NewMemberInput {
+  email: String!
+  "Used when the person has no account yet."
+  firstName: String
+  "Used when the person has no account yet."
+  lastName: String
 }
 
 input PostingInput {
@@ -686,6 +934,50 @@ input RevertTransactionInput {
   idempotencyKey: String!
   reference: String
   metadata: Metadata
+}
+
+input RevokeCredentialRoleInput {
+  "api-key or machine-client."
+  kind: String!
+  id: String!
+  ledger: String!
+}
+
+input RevokeLedgerRoleInput {
+  subject: String!
+  ledger: String!
+}
+
+input SetCredentialRoleInput {
+  "api-key or machine-client."
+  kind: String!
+  "The key ID or the client ID."
+  id: String!
+  ledger: String!
+  "viewer, operator or admin."
+  role: String!
+}
+
+input SetLedgerRoleInput {
+  subject: String!
+  ledger: String!
+  "viewer, operator or admin."
+  role: String!
+}
+
+input SetMemberRoleInput {
+  subject: String!
+  "member, admin or owner."
+  role: String!
+}
+
+input UpdateOrganizationInput {
+  alias: String!
+  name: String
+  "active or suspended."
+  status: String
+  "Why the organization is suspended, shown to its members."
+  reason: String
 }
 
 input VoidHoldInput {

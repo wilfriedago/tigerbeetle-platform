@@ -18,6 +18,7 @@ import { settingsQueries } from '~/features/settings/api'
 import { apiPath } from '~/lib/curl'
 import { keyIsSpent, useIdempotencyKey } from '~/lib/idempotency'
 import { shortId } from '~/lib/ids'
+import { useOrganization } from '~/lib/organization'
 import { simulate } from '~/lib/preflight'
 import { toProblem } from '~/lib/problem'
 import { cn } from '~/lib/utils'
@@ -35,7 +36,7 @@ import { SummaryPanel } from './summary-panel'
 // summary column shows the postings and their effect on balances at every step. The form survives
 // a declined commit, so "Edit and retry" starts from what was sent, with a new key.
 
-const route = getRouteApi('/_console/ledgers/$ledger/transactions/new')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/transactions/new')
 
 const STEPS = ['Postings', 'Details', 'Review'] as const
 
@@ -51,6 +52,7 @@ export function NewTransactionPage() {
 }
 
 function NewTransactionForm() {
+  const org = useOrganization()
   const { ledger } = route.useParams()
   const search = route.useSearch()
   const [step, setStep] = useState(0)
@@ -194,13 +196,13 @@ function NewTransactionForm() {
                 : 'Safe to leave: the write keeps going.'
           }
         >
-          <Button variant="secondary" render={<Link to="/ledgers/$ledger/transactions" params={{ ledger }} />}>
+          <Button variant="secondary" render={<Link to="/$org/ledgers/$ledger/transactions" params={{ ledger, org }} />}>
             Go to transactions
           </Button>
           {submission.outcome.kind === 'committed' ? (
             <Button
               variant="secondary"
-              render={<Link to="/ledgers/$ledger/transactions/$txId" params={{ ledger, txId: submission.outcome.transaction.id }} />}
+              render={<Link to="/$org/ledgers/$ledger/transactions/$txId" params={{ ledger, org, txId: submission.outcome.transaction.id }} />}
             >
               View transaction
             </Button>
@@ -264,7 +266,7 @@ function NewTransactionForm() {
         <ActionBar
           className="xl:col-span-2"
           start={
-            <Button variant="ghost" render={<Link to="/ledgers/$ledger/transactions" params={{ ledger }} />}>
+            <Button variant="ghost" render={<Link to="/$org/ledgers/$ledger/transactions" params={{ ledger, org }} />}>
               Cancel
             </Button>
           }

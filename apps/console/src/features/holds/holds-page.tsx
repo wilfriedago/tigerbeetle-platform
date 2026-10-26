@@ -20,6 +20,7 @@ import { Button } from '~/components/ui/button'
 import { Tabs, TabsCount, TabsList, TabsTrigger } from '~/components/ui/tabs'
 
 import { shortId } from '~/lib/ids'
+import { activeOrganization, useOrganization } from '~/lib/organization'
 
 import { holdQueries } from './api'
 import { CaptureDialog } from './components/capture-dialog'
@@ -29,7 +30,7 @@ import { VoidDialog } from './components/void-dialog'
 // docs/console.md, Holds: two-phase transfers (ADR-0010) by status, with Capture and Void on the
 // open ones. Counts come with every page, so the tabs always show them.
 
-const route = getRouteApi('/_console/ledgers/$ledger/holds/')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/holds/')
 
 const STATUSES: readonly HoldStatus[] = ['open', 'captured', 'voided', 'expired']
 const LABEL: Record<HoldStatus, string> = { captured: 'Captured', expired: 'Expired', open: 'Open', voided: 'Voided' }
@@ -42,12 +43,13 @@ interface Actions {
 }
 
 function holdColumns(ledger: string, status: HoldStatus, actions: Actions) {
+  const org = activeOrganization() ?? ''
   return [
     column.accessor('id', {
       cell: (info) => (
         <Link
-          to="/ledgers/$ledger/holds/$holdId"
-          params={{ holdId: info.getValue(), ledger }}
+          to="/$org/ledgers/$ledger/holds/$holdId"
+          params={{ holdId: info.getValue(), ledger, org }}
           className="font-mono outline-none hover:underline focus-visible:ring-3 focus-visible:ring-focus-ring"
         >
           {shortId(info.getValue())}
@@ -108,6 +110,7 @@ function holdColumns(ledger: string, status: HoldStatus, actions: Actions) {
 }
 
 export function HoldsPage() {
+  const org = useOrganization()
   const { ledger } = route.useParams()
   const search = route.useSearch()
   const navigate = route.useNavigate()
@@ -133,7 +136,7 @@ export function HoldsPage() {
         title="Holds"
         description="Pending transfers that reserve funds until they are captured, voided or expire."
         actions={
-          <Button render={<Link to="/ledgers/$ledger/holds/new" params={{ ledger }} />}>
+          <Button render={<Link to="/$org/ledgers/$ledger/holds/new" params={{ ledger, org }} />}>
             <LockIcon />
             New hold
           </Button>
@@ -169,7 +172,7 @@ export function HoldsPage() {
         data={list.data?.data}
         getRowId={(hold) => hold.id}
         loading={list.isPending}
-        onRowClick={(hold) => void navigate({ params: { holdId: hold.id, ledger }, to: '/ledgers/$ledger/holds/$holdId' })}
+        onRowClick={(hold) => void navigate({ params: { holdId: hold.id, ledger, org }, to: '/$org/ledgers/$ledger/holds/$holdId' })}
         empty={`No ${LABEL[status].toLowerCase()} holds${search.address ? ' for this address' : ''}.`}
       />
       <CursorPager hasNext={pager.hasNext} hasPrevious={pager.hasPrevious} onNext={pager.next} onPrevious={pager.previous} busy={list.isFetching} />

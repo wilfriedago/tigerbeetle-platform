@@ -27,6 +27,7 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	ledgersapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/application"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
 	pb "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
@@ -120,7 +121,7 @@ func newHarness(t *testing.T, tigerbeetleUp bool) *harness {
 		}
 		return errors.New("secret driver text")
 	})
-	srv := grpcserver.New(grpcserver.Options{ShutdownTimeout: time.Second, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	srv := grpcserver.New(grpcserver.Options{ShutdownTimeout: time.Second, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Auth: authntest.Default()})
 	RegisterAll(srv, Modules{
 		Health:      healthdto.Source{Readiness: checker, Service: healthdto.Service{Name: "tigerbeetle-platform-api", Version: "test"}},
 		Ledgers:     ledgersapp.Application{LedgerCommands: h.ledgers, LedgerQueries: fakeLedgerQueries{}},

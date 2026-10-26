@@ -7,25 +7,32 @@ package gen
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const eventTypeUsage = `-- name: EventTypeUsage :many
 SELECT u.event_type, count(*)::bigint AS uses
 FROM (
-    SELECT t.event_type FROM transactions t WHERE t.ledger = $1
+    SELECT t.event_type FROM transactions t WHERE t.organization_id = $2 AND t.ledger = $1
     UNION ALL
-    SELECT h.event_type FROM holds h WHERE h.ledger = $1
+    SELECT h.event_type FROM holds h WHERE h.organization_id = $2 AND h.ledger = $1
 ) u
 GROUP BY u.event_type
 `
+
+type EventTypeUsageParams struct {
+	Ledger         string
+	OrganizationID pgtype.UUID
+}
 
 type EventTypeUsageRow struct {
 	EventType string
 	Uses      int64
 }
 
-func (q *Queries) EventTypeUsage(ctx context.Context, ledger string) ([]EventTypeUsageRow, error) {
-	rows, err := q.db.Query(ctx, eventTypeUsage, ledger)
+func (q *Queries) EventTypeUsage(ctx context.Context, arg EventTypeUsageParams) ([]EventTypeUsageRow, error) {
+	rows, err := q.db.Query(ctx, eventTypeUsage, arg.Ledger, arg.OrganizationID)
 	if err != nil {
 		return nil, err
 	}
@@ -48,10 +55,15 @@ const ledgerFootprints = `-- name: LedgerFootprints :many
 
 SELECT
     n.name::text AS ledger,
-    COALESCE((SELECT array_agg(la.asset ORDER BY la.asset) FROM ledger_assets la WHERE la.ledger = n.name), '{}')::text[] AS assets,
-    (SELECT count(*) FROM addresses a WHERE a.ledger = n.name)::bigint AS accounts
-FROM unnest($1::text[]) AS n(name)
+    COALESCE((SELECT array_agg(la.asset ORDER BY la.asset) FROM ledger_assets la WHERE la.organization_id = $1 AND la.ledger = n.name), '{}')::text[] AS assets,
+    (SELECT count(*) FROM addresses a WHERE a.organization_id = $1 AND a.ledger = n.name)::bigint AS accounts
+FROM unnest($2::text[]) AS n(name)
 `
+
+type LedgerFootprintsParams struct {
+	OrganizationID pgtype.UUID
+	Ledgers        []string
+}
 
 type LedgerFootprintsRow struct {
 	Ledger   string
@@ -60,8 +72,8 @@ type LedgerFootprintsRow struct {
 }
 
 // Reads the ledgers module asks bookkeeping for, through the ports of plan section 4.5.
-func (q *Queries) LedgerFootprints(ctx context.Context, ledgers []string) ([]LedgerFootprintsRow, error) {
-	rows, err := q.db.Query(ctx, ledgerFootprints, ledgers)
+func (q *Queries) LedgerFootprints(ctx context.Context, arg LedgerFootprintsParams) ([]LedgerFootprintsRow, error) {
+	rows, err := q.db.Query(ctx, ledgerFootprints, arg.OrganizationID, arg.Ledgers)
 	if err != nil {
 		return nil, err
 	}

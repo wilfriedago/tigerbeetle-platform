@@ -19,7 +19,7 @@ import { ledgerQueries, useReplaceLedgerMetadata } from '~/features/ledgers/api'
 // docs/console.md, Ledger settings: the name is permanent (it is in every API path), the metadata
 // is the only thing that changes, and there is no delete because TigerBeetle keeps every account.
 
-const route = getRouteApi('/_console/ledgers/$ledger/settings/')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/settings/')
 
 export function LedgerSettingsPage() {
   const { ledger } = route.useParams()

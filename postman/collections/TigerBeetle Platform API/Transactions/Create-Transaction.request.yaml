@@ -1,0 +1,29 @@
+$kind: http-request
+name: Create Transaction
+order: 2000
+method: POST
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/transactions'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "postings": [
+        {
+          "source": "users:1234:wallet",
+          "destination": "merchants:5678:revenue",
+          "asset": "EUR/2",
+          "amount": "10000"
+        }
+      ],
+      "eventType": "transfer",
+      "reference": "order-ref-001",
+      "metadata": {
+        "orderId": "ord-001"
+      }
+    }

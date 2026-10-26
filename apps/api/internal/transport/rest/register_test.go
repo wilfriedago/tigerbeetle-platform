@@ -51,6 +51,31 @@ var registered = []struct {
 	{"deleteRule", http.MethodDelete, "/v1/ledgers/{ledger}/rules/{pattern}", "settings"},
 	{"listEventTypes", http.MethodGet, "/v1/ledgers/{ledger}/event-types", "settings"},
 	{"createEventType", http.MethodPost, "/v1/ledgers/{ledger}/event-types", "settings"},
+	{"listOrganizations", http.MethodGet, "/v1/organizations", "organizations"},
+	{"createOrganization", http.MethodPost, "/v1/organizations", "organizations"},
+	{"getOrganization", http.MethodGet, "/v1/organizations/{organization}", "organizations"},
+	{"updateOrganization", http.MethodPatch, "/v1/organizations/{organization}", "organizations"},
+	{"listMembers", http.MethodGet, "/v1/members", "members"},
+	{"inviteMember", http.MethodPost, "/v1/members", "members"},
+	{"setMemberRole", http.MethodPut, "/v1/members/{subject}/role", "members"},
+	{"removeMember", http.MethodDelete, "/v1/members/{subject}", "members"},
+	{"setLedgerRole", http.MethodPut, "/v1/ledgers/{ledger}/members/{subject}", "members"},
+	{"revokeLedgerRole", http.MethodDelete, "/v1/ledgers/{ledger}/members/{subject}", "members"},
+	{"resendInvitation", http.MethodPost, "/v1/invitations/{invitation}/resend", "members"},
+	{"deleteInvitation", http.MethodDelete, "/v1/invitations/{invitation}", "members"},
+	{"listAPIKeys", http.MethodGet, "/v1/api-keys", "api-keys"},
+	{"createAPIKey", http.MethodPost, "/v1/api-keys", "api-keys"},
+	{"getAPIKey", http.MethodGet, "/v1/api-keys/{key}", "api-keys"},
+	{"revokeAPIKey", http.MethodDelete, "/v1/api-keys/{key}", "api-keys"},
+	{"setAPIKeyRole", http.MethodPut, "/v1/api-keys/{key}/ledgers/{ledger}", "api-keys"},
+	{"revokeAPIKeyRole", http.MethodDelete, "/v1/api-keys/{key}/ledgers/{ledger}", "api-keys"},
+	{"listMachineClients", http.MethodGet, "/v1/machine-clients", "machine-clients"},
+	{"createMachineClient", http.MethodPost, "/v1/machine-clients", "machine-clients"},
+	{"getMachineClient", http.MethodGet, "/v1/machine-clients/{client}", "machine-clients"},
+	{"deleteMachineClient", http.MethodDelete, "/v1/machine-clients/{client}", "machine-clients"},
+	{"regenerateMachineClientSecret", http.MethodPost, "/v1/machine-clients/{client}/secret", "machine-clients"},
+	{"setMachineClientRole", http.MethodPut, "/v1/machine-clients/{client}/ledgers/{ledger}", "machine-clients"},
+	{"revokeMachineClientRole", http.MethodDelete, "/v1/machine-clients/{client}/ledgers/{ledger}", "machine-clients"},
 }
 
 func TestOperationsAreRegistered(t *testing.T) {
@@ -61,6 +86,7 @@ func TestOperationsAreRegistered(t *testing.T) {
 	for path, item := range api.OpenAPI().Paths {
 		for method, op := range map[string]*huma.Operation{
 			http.MethodGet: item.Get, http.MethodPost: item.Post, http.MethodPut: item.Put, http.MethodDelete: item.Delete,
+			http.MethodPatch: item.Patch,
 		} {
 			if op != nil {
 				found[method+" "+path+" "+op.OperationID+" "+strings.Join(op.Tags, ",")] = true

@@ -1,0 +1,355 @@
+/*
+ * Ledger Instrument, the design tokens of the console and the Keycloak theme (.design/ds.lib.pen).
+ *
+ * Three tiers, as in the Pencil library:
+ *   1. Palette: raw values (paper, slate, ink, green, amber, red). Never used by components.
+ *   2. Roles: themed by mode (light, dark) and density (comfortable, compact). Same names as the
+ *      Pencil variables without the "$" (bg, surface, text-muted, accent, success-fg...).
+ *   3. Tailwind and shadcn: @theme inline exposes the roles as utilities, and the shadcn semantic
+ *      names (background, primary, muted...) point at roles so upstream components stay themed.
+ *
+ * Mode is the .dark class on <html>; density is data-density="compact" on <html>. Import it after
+ * tailwindcss; each app keeps its own base layer.
+ */
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Palette */
+  --paper-0: #ffffff;
+  --paper-25: #fbfaf7;
+  --paper-50: #f6f5f1;
+  --paper-100: #eeece6;
+  --paper-200: #e4e2db;
+  --paper-300: #d3d0c7;
+  --paper-400: #b3afa5;
+  --slate-50: #f3f4f6;
+  --slate-100: #e6e8ec;
+  --slate-200: #cdd1d8;
+  --slate-300: #a9aeb8;
+  --slate-400: #868b95;
+  --slate-500: #6a6f79;
+  --slate-600: #555a63;
+  --slate-700: #3d414a;
+  --slate-750: #31353d;
+  --slate-800: #262a31;
+  --slate-850: #1f2228;
+  --slate-900: #181b20;
+  --slate-950: #121418;
+  --slate-1000: #0c0e11;
+  --ink-50: #eef1fc;
+  --ink-100: #dfe5fa;
+  --ink-200: #bfcbf4;
+  --ink-300: #95a9ec;
+  --ink-400: #6e88e3;
+  --ink-500: #4a68d6;
+  --ink-600: #2f4fc4;
+  --ink-700: #2641a6;
+  --ink-800: #1f3484;
+  --ink-900: #1b2b60;
+  --ink-950: #131c3c;
+  --green-50: #e9f6ef;
+  --green-100: #d2ecde;
+  --green-300: #7fd3a5;
+  --green-400: #4dbb80;
+  --green-600: #1f7f4f;
+  --green-700: #18663f;
+  --green-800: #1b4431;
+  --green-900: #11291d;
+  --amber-50: #fef5e2;
+  --amber-100: #fbe7bd;
+  --amber-300: #f4c46a;
+  --amber-400: #ebaa3a;
+  --amber-600: #a86f0b;
+  --amber-700: #845500;
+  --amber-800: #4b3b16;
+  --amber-900: #2c2310;
+  --red-50: #fdedee;
+  --red-100: #f9d4d6;
+  --red-300: #f59ba0;
+  --red-400: #ee6a71;
+  --red-500: #e5484d;
+  --red-600: #c8333b;
+  --red-700: #a9262d;
+  --red-800: #522428;
+  --red-900: #2e1517;
+
+  /* Roles, light mode */
+  --bg: var(--paper-25);
+  --sidebar-bg: var(--paper-50);
+  --surface: var(--paper-0);
+  --surface-sunken: var(--paper-50);
+  --surface-raised: var(--paper-0);
+  --surface-hover: var(--paper-100);
+  --surface-pressed: var(--paper-200);
+  --surface-selected: var(--ink-50);
+  --border-default: var(--paper-200);
+  --border-subtle: var(--paper-100);
+  --border-strong: var(--paper-300);
+  --text: var(--slate-900);
+  --text-muted: var(--slate-600);
+  --text-subtle: var(--slate-400);
+  --text-inverse: var(--paper-0);
+  --accent-solid: var(--ink-600);
+  --accent-hover: var(--ink-700);
+  --accent-pressed: var(--ink-800);
+  --accent-subtle: var(--ink-50);
+  --accent-subtle-hover: var(--ink-100);
+  --accent-text: var(--ink-700);
+  --accent-fg: var(--paper-0);
+  --accent-border: var(--ink-100);
+  --focus-ring: #2f4fc459;
+  --success-fg: var(--green-700);
+  --success-bg: var(--green-50);
+  --success-border: var(--green-100);
+  --success-solid: var(--green-600);
+  --warning-fg: var(--amber-700);
+  --warning-bg: var(--amber-50);
+  --warning-border: var(--amber-100);
+  --warning-solid: var(--amber-400);
+  --danger-fg: var(--red-700);
+  --danger-bg: var(--red-50);
+  --danger-border: var(--red-100);
+  --danger-solid: var(--red-600);
+  --danger-solid-hover: var(--red-700);
+  --danger-on-solid: var(--paper-0);
+  --neutral-fg: var(--slate-700);
+  --neutral-bg: var(--paper-100);
+  --neutral-border: var(--paper-200);
+  --muted-fg: var(--slate-400);
+  --muted-bg: var(--paper-50);
+  --tooltip-bg: var(--slate-900);
+  --tooltip-fg: var(--paper-0);
+  --overlay: #12141866;
+  --shadow-color: #1c1f2614;
+  --shadow-color-strong: #1c1f2629;
+  --bar-track: var(--paper-100);
+  --bar-available: var(--ink-600);
+  --bar-reserved: var(--amber-400);
+  --code-key: var(--ink-700);
+  --code-string: var(--green-700);
+  --code-number: var(--amber-700);
+  --code-punct: var(--slate-400);
+  --skeleton: var(--paper-100);
+
+  /* Density, comfortable */
+  --row-h: 40px;
+  --header-row-h: 36px;
+
+  /* shadcn semantic names, mapped onto the roles */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text);
+  --primary: var(--accent-solid);
+  --primary-foreground: var(--accent-fg);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--text);
+  --muted: var(--muted-bg);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--surface-hover);
+  --accent-foreground: var(--text);
+  --destructive: var(--danger-solid);
+  --border: var(--border-default);
+  --input: var(--border-strong);
+  --ring: var(--accent-solid);
+  --sidebar: var(--sidebar-bg);
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--accent-solid);
+  --sidebar-primary-foreground: var(--accent-fg);
+  --sidebar-accent: var(--surface-selected);
+  --sidebar-accent-foreground: var(--accent-text);
+  --sidebar-border: var(--border-default);
+  --sidebar-ring: var(--accent-solid);
+  --radius: 8px;
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: var(--slate-950);
+  --sidebar-bg: var(--slate-1000);
+  --surface: var(--slate-900);
+  --surface-sunken: var(--slate-1000);
+  --surface-raised: var(--slate-850);
+  --surface-hover: var(--slate-800);
+  --surface-pressed: var(--slate-750);
+  --surface-selected: var(--ink-950);
+  --border-default: var(--slate-800);
+  --border-subtle: var(--slate-850);
+  --border-strong: var(--slate-700);
+  --text: var(--slate-50);
+  --text-muted: var(--slate-300);
+  --text-subtle: var(--slate-500);
+  --text-inverse: var(--slate-950);
+  --accent-solid: var(--ink-400);
+  --accent-hover: var(--ink-300);
+  --accent-pressed: var(--ink-200);
+  --accent-subtle: var(--ink-950);
+  --accent-subtle-hover: var(--ink-900);
+  --accent-text: var(--ink-300);
+  --accent-fg: var(--slate-1000);
+  --accent-border: var(--ink-900);
+  --focus-ring: #6e88e366;
+  --success-fg: var(--green-300);
+  --success-bg: var(--green-900);
+  --success-border: var(--green-800);
+  --success-solid: var(--green-400);
+  --warning-fg: var(--amber-300);
+  --warning-bg: var(--amber-900);
+  --warning-border: var(--amber-800);
+  --warning-solid: var(--amber-400);
+  --danger-fg: var(--red-300);
+  --danger-bg: var(--red-900);
+  --danger-border: var(--red-800);
+  --danger-solid: var(--red-600);
+  --danger-solid-hover: var(--red-500);
+  --danger-on-solid: var(--paper-0);
+  --neutral-fg: var(--slate-200);
+  --neutral-bg: var(--slate-850);
+  --neutral-border: var(--slate-750);
+  --muted-fg: var(--slate-500);
+  --muted-bg: var(--slate-900);
+  --tooltip-bg: var(--slate-700);
+  --tooltip-fg: var(--slate-50);
+  --overlay: #000000a6;
+  --shadow-color: #00000080;
+  --shadow-color-strong: #000000b3;
+  --bar-track: var(--slate-800);
+  --bar-available: var(--ink-400);
+  --bar-reserved: var(--amber-400);
+  --code-key: var(--ink-300);
+  --code-string: var(--green-300);
+  --code-number: var(--amber-300);
+  --code-punct: var(--slate-500);
+  --skeleton: var(--slate-850);
+}
+
+[data-density='compact'] {
+  --row-h: 32px;
+  --header-row-h: 32px;
+}
+
+@theme inline {
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* shadcn semantic colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Ledger Instrument roles that shadcn has no name for */
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-pressed: var(--surface-pressed);
+  --color-surface-selected: var(--surface-selected);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-subtle-foreground: var(--text-subtle);
+  --color-inverse-foreground: var(--text-inverse);
+  --color-primary-hover: var(--accent-hover);
+  --color-primary-pressed: var(--accent-pressed);
+  --color-primary-subtle: var(--accent-subtle);
+  --color-primary-subtle-hover: var(--accent-subtle-hover);
+  --color-primary-text: var(--accent-text);
+  --color-primary-border: var(--accent-border);
+  --color-focus-ring: var(--focus-ring);
+  --color-success: var(--success-solid);
+  --color-success-fg: var(--success-fg);
+  --color-success-bg: var(--success-bg);
+  --color-success-border: var(--success-border);
+  --color-warning: var(--warning-solid);
+  --color-warning-fg: var(--warning-fg);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-border: var(--warning-border);
+  --color-danger: var(--danger-solid);
+  --color-danger-hover: var(--danger-solid-hover);
+  --color-danger-on: var(--danger-on-solid);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-border: var(--danger-border);
+  --color-neutral-fg: var(--neutral-fg);
+  --color-neutral-bg: var(--neutral-bg);
+  --color-neutral-border: var(--neutral-border);
+  --color-quiet-fg: var(--muted-fg);
+  --color-quiet-bg: var(--muted-bg);
+  --color-tooltip: var(--tooltip-bg);
+  --color-tooltip-foreground: var(--tooltip-fg);
+  --color-overlay: var(--overlay);
+  --color-bar-track: var(--bar-track);
+  --color-bar-available: var(--bar-available);
+  --color-bar-reserved: var(--bar-reserved);
+  --color-code-key: var(--code-key);
+  --color-code-string: var(--code-string);
+  --color-code-number: var(--code-number);
+  --color-code-punct: var(--code-punct);
+  --color-skeleton: var(--skeleton);
+
+  /* Radius: xs bars and chips, sm badges and checkboxes, md controls, lg cards and overlays */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Elevation: level 1 floats (menus, popovers, toasts), level 2 sits over a scrim */
+  --shadow-float: 0 4px 16px var(--shadow-color);
+  --shadow-overlay: 0 16px 48px var(--shadow-color-strong);
+
+  /* Density-driven sizes, used as h-row and h-header-row */
+  --spacing-row: var(--row-h);
+  --spacing-header-row: var(--header-row-h);
+
+  /* Named type styles (02 Typography). Sizes outside this list use the Tailwind scale. */
+  --text-display: 36px;
+  --text-display--line-height: 1.2;
+  --text-display--letter-spacing: -0.5px;
+  --text-display--font-weight: 600;
+  --text-page-title: 24px;
+  --text-page-title--line-height: 1.25;
+  --text-page-title--letter-spacing: -0.3px;
+  --text-page-title--font-weight: 600;
+  --text-section-title: 20px;
+  --text-section-title--line-height: 1.3;
+  --text-section-title--letter-spacing: -0.2px;
+  --text-section-title--font-weight: 600;
+  --text-card-title: 16px;
+  --text-card-title--line-height: 1.35;
+  --text-card-title--font-weight: 600;
+  --text-body: 14px;
+  --text-body--line-height: 1.5;
+  --text-small: 13px;
+  --text-small--line-height: 1.45;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.4;
+  --text-amount-display: 30px;
+  --text-amount-display--line-height: 1.2;
+  --text-amount-display--letter-spacing: -0.5px;
+  --text-amount-display--font-weight: 600;
+}

@@ -1,0 +1,11 @@
+$kind: http-request
+name: Get Account
+order: 2000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/accounts/{{address}}'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+  - key: address
+    value: '{{address}}'
+    description: 'Colon-separated account address, e.g. users:1234:wallet'

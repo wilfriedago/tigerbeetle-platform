@@ -16,6 +16,7 @@ import (
 	amqp091 "github.com/rabbitmq/amqp091-go"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/devstack"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/rpc"
 )
@@ -72,7 +73,7 @@ func startReplica(t *testing.T, url, name string, concurrency int, c *counters) 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	r.server = New(Options{
 		URL: url, Queue: queue, Concurrency: concurrency, ShutdownTimeout: 2 * time.Second,
-		Dispatcher: rpc.NewDispatcher(router, 30*time.Second, logger), Logger: logger,
+		Dispatcher: rpc.NewDispatcher(router, 30*time.Second, logger, authntest.Default()), Logger: logger,
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
@@ -118,7 +119,7 @@ func call(t *testing.T, c *Client, method string, timeout time.Duration) (map[st
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	answer, err := c.Call(ctx, method, rpc.Envelope{}, "", requestid.New())
+	answer, err := c.Call(ctx, method, rpc.Envelope{}, rpc.Headers{RequestID: requestid.New()})
 	if err != nil {
 		return nil, err
 	}

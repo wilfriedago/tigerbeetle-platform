@@ -72,6 +72,9 @@ func (s *InfoServer) GetInfo(ctx context.Context, _ *pb.GetInfoRequest) (*pb.Get
 	if kafka := info.Dependencies.Kafka; kafka != nil {
 		out.Dependencies[dto.ProbeKafka] = checkOf(*kafka)
 	}
+	if kc := info.Dependencies.Keycloak; kc != nil {
+		out.Dependencies[dto.ProbeKeycloak] = checkOf(*kc)
+	}
 	if rt := info.Runtime; rt != nil {
 		out.Runtime = &pb.Runtime{
 			StartedAt:                grpcapi.Timestamp(rt.StartedAt),

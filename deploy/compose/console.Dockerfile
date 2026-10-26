@@ -10,6 +10,7 @@ WORKDIR /workspace
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/console/package.json apps/console/
 COPY packages/api-client/package.json packages/api-client/
+COPY packages/design-tokens/package.json packages/design-tokens/
 COPY packages/graphql/package.json packages/graphql/
 COPY packages/openapi/package.json packages/openapi/
 # --ignore-scripts skips the root prepare script, which installs the git hooks and needs git.

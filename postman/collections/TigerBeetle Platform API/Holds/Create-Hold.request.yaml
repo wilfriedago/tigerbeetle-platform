@@ -1,0 +1,26 @@
+$kind: http-request
+name: Create Hold
+order: 2000
+method: POST
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/holds'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "source": "users:1234:wallet",
+      "destination": "merchants:5678:revenue",
+      "asset": "EUR/2",
+      "amount": "10000",
+      "eventType": "transfer",
+      "reference": "order-ref-001",
+      "timeoutSeconds": 300,
+      "metadata": {
+        "orderId": "ord-001"
+      }
+    }

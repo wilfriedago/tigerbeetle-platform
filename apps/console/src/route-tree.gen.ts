@@ -11,32 +11,52 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConsoleRouteImport } from './routes/_console'
+import { Route as ConsoleOrgRouteImport } from './routes/_console/$org'
 import { Route as ConsoleDesignSystemRouteImport } from './routes/_console/design-system'
+import { Route as ConsoleMeRouteImport } from './routes/_console/me'
 import { Route as ConsolePreferencesRouteImport } from './routes/_console/preferences'
-import { Route as ConsoleSystemRouteRouteImport } from './routes/_console/system/route'
-import { Route as ConsoleLedgersIndexRouteImport } from './routes/_console/ledgers/index'
-import { Route as ConsoleLedgersLedgerRouteImport } from './routes/_console/ledgers/$ledger'
-import { Route as ConsoleSystemIndexRouteImport } from './routes/_console/system/index'
-import { Route as ConsoleSystemReconcilerRouteImport } from './routes/_console/system/reconciler'
-import { Route as ConsoleLedgersLedgerIndexRouteImport } from './routes/_console/ledgers/$ledger/index'
-import { Route as ConsoleLedgersLedgerAccountsRouteRouteImport } from './routes/_console/ledgers/$ledger/accounts/route'
-import { Route as ConsoleLedgersLedgerAssetsRouteImport } from './routes/_console/ledgers/$ledger/assets'
-import { Route as ConsoleLedgersLedgerBalancesRouteImport } from './routes/_console/ledgers/$ledger/balances'
-import { Route as ConsoleLedgersLedgerHoldsRouteRouteImport } from './routes/_console/ledgers/$ledger/holds/route'
-import { Route as ConsoleLedgersLedgerRequestsRouteImport } from './routes/_console/ledgers/$ledger/requests'
-import { Route as ConsoleLedgersLedgerSettingsRouteRouteImport } from './routes/_console/ledgers/$ledger/settings/route'
-import { Route as ConsoleLedgersLedgerTransactionsRouteRouteImport } from './routes/_console/ledgers/$ledger/transactions/route'
-import { Route as ConsoleLedgersLedgerAccountsIndexRouteImport } from './routes/_console/ledgers/$ledger/accounts/index'
-import { Route as ConsoleLedgersLedgerAccountsAddressRouteImport } from './routes/_console/ledgers/$ledger/accounts/$address'
-import { Route as ConsoleLedgersLedgerHoldsIndexRouteImport } from './routes/_console/ledgers/$ledger/holds/index'
-import { Route as ConsoleLedgersLedgerHoldsHoldIdRouteImport } from './routes/_console/ledgers/$ledger/holds/$holdId'
-import { Route as ConsoleLedgersLedgerHoldsNewRouteImport } from './routes/_console/ledgers/$ledger/holds/new'
-import { Route as ConsoleLedgersLedgerSettingsIndexRouteImport } from './routes/_console/ledgers/$ledger/settings/index'
-import { Route as ConsoleLedgersLedgerSettingsEventTypesRouteImport } from './routes/_console/ledgers/$ledger/settings/event-types'
-import { Route as ConsoleLedgersLedgerSettingsRulesRouteImport } from './routes/_console/ledgers/$ledger/settings/rules'
-import { Route as ConsoleLedgersLedgerTransactionsIndexRouteImport } from './routes/_console/ledgers/$ledger/transactions/index'
-import { Route as ConsoleLedgersLedgerTransactionsTxIdRouteImport } from './routes/_console/ledgers/$ledger/transactions/$txId'
-import { Route as ConsoleLedgersLedgerTransactionsNewRouteImport } from './routes/_console/ledgers/$ledger/transactions/new'
+import { Route as ConsoleStaffRouteRouteImport } from './routes/_console/staff/route'
+import { Route as ConsoleWelcomeRouteImport } from './routes/_console/welcome'
+import { Route as ConsoleOrgApiKeysRouteRouteImport } from './routes/_console/$org/api-keys/route'
+import { Route as ConsoleOrgMachineClientsRouteRouteImport } from './routes/_console/$org/machine-clients/route'
+import { Route as ConsoleOrgMembersRouteRouteImport } from './routes/_console/$org/members/route'
+import { Route as ConsoleOrgSettingsRouteRouteImport } from './routes/_console/$org/settings/route'
+import { Route as ConsoleOrgSystemRouteRouteImport } from './routes/_console/$org/system/route'
+import { Route as ConsoleStaffOrganizationsRouteRouteImport } from './routes/_console/staff/organizations/route'
+import { Route as ConsoleOrgApiKeysIndexRouteImport } from './routes/_console/$org/api-keys/index'
+import { Route as ConsoleOrgApiKeysKeyRouteImport } from './routes/_console/$org/api-keys/$key'
+import { Route as ConsoleOrgLedgersIndexRouteImport } from './routes/_console/$org/ledgers/index'
+import { Route as ConsoleOrgLedgersLedgerRouteImport } from './routes/_console/$org/ledgers/$ledger'
+import { Route as ConsoleOrgMachineClientsIndexRouteImport } from './routes/_console/$org/machine-clients/index'
+import { Route as ConsoleOrgMachineClientsClientRouteImport } from './routes/_console/$org/machine-clients/$client'
+import { Route as ConsoleOrgMembersIndexRouteImport } from './routes/_console/$org/members/index'
+import { Route as ConsoleOrgMembersMemberRouteImport } from './routes/_console/$org/members/$member'
+import { Route as ConsoleOrgSettingsIndexRouteImport } from './routes/_console/$org/settings/index'
+import { Route as ConsoleOrgSettingsRolesRouteImport } from './routes/_console/$org/settings/roles'
+import { Route as ConsoleOrgSystemIndexRouteImport } from './routes/_console/$org/system/index'
+import { Route as ConsoleOrgSystemReconcilerRouteImport } from './routes/_console/$org/system/reconciler'
+import { Route as ConsoleStaffOrganizationsIndexRouteImport } from './routes/_console/staff/organizations/index'
+import { Route as ConsoleStaffOrganizationsAliasRouteImport } from './routes/_console/staff/organizations/$alias'
+import { Route as ConsoleOrgLedgersLedgerIndexRouteImport } from './routes/_console/$org/ledgers/$ledger/index'
+import { Route as ConsoleOrgLedgersLedgerAccountsRouteRouteImport } from './routes/_console/$org/ledgers/$ledger/accounts/route'
+import { Route as ConsoleOrgLedgersLedgerAssetsRouteImport } from './routes/_console/$org/ledgers/$ledger/assets'
+import { Route as ConsoleOrgLedgersLedgerBalancesRouteImport } from './routes/_console/$org/ledgers/$ledger/balances'
+import { Route as ConsoleOrgLedgersLedgerHoldsRouteRouteImport } from './routes/_console/$org/ledgers/$ledger/holds/route'
+import { Route as ConsoleOrgLedgersLedgerRequestsRouteImport } from './routes/_console/$org/ledgers/$ledger/requests'
+import { Route as ConsoleOrgLedgersLedgerSettingsRouteRouteImport } from './routes/_console/$org/ledgers/$ledger/settings/route'
+import { Route as ConsoleOrgLedgersLedgerTransactionsRouteRouteImport } from './routes/_console/$org/ledgers/$ledger/transactions/route'
+import { Route as ConsoleOrgLedgersLedgerAccountsIndexRouteImport } from './routes/_console/$org/ledgers/$ledger/accounts/index'
+import { Route as ConsoleOrgLedgersLedgerAccountsAddressRouteImport } from './routes/_console/$org/ledgers/$ledger/accounts/$address'
+import { Route as ConsoleOrgLedgersLedgerHoldsIndexRouteImport } from './routes/_console/$org/ledgers/$ledger/holds/index'
+import { Route as ConsoleOrgLedgersLedgerHoldsHoldIdRouteImport } from './routes/_console/$org/ledgers/$ledger/holds/$holdId'
+import { Route as ConsoleOrgLedgersLedgerHoldsNewRouteImport } from './routes/_console/$org/ledgers/$ledger/holds/new'
+import { Route as ConsoleOrgLedgersLedgerSettingsIndexRouteImport } from './routes/_console/$org/ledgers/$ledger/settings/index'
+import { Route as ConsoleOrgLedgersLedgerSettingsAccessRouteImport } from './routes/_console/$org/ledgers/$ledger/settings/access'
+import { Route as ConsoleOrgLedgersLedgerSettingsEventTypesRouteImport } from './routes/_console/$org/ledgers/$ledger/settings/event-types'
+import { Route as ConsoleOrgLedgersLedgerSettingsRulesRouteImport } from './routes/_console/$org/ledgers/$ledger/settings/rules'
+import { Route as ConsoleOrgLedgersLedgerTransactionsIndexRouteImport } from './routes/_console/$org/ledgers/$ledger/transactions/index'
+import { Route as ConsoleOrgLedgersLedgerTransactionsTxIdRouteImport } from './routes/_console/$org/ledgers/$ledger/transactions/$txId'
+import { Route as ConsoleOrgLedgersLedgerTransactionsNewRouteImport } from './routes/_console/$org/ledgers/$ledger/transactions/new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,9 +67,19 @@ const ConsoleRoute = ConsoleRouteImport.update({
   id: '/_console',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConsoleOrgRoute = ConsoleOrgRouteImport.update({
+  id: '/$org',
+  path: '/$org',
+  getParentRoute: () => ConsoleRoute,
+} as any)
 const ConsoleDesignSystemRoute = ConsoleDesignSystemRouteImport.update({
   id: '/design-system',
   path: '/design-system',
+  getParentRoute: () => ConsoleRoute,
+} as any)
+const ConsoleMeRoute = ConsoleMeRouteImport.update({
+  id: '/me',
+  path: '/me',
   getParentRoute: () => ConsoleRoute,
 } as any)
 const ConsolePreferencesRoute = ConsolePreferencesRouteImport.update({
@@ -57,312 +87,520 @@ const ConsolePreferencesRoute = ConsolePreferencesRouteImport.update({
   path: '/preferences',
   getParentRoute: () => ConsoleRoute,
 } as any)
-const ConsoleSystemRouteRoute = ConsoleSystemRouteRouteImport.update({
+const ConsoleStaffRouteRoute = ConsoleStaffRouteRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => ConsoleRoute,
+} as any)
+const ConsoleWelcomeRoute = ConsoleWelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => ConsoleRoute,
+} as any)
+const ConsoleOrgApiKeysRouteRoute = ConsoleOrgApiKeysRouteRouteImport.update({
+  id: '/api-keys',
+  path: '/api-keys',
+  getParentRoute: () => ConsoleOrgRoute,
+} as any)
+const ConsoleOrgMachineClientsRouteRoute =
+  ConsoleOrgMachineClientsRouteRouteImport.update({
+    id: '/machine-clients',
+    path: '/machine-clients',
+    getParentRoute: () => ConsoleOrgRoute,
+  } as any)
+const ConsoleOrgMembersRouteRoute = ConsoleOrgMembersRouteRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => ConsoleOrgRoute,
+} as any)
+const ConsoleOrgSettingsRouteRoute = ConsoleOrgSettingsRouteRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => ConsoleOrgRoute,
+} as any)
+const ConsoleOrgSystemRouteRoute = ConsoleOrgSystemRouteRouteImport.update({
   id: '/system',
   path: '/system',
-  getParentRoute: () => ConsoleRoute,
+  getParentRoute: () => ConsoleOrgRoute,
 } as any)
-const ConsoleLedgersIndexRoute = ConsoleLedgersIndexRouteImport.update({
-  id: '/ledgers/',
-  path: '/ledgers/',
-  getParentRoute: () => ConsoleRoute,
-} as any)
-const ConsoleLedgersLedgerRoute = ConsoleLedgersLedgerRouteImport.update({
-  id: '/ledgers/$ledger',
-  path: '/ledgers/$ledger',
-  getParentRoute: () => ConsoleRoute,
-} as any)
-const ConsoleSystemIndexRoute = ConsoleSystemIndexRouteImport.update({
+const ConsoleStaffOrganizationsRouteRoute =
+  ConsoleStaffOrganizationsRouteRouteImport.update({
+    id: '/organizations',
+    path: '/organizations',
+    getParentRoute: () => ConsoleStaffRouteRoute,
+  } as any)
+const ConsoleOrgApiKeysIndexRoute = ConsoleOrgApiKeysIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => ConsoleSystemRouteRoute,
+  getParentRoute: () => ConsoleOrgApiKeysRouteRoute,
 } as any)
-const ConsoleSystemReconcilerRoute = ConsoleSystemReconcilerRouteImport.update({
-  id: '/reconciler',
-  path: '/reconciler',
-  getParentRoute: () => ConsoleSystemRouteRoute,
+const ConsoleOrgApiKeysKeyRoute = ConsoleOrgApiKeysKeyRouteImport.update({
+  id: '/$key',
+  path: '/$key',
+  getParentRoute: () => ConsoleOrgApiKeysRouteRoute,
 } as any)
-const ConsoleLedgersLedgerIndexRoute =
-  ConsoleLedgersLedgerIndexRouteImport.update({
+const ConsoleOrgLedgersIndexRoute = ConsoleOrgLedgersIndexRouteImport.update({
+  id: '/ledgers/',
+  path: '/ledgers/',
+  getParentRoute: () => ConsoleOrgRoute,
+} as any)
+const ConsoleOrgLedgersLedgerRoute = ConsoleOrgLedgersLedgerRouteImport.update({
+  id: '/ledgers/$ledger',
+  path: '/ledgers/$ledger',
+  getParentRoute: () => ConsoleOrgRoute,
+} as any)
+const ConsoleOrgMachineClientsIndexRoute =
+  ConsoleOrgMachineClientsIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => ConsoleLedgersLedgerRoute,
+    getParentRoute: () => ConsoleOrgMachineClientsRouteRoute,
   } as any)
-const ConsoleLedgersLedgerAccountsRouteRoute =
-  ConsoleLedgersLedgerAccountsRouteRouteImport.update({
+const ConsoleOrgMachineClientsClientRoute =
+  ConsoleOrgMachineClientsClientRouteImport.update({
+    id: '/$client',
+    path: '/$client',
+    getParentRoute: () => ConsoleOrgMachineClientsRouteRoute,
+  } as any)
+const ConsoleOrgMembersIndexRoute = ConsoleOrgMembersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ConsoleOrgMembersRouteRoute,
+} as any)
+const ConsoleOrgMembersMemberRoute = ConsoleOrgMembersMemberRouteImport.update({
+  id: '/$member',
+  path: '/$member',
+  getParentRoute: () => ConsoleOrgMembersRouteRoute,
+} as any)
+const ConsoleOrgSettingsIndexRoute = ConsoleOrgSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ConsoleOrgSettingsRouteRoute,
+} as any)
+const ConsoleOrgSettingsRolesRoute = ConsoleOrgSettingsRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => ConsoleOrgSettingsRouteRoute,
+} as any)
+const ConsoleOrgSystemIndexRoute = ConsoleOrgSystemIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ConsoleOrgSystemRouteRoute,
+} as any)
+const ConsoleOrgSystemReconcilerRoute =
+  ConsoleOrgSystemReconcilerRouteImport.update({
+    id: '/reconciler',
+    path: '/reconciler',
+    getParentRoute: () => ConsoleOrgSystemRouteRoute,
+  } as any)
+const ConsoleStaffOrganizationsIndexRoute =
+  ConsoleStaffOrganizationsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ConsoleStaffOrganizationsRouteRoute,
+  } as any)
+const ConsoleStaffOrganizationsAliasRoute =
+  ConsoleStaffOrganizationsAliasRouteImport.update({
+    id: '/$alias',
+    path: '/$alias',
+    getParentRoute: () => ConsoleStaffOrganizationsRouteRoute,
+  } as any)
+const ConsoleOrgLedgersLedgerIndexRoute =
+  ConsoleOrgLedgersLedgerIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ConsoleOrgLedgersLedgerRoute,
+  } as any)
+const ConsoleOrgLedgersLedgerAccountsRouteRoute =
+  ConsoleOrgLedgersLedgerAccountsRouteRouteImport.update({
     id: '/accounts',
     path: '/accounts',
-    getParentRoute: () => ConsoleLedgersLedgerRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerRoute,
   } as any)
-const ConsoleLedgersLedgerAssetsRoute =
-  ConsoleLedgersLedgerAssetsRouteImport.update({
+const ConsoleOrgLedgersLedgerAssetsRoute =
+  ConsoleOrgLedgersLedgerAssetsRouteImport.update({
     id: '/assets',
     path: '/assets',
-    getParentRoute: () => ConsoleLedgersLedgerRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerRoute,
   } as any)
-const ConsoleLedgersLedgerBalancesRoute =
-  ConsoleLedgersLedgerBalancesRouteImport.update({
+const ConsoleOrgLedgersLedgerBalancesRoute =
+  ConsoleOrgLedgersLedgerBalancesRouteImport.update({
     id: '/balances',
     path: '/balances',
-    getParentRoute: () => ConsoleLedgersLedgerRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerRoute,
   } as any)
-const ConsoleLedgersLedgerHoldsRouteRoute =
-  ConsoleLedgersLedgerHoldsRouteRouteImport.update({
+const ConsoleOrgLedgersLedgerHoldsRouteRoute =
+  ConsoleOrgLedgersLedgerHoldsRouteRouteImport.update({
     id: '/holds',
     path: '/holds',
-    getParentRoute: () => ConsoleLedgersLedgerRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerRoute,
   } as any)
-const ConsoleLedgersLedgerRequestsRoute =
-  ConsoleLedgersLedgerRequestsRouteImport.update({
+const ConsoleOrgLedgersLedgerRequestsRoute =
+  ConsoleOrgLedgersLedgerRequestsRouteImport.update({
     id: '/requests',
     path: '/requests',
-    getParentRoute: () => ConsoleLedgersLedgerRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerRoute,
   } as any)
-const ConsoleLedgersLedgerSettingsRouteRoute =
-  ConsoleLedgersLedgerSettingsRouteRouteImport.update({
+const ConsoleOrgLedgersLedgerSettingsRouteRoute =
+  ConsoleOrgLedgersLedgerSettingsRouteRouteImport.update({
     id: '/settings',
     path: '/settings',
-    getParentRoute: () => ConsoleLedgersLedgerRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerRoute,
   } as any)
-const ConsoleLedgersLedgerTransactionsRouteRoute =
-  ConsoleLedgersLedgerTransactionsRouteRouteImport.update({
+const ConsoleOrgLedgersLedgerTransactionsRouteRoute =
+  ConsoleOrgLedgersLedgerTransactionsRouteRouteImport.update({
     id: '/transactions',
     path: '/transactions',
-    getParentRoute: () => ConsoleLedgersLedgerRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerRoute,
   } as any)
-const ConsoleLedgersLedgerAccountsIndexRoute =
-  ConsoleLedgersLedgerAccountsIndexRouteImport.update({
+const ConsoleOrgLedgersLedgerAccountsIndexRoute =
+  ConsoleOrgLedgersLedgerAccountsIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => ConsoleLedgersLedgerAccountsRouteRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerAccountsRouteRoute,
   } as any)
-const ConsoleLedgersLedgerAccountsAddressRoute =
-  ConsoleLedgersLedgerAccountsAddressRouteImport.update({
+const ConsoleOrgLedgersLedgerAccountsAddressRoute =
+  ConsoleOrgLedgersLedgerAccountsAddressRouteImport.update({
     id: '/$address',
     path: '/$address',
-    getParentRoute: () => ConsoleLedgersLedgerAccountsRouteRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerAccountsRouteRoute,
   } as any)
-const ConsoleLedgersLedgerHoldsIndexRoute =
-  ConsoleLedgersLedgerHoldsIndexRouteImport.update({
+const ConsoleOrgLedgersLedgerHoldsIndexRoute =
+  ConsoleOrgLedgersLedgerHoldsIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => ConsoleLedgersLedgerHoldsRouteRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerHoldsRouteRoute,
   } as any)
-const ConsoleLedgersLedgerHoldsHoldIdRoute =
-  ConsoleLedgersLedgerHoldsHoldIdRouteImport.update({
+const ConsoleOrgLedgersLedgerHoldsHoldIdRoute =
+  ConsoleOrgLedgersLedgerHoldsHoldIdRouteImport.update({
     id: '/$holdId',
     path: '/$holdId',
-    getParentRoute: () => ConsoleLedgersLedgerHoldsRouteRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerHoldsRouteRoute,
   } as any)
-const ConsoleLedgersLedgerHoldsNewRoute =
-  ConsoleLedgersLedgerHoldsNewRouteImport.update({
+const ConsoleOrgLedgersLedgerHoldsNewRoute =
+  ConsoleOrgLedgersLedgerHoldsNewRouteImport.update({
     id: '/new',
     path: '/new',
-    getParentRoute: () => ConsoleLedgersLedgerHoldsRouteRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerHoldsRouteRoute,
   } as any)
-const ConsoleLedgersLedgerSettingsIndexRoute =
-  ConsoleLedgersLedgerSettingsIndexRouteImport.update({
+const ConsoleOrgLedgersLedgerSettingsIndexRoute =
+  ConsoleOrgLedgersLedgerSettingsIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => ConsoleLedgersLedgerSettingsRouteRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerSettingsRouteRoute,
   } as any)
-const ConsoleLedgersLedgerSettingsEventTypesRoute =
-  ConsoleLedgersLedgerSettingsEventTypesRouteImport.update({
+const ConsoleOrgLedgersLedgerSettingsAccessRoute =
+  ConsoleOrgLedgersLedgerSettingsAccessRouteImport.update({
+    id: '/access',
+    path: '/access',
+    getParentRoute: () => ConsoleOrgLedgersLedgerSettingsRouteRoute,
+  } as any)
+const ConsoleOrgLedgersLedgerSettingsEventTypesRoute =
+  ConsoleOrgLedgersLedgerSettingsEventTypesRouteImport.update({
     id: '/event-types',
     path: '/event-types',
-    getParentRoute: () => ConsoleLedgersLedgerSettingsRouteRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerSettingsRouteRoute,
   } as any)
-const ConsoleLedgersLedgerSettingsRulesRoute =
-  ConsoleLedgersLedgerSettingsRulesRouteImport.update({
+const ConsoleOrgLedgersLedgerSettingsRulesRoute =
+  ConsoleOrgLedgersLedgerSettingsRulesRouteImport.update({
     id: '/rules',
     path: '/rules',
-    getParentRoute: () => ConsoleLedgersLedgerSettingsRouteRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerSettingsRouteRoute,
   } as any)
-const ConsoleLedgersLedgerTransactionsIndexRoute =
-  ConsoleLedgersLedgerTransactionsIndexRouteImport.update({
+const ConsoleOrgLedgersLedgerTransactionsIndexRoute =
+  ConsoleOrgLedgersLedgerTransactionsIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => ConsoleLedgersLedgerTransactionsRouteRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerTransactionsRouteRoute,
   } as any)
-const ConsoleLedgersLedgerTransactionsTxIdRoute =
-  ConsoleLedgersLedgerTransactionsTxIdRouteImport.update({
+const ConsoleOrgLedgersLedgerTransactionsTxIdRoute =
+  ConsoleOrgLedgersLedgerTransactionsTxIdRouteImport.update({
     id: '/$txId',
     path: '/$txId',
-    getParentRoute: () => ConsoleLedgersLedgerTransactionsRouteRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerTransactionsRouteRoute,
   } as any)
-const ConsoleLedgersLedgerTransactionsNewRoute =
-  ConsoleLedgersLedgerTransactionsNewRouteImport.update({
+const ConsoleOrgLedgersLedgerTransactionsNewRoute =
+  ConsoleOrgLedgersLedgerTransactionsNewRouteImport.update({
     id: '/new',
     path: '/new',
-    getParentRoute: () => ConsoleLedgersLedgerTransactionsRouteRoute,
+    getParentRoute: () => ConsoleOrgLedgersLedgerTransactionsRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/system': typeof ConsoleSystemRouteRouteWithChildren
+  '/staff': typeof ConsoleStaffRouteRouteWithChildren
+  '/$org': typeof ConsoleOrgRouteWithChildren
   '/design-system': typeof ConsoleDesignSystemRoute
+  '/me': typeof ConsoleMeRoute
   '/preferences': typeof ConsolePreferencesRoute
-  '/ledgers/$ledger': typeof ConsoleLedgersLedgerRouteWithChildren
-  '/system/reconciler': typeof ConsoleSystemReconcilerRoute
-  '/ledgers/': typeof ConsoleLedgersIndexRoute
-  '/system/': typeof ConsoleSystemIndexRoute
-  '/ledgers/$ledger/accounts': typeof ConsoleLedgersLedgerAccountsRouteRouteWithChildren
-  '/ledgers/$ledger/holds': typeof ConsoleLedgersLedgerHoldsRouteRouteWithChildren
-  '/ledgers/$ledger/settings': typeof ConsoleLedgersLedgerSettingsRouteRouteWithChildren
-  '/ledgers/$ledger/transactions': typeof ConsoleLedgersLedgerTransactionsRouteRouteWithChildren
-  '/ledgers/$ledger/assets': typeof ConsoleLedgersLedgerAssetsRoute
-  '/ledgers/$ledger/balances': typeof ConsoleLedgersLedgerBalancesRoute
-  '/ledgers/$ledger/requests': typeof ConsoleLedgersLedgerRequestsRoute
-  '/ledgers/$ledger/': typeof ConsoleLedgersLedgerIndexRoute
-  '/ledgers/$ledger/accounts/$address': typeof ConsoleLedgersLedgerAccountsAddressRoute
-  '/ledgers/$ledger/holds/$holdId': typeof ConsoleLedgersLedgerHoldsHoldIdRoute
-  '/ledgers/$ledger/holds/new': typeof ConsoleLedgersLedgerHoldsNewRoute
-  '/ledgers/$ledger/settings/event-types': typeof ConsoleLedgersLedgerSettingsEventTypesRoute
-  '/ledgers/$ledger/settings/rules': typeof ConsoleLedgersLedgerSettingsRulesRoute
-  '/ledgers/$ledger/transactions/$txId': typeof ConsoleLedgersLedgerTransactionsTxIdRoute
-  '/ledgers/$ledger/transactions/new': typeof ConsoleLedgersLedgerTransactionsNewRoute
-  '/ledgers/$ledger/accounts/': typeof ConsoleLedgersLedgerAccountsIndexRoute
-  '/ledgers/$ledger/holds/': typeof ConsoleLedgersLedgerHoldsIndexRoute
-  '/ledgers/$ledger/settings/': typeof ConsoleLedgersLedgerSettingsIndexRoute
-  '/ledgers/$ledger/transactions/': typeof ConsoleLedgersLedgerTransactionsIndexRoute
+  '/welcome': typeof ConsoleWelcomeRoute
+  '/$org/api-keys': typeof ConsoleOrgApiKeysRouteRouteWithChildren
+  '/$org/machine-clients': typeof ConsoleOrgMachineClientsRouteRouteWithChildren
+  '/$org/members': typeof ConsoleOrgMembersRouteRouteWithChildren
+  '/$org/settings': typeof ConsoleOrgSettingsRouteRouteWithChildren
+  '/$org/system': typeof ConsoleOrgSystemRouteRouteWithChildren
+  '/staff/organizations': typeof ConsoleStaffOrganizationsRouteRouteWithChildren
+  '/$org/api-keys/$key': typeof ConsoleOrgApiKeysKeyRoute
+  '/$org/ledgers/$ledger': typeof ConsoleOrgLedgersLedgerRouteWithChildren
+  '/$org/machine-clients/$client': typeof ConsoleOrgMachineClientsClientRoute
+  '/$org/members/$member': typeof ConsoleOrgMembersMemberRoute
+  '/$org/settings/roles': typeof ConsoleOrgSettingsRolesRoute
+  '/$org/system/reconciler': typeof ConsoleOrgSystemReconcilerRoute
+  '/staff/organizations/$alias': typeof ConsoleStaffOrganizationsAliasRoute
+  '/$org/api-keys/': typeof ConsoleOrgApiKeysIndexRoute
+  '/$org/ledgers/': typeof ConsoleOrgLedgersIndexRoute
+  '/$org/machine-clients/': typeof ConsoleOrgMachineClientsIndexRoute
+  '/$org/members/': typeof ConsoleOrgMembersIndexRoute
+  '/$org/settings/': typeof ConsoleOrgSettingsIndexRoute
+  '/$org/system/': typeof ConsoleOrgSystemIndexRoute
+  '/staff/organizations/': typeof ConsoleStaffOrganizationsIndexRoute
+  '/$org/ledgers/$ledger/accounts': typeof ConsoleOrgLedgersLedgerAccountsRouteRouteWithChildren
+  '/$org/ledgers/$ledger/holds': typeof ConsoleOrgLedgersLedgerHoldsRouteRouteWithChildren
+  '/$org/ledgers/$ledger/settings': typeof ConsoleOrgLedgersLedgerSettingsRouteRouteWithChildren
+  '/$org/ledgers/$ledger/transactions': typeof ConsoleOrgLedgersLedgerTransactionsRouteRouteWithChildren
+  '/$org/ledgers/$ledger/assets': typeof ConsoleOrgLedgersLedgerAssetsRoute
+  '/$org/ledgers/$ledger/balances': typeof ConsoleOrgLedgersLedgerBalancesRoute
+  '/$org/ledgers/$ledger/requests': typeof ConsoleOrgLedgersLedgerRequestsRoute
+  '/$org/ledgers/$ledger/': typeof ConsoleOrgLedgersLedgerIndexRoute
+  '/$org/ledgers/$ledger/accounts/$address': typeof ConsoleOrgLedgersLedgerAccountsAddressRoute
+  '/$org/ledgers/$ledger/holds/$holdId': typeof ConsoleOrgLedgersLedgerHoldsHoldIdRoute
+  '/$org/ledgers/$ledger/holds/new': typeof ConsoleOrgLedgersLedgerHoldsNewRoute
+  '/$org/ledgers/$ledger/settings/access': typeof ConsoleOrgLedgersLedgerSettingsAccessRoute
+  '/$org/ledgers/$ledger/settings/event-types': typeof ConsoleOrgLedgersLedgerSettingsEventTypesRoute
+  '/$org/ledgers/$ledger/settings/rules': typeof ConsoleOrgLedgersLedgerSettingsRulesRoute
+  '/$org/ledgers/$ledger/transactions/$txId': typeof ConsoleOrgLedgersLedgerTransactionsTxIdRoute
+  '/$org/ledgers/$ledger/transactions/new': typeof ConsoleOrgLedgersLedgerTransactionsNewRoute
+  '/$org/ledgers/$ledger/accounts/': typeof ConsoleOrgLedgersLedgerAccountsIndexRoute
+  '/$org/ledgers/$ledger/holds/': typeof ConsoleOrgLedgersLedgerHoldsIndexRoute
+  '/$org/ledgers/$ledger/settings/': typeof ConsoleOrgLedgersLedgerSettingsIndexRoute
+  '/$org/ledgers/$ledger/transactions/': typeof ConsoleOrgLedgersLedgerTransactionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/staff': typeof ConsoleStaffRouteRouteWithChildren
+  '/$org': typeof ConsoleOrgRouteWithChildren
   '/design-system': typeof ConsoleDesignSystemRoute
+  '/me': typeof ConsoleMeRoute
   '/preferences': typeof ConsolePreferencesRoute
-  '/system/reconciler': typeof ConsoleSystemReconcilerRoute
-  '/ledgers': typeof ConsoleLedgersIndexRoute
-  '/system': typeof ConsoleSystemIndexRoute
-  '/ledgers/$ledger/assets': typeof ConsoleLedgersLedgerAssetsRoute
-  '/ledgers/$ledger/balances': typeof ConsoleLedgersLedgerBalancesRoute
-  '/ledgers/$ledger/requests': typeof ConsoleLedgersLedgerRequestsRoute
-  '/ledgers/$ledger': typeof ConsoleLedgersLedgerIndexRoute
-  '/ledgers/$ledger/accounts/$address': typeof ConsoleLedgersLedgerAccountsAddressRoute
-  '/ledgers/$ledger/holds/$holdId': typeof ConsoleLedgersLedgerHoldsHoldIdRoute
-  '/ledgers/$ledger/holds/new': typeof ConsoleLedgersLedgerHoldsNewRoute
-  '/ledgers/$ledger/settings/event-types': typeof ConsoleLedgersLedgerSettingsEventTypesRoute
-  '/ledgers/$ledger/settings/rules': typeof ConsoleLedgersLedgerSettingsRulesRoute
-  '/ledgers/$ledger/transactions/$txId': typeof ConsoleLedgersLedgerTransactionsTxIdRoute
-  '/ledgers/$ledger/transactions/new': typeof ConsoleLedgersLedgerTransactionsNewRoute
-  '/ledgers/$ledger/accounts': typeof ConsoleLedgersLedgerAccountsIndexRoute
-  '/ledgers/$ledger/holds': typeof ConsoleLedgersLedgerHoldsIndexRoute
-  '/ledgers/$ledger/settings': typeof ConsoleLedgersLedgerSettingsIndexRoute
-  '/ledgers/$ledger/transactions': typeof ConsoleLedgersLedgerTransactionsIndexRoute
+  '/welcome': typeof ConsoleWelcomeRoute
+  '/$org/api-keys/$key': typeof ConsoleOrgApiKeysKeyRoute
+  '/$org/machine-clients/$client': typeof ConsoleOrgMachineClientsClientRoute
+  '/$org/members/$member': typeof ConsoleOrgMembersMemberRoute
+  '/$org/settings/roles': typeof ConsoleOrgSettingsRolesRoute
+  '/$org/system/reconciler': typeof ConsoleOrgSystemReconcilerRoute
+  '/staff/organizations/$alias': typeof ConsoleStaffOrganizationsAliasRoute
+  '/$org/api-keys': typeof ConsoleOrgApiKeysIndexRoute
+  '/$org/ledgers': typeof ConsoleOrgLedgersIndexRoute
+  '/$org/machine-clients': typeof ConsoleOrgMachineClientsIndexRoute
+  '/$org/members': typeof ConsoleOrgMembersIndexRoute
+  '/$org/settings': typeof ConsoleOrgSettingsIndexRoute
+  '/$org/system': typeof ConsoleOrgSystemIndexRoute
+  '/staff/organizations': typeof ConsoleStaffOrganizationsIndexRoute
+  '/$org/ledgers/$ledger/assets': typeof ConsoleOrgLedgersLedgerAssetsRoute
+  '/$org/ledgers/$ledger/balances': typeof ConsoleOrgLedgersLedgerBalancesRoute
+  '/$org/ledgers/$ledger/requests': typeof ConsoleOrgLedgersLedgerRequestsRoute
+  '/$org/ledgers/$ledger': typeof ConsoleOrgLedgersLedgerIndexRoute
+  '/$org/ledgers/$ledger/accounts/$address': typeof ConsoleOrgLedgersLedgerAccountsAddressRoute
+  '/$org/ledgers/$ledger/holds/$holdId': typeof ConsoleOrgLedgersLedgerHoldsHoldIdRoute
+  '/$org/ledgers/$ledger/holds/new': typeof ConsoleOrgLedgersLedgerHoldsNewRoute
+  '/$org/ledgers/$ledger/settings/access': typeof ConsoleOrgLedgersLedgerSettingsAccessRoute
+  '/$org/ledgers/$ledger/settings/event-types': typeof ConsoleOrgLedgersLedgerSettingsEventTypesRoute
+  '/$org/ledgers/$ledger/settings/rules': typeof ConsoleOrgLedgersLedgerSettingsRulesRoute
+  '/$org/ledgers/$ledger/transactions/$txId': typeof ConsoleOrgLedgersLedgerTransactionsTxIdRoute
+  '/$org/ledgers/$ledger/transactions/new': typeof ConsoleOrgLedgersLedgerTransactionsNewRoute
+  '/$org/ledgers/$ledger/accounts': typeof ConsoleOrgLedgersLedgerAccountsIndexRoute
+  '/$org/ledgers/$ledger/holds': typeof ConsoleOrgLedgersLedgerHoldsIndexRoute
+  '/$org/ledgers/$ledger/settings': typeof ConsoleOrgLedgersLedgerSettingsIndexRoute
+  '/$org/ledgers/$ledger/transactions': typeof ConsoleOrgLedgersLedgerTransactionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_console': typeof ConsoleRouteWithChildren
-  '/_console/system': typeof ConsoleSystemRouteRouteWithChildren
+  '/_console/staff': typeof ConsoleStaffRouteRouteWithChildren
+  '/_console/$org': typeof ConsoleOrgRouteWithChildren
   '/_console/design-system': typeof ConsoleDesignSystemRoute
+  '/_console/me': typeof ConsoleMeRoute
   '/_console/preferences': typeof ConsolePreferencesRoute
-  '/_console/ledgers/$ledger': typeof ConsoleLedgersLedgerRouteWithChildren
-  '/_console/system/reconciler': typeof ConsoleSystemReconcilerRoute
-  '/_console/ledgers/': typeof ConsoleLedgersIndexRoute
-  '/_console/system/': typeof ConsoleSystemIndexRoute
-  '/_console/ledgers/$ledger/accounts': typeof ConsoleLedgersLedgerAccountsRouteRouteWithChildren
-  '/_console/ledgers/$ledger/holds': typeof ConsoleLedgersLedgerHoldsRouteRouteWithChildren
-  '/_console/ledgers/$ledger/settings': typeof ConsoleLedgersLedgerSettingsRouteRouteWithChildren
-  '/_console/ledgers/$ledger/transactions': typeof ConsoleLedgersLedgerTransactionsRouteRouteWithChildren
-  '/_console/ledgers/$ledger/assets': typeof ConsoleLedgersLedgerAssetsRoute
-  '/_console/ledgers/$ledger/balances': typeof ConsoleLedgersLedgerBalancesRoute
-  '/_console/ledgers/$ledger/requests': typeof ConsoleLedgersLedgerRequestsRoute
-  '/_console/ledgers/$ledger/': typeof ConsoleLedgersLedgerIndexRoute
-  '/_console/ledgers/$ledger/accounts/$address': typeof ConsoleLedgersLedgerAccountsAddressRoute
-  '/_console/ledgers/$ledger/holds/$holdId': typeof ConsoleLedgersLedgerHoldsHoldIdRoute
-  '/_console/ledgers/$ledger/holds/new': typeof ConsoleLedgersLedgerHoldsNewRoute
-  '/_console/ledgers/$ledger/settings/event-types': typeof ConsoleLedgersLedgerSettingsEventTypesRoute
-  '/_console/ledgers/$ledger/settings/rules': typeof ConsoleLedgersLedgerSettingsRulesRoute
-  '/_console/ledgers/$ledger/transactions/$txId': typeof ConsoleLedgersLedgerTransactionsTxIdRoute
-  '/_console/ledgers/$ledger/transactions/new': typeof ConsoleLedgersLedgerTransactionsNewRoute
-  '/_console/ledgers/$ledger/accounts/': typeof ConsoleLedgersLedgerAccountsIndexRoute
-  '/_console/ledgers/$ledger/holds/': typeof ConsoleLedgersLedgerHoldsIndexRoute
-  '/_console/ledgers/$ledger/settings/': typeof ConsoleLedgersLedgerSettingsIndexRoute
-  '/_console/ledgers/$ledger/transactions/': typeof ConsoleLedgersLedgerTransactionsIndexRoute
+  '/_console/welcome': typeof ConsoleWelcomeRoute
+  '/_console/$org/api-keys': typeof ConsoleOrgApiKeysRouteRouteWithChildren
+  '/_console/$org/machine-clients': typeof ConsoleOrgMachineClientsRouteRouteWithChildren
+  '/_console/$org/members': typeof ConsoleOrgMembersRouteRouteWithChildren
+  '/_console/$org/settings': typeof ConsoleOrgSettingsRouteRouteWithChildren
+  '/_console/$org/system': typeof ConsoleOrgSystemRouteRouteWithChildren
+  '/_console/staff/organizations': typeof ConsoleStaffOrganizationsRouteRouteWithChildren
+  '/_console/$org/api-keys/$key': typeof ConsoleOrgApiKeysKeyRoute
+  '/_console/$org/ledgers/$ledger': typeof ConsoleOrgLedgersLedgerRouteWithChildren
+  '/_console/$org/machine-clients/$client': typeof ConsoleOrgMachineClientsClientRoute
+  '/_console/$org/members/$member': typeof ConsoleOrgMembersMemberRoute
+  '/_console/$org/settings/roles': typeof ConsoleOrgSettingsRolesRoute
+  '/_console/$org/system/reconciler': typeof ConsoleOrgSystemReconcilerRoute
+  '/_console/staff/organizations/$alias': typeof ConsoleStaffOrganizationsAliasRoute
+  '/_console/$org/api-keys/': typeof ConsoleOrgApiKeysIndexRoute
+  '/_console/$org/ledgers/': typeof ConsoleOrgLedgersIndexRoute
+  '/_console/$org/machine-clients/': typeof ConsoleOrgMachineClientsIndexRoute
+  '/_console/$org/members/': typeof ConsoleOrgMembersIndexRoute
+  '/_console/$org/settings/': typeof ConsoleOrgSettingsIndexRoute
+  '/_console/$org/system/': typeof ConsoleOrgSystemIndexRoute
+  '/_console/staff/organizations/': typeof ConsoleStaffOrganizationsIndexRoute
+  '/_console/$org/ledgers/$ledger/accounts': typeof ConsoleOrgLedgersLedgerAccountsRouteRouteWithChildren
+  '/_console/$org/ledgers/$ledger/holds': typeof ConsoleOrgLedgersLedgerHoldsRouteRouteWithChildren
+  '/_console/$org/ledgers/$ledger/settings': typeof ConsoleOrgLedgersLedgerSettingsRouteRouteWithChildren
+  '/_console/$org/ledgers/$ledger/transactions': typeof ConsoleOrgLedgersLedgerTransactionsRouteRouteWithChildren
+  '/_console/$org/ledgers/$ledger/assets': typeof ConsoleOrgLedgersLedgerAssetsRoute
+  '/_console/$org/ledgers/$ledger/balances': typeof ConsoleOrgLedgersLedgerBalancesRoute
+  '/_console/$org/ledgers/$ledger/requests': typeof ConsoleOrgLedgersLedgerRequestsRoute
+  '/_console/$org/ledgers/$ledger/': typeof ConsoleOrgLedgersLedgerIndexRoute
+  '/_console/$org/ledgers/$ledger/accounts/$address': typeof ConsoleOrgLedgersLedgerAccountsAddressRoute
+  '/_console/$org/ledgers/$ledger/holds/$holdId': typeof ConsoleOrgLedgersLedgerHoldsHoldIdRoute
+  '/_console/$org/ledgers/$ledger/holds/new': typeof ConsoleOrgLedgersLedgerHoldsNewRoute
+  '/_console/$org/ledgers/$ledger/settings/access': typeof ConsoleOrgLedgersLedgerSettingsAccessRoute
+  '/_console/$org/ledgers/$ledger/settings/event-types': typeof ConsoleOrgLedgersLedgerSettingsEventTypesRoute
+  '/_console/$org/ledgers/$ledger/settings/rules': typeof ConsoleOrgLedgersLedgerSettingsRulesRoute
+  '/_console/$org/ledgers/$ledger/transactions/$txId': typeof ConsoleOrgLedgersLedgerTransactionsTxIdRoute
+  '/_console/$org/ledgers/$ledger/transactions/new': typeof ConsoleOrgLedgersLedgerTransactionsNewRoute
+  '/_console/$org/ledgers/$ledger/accounts/': typeof ConsoleOrgLedgersLedgerAccountsIndexRoute
+  '/_console/$org/ledgers/$ledger/holds/': typeof ConsoleOrgLedgersLedgerHoldsIndexRoute
+  '/_console/$org/ledgers/$ledger/settings/': typeof ConsoleOrgLedgersLedgerSettingsIndexRoute
+  '/_console/$org/ledgers/$ledger/transactions/': typeof ConsoleOrgLedgersLedgerTransactionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/system'
+    | '/staff'
+    | '/$org'
     | '/design-system'
+    | '/me'
     | '/preferences'
-    | '/ledgers/$ledger'
-    | '/system/reconciler'
-    | '/ledgers/'
-    | '/system/'
-    | '/ledgers/$ledger/accounts'
-    | '/ledgers/$ledger/holds'
-    | '/ledgers/$ledger/settings'
-    | '/ledgers/$ledger/transactions'
-    | '/ledgers/$ledger/assets'
-    | '/ledgers/$ledger/balances'
-    | '/ledgers/$ledger/requests'
-    | '/ledgers/$ledger/'
-    | '/ledgers/$ledger/accounts/$address'
-    | '/ledgers/$ledger/holds/$holdId'
-    | '/ledgers/$ledger/holds/new'
-    | '/ledgers/$ledger/settings/event-types'
-    | '/ledgers/$ledger/settings/rules'
-    | '/ledgers/$ledger/transactions/$txId'
-    | '/ledgers/$ledger/transactions/new'
-    | '/ledgers/$ledger/accounts/'
-    | '/ledgers/$ledger/holds/'
-    | '/ledgers/$ledger/settings/'
-    | '/ledgers/$ledger/transactions/'
+    | '/welcome'
+    | '/$org/api-keys'
+    | '/$org/machine-clients'
+    | '/$org/members'
+    | '/$org/settings'
+    | '/$org/system'
+    | '/staff/organizations'
+    | '/$org/api-keys/$key'
+    | '/$org/ledgers/$ledger'
+    | '/$org/machine-clients/$client'
+    | '/$org/members/$member'
+    | '/$org/settings/roles'
+    | '/$org/system/reconciler'
+    | '/staff/organizations/$alias'
+    | '/$org/api-keys/'
+    | '/$org/ledgers/'
+    | '/$org/machine-clients/'
+    | '/$org/members/'
+    | '/$org/settings/'
+    | '/$org/system/'
+    | '/staff/organizations/'
+    | '/$org/ledgers/$ledger/accounts'
+    | '/$org/ledgers/$ledger/holds'
+    | '/$org/ledgers/$ledger/settings'
+    | '/$org/ledgers/$ledger/transactions'
+    | '/$org/ledgers/$ledger/assets'
+    | '/$org/ledgers/$ledger/balances'
+    | '/$org/ledgers/$ledger/requests'
+    | '/$org/ledgers/$ledger/'
+    | '/$org/ledgers/$ledger/accounts/$address'
+    | '/$org/ledgers/$ledger/holds/$holdId'
+    | '/$org/ledgers/$ledger/holds/new'
+    | '/$org/ledgers/$ledger/settings/access'
+    | '/$org/ledgers/$ledger/settings/event-types'
+    | '/$org/ledgers/$ledger/settings/rules'
+    | '/$org/ledgers/$ledger/transactions/$txId'
+    | '/$org/ledgers/$ledger/transactions/new'
+    | '/$org/ledgers/$ledger/accounts/'
+    | '/$org/ledgers/$ledger/holds/'
+    | '/$org/ledgers/$ledger/settings/'
+    | '/$org/ledgers/$ledger/transactions/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/staff'
+    | '/$org'
     | '/design-system'
+    | '/me'
     | '/preferences'
-    | '/system/reconciler'
-    | '/ledgers'
-    | '/system'
-    | '/ledgers/$ledger/assets'
-    | '/ledgers/$ledger/balances'
-    | '/ledgers/$ledger/requests'
-    | '/ledgers/$ledger'
-    | '/ledgers/$ledger/accounts/$address'
-    | '/ledgers/$ledger/holds/$holdId'
-    | '/ledgers/$ledger/holds/new'
-    | '/ledgers/$ledger/settings/event-types'
-    | '/ledgers/$ledger/settings/rules'
-    | '/ledgers/$ledger/transactions/$txId'
-    | '/ledgers/$ledger/transactions/new'
-    | '/ledgers/$ledger/accounts'
-    | '/ledgers/$ledger/holds'
-    | '/ledgers/$ledger/settings'
-    | '/ledgers/$ledger/transactions'
+    | '/welcome'
+    | '/$org/api-keys/$key'
+    | '/$org/machine-clients/$client'
+    | '/$org/members/$member'
+    | '/$org/settings/roles'
+    | '/$org/system/reconciler'
+    | '/staff/organizations/$alias'
+    | '/$org/api-keys'
+    | '/$org/ledgers'
+    | '/$org/machine-clients'
+    | '/$org/members'
+    | '/$org/settings'
+    | '/$org/system'
+    | '/staff/organizations'
+    | '/$org/ledgers/$ledger/assets'
+    | '/$org/ledgers/$ledger/balances'
+    | '/$org/ledgers/$ledger/requests'
+    | '/$org/ledgers/$ledger'
+    | '/$org/ledgers/$ledger/accounts/$address'
+    | '/$org/ledgers/$ledger/holds/$holdId'
+    | '/$org/ledgers/$ledger/holds/new'
+    | '/$org/ledgers/$ledger/settings/access'
+    | '/$org/ledgers/$ledger/settings/event-types'
+    | '/$org/ledgers/$ledger/settings/rules'
+    | '/$org/ledgers/$ledger/transactions/$txId'
+    | '/$org/ledgers/$ledger/transactions/new'
+    | '/$org/ledgers/$ledger/accounts'
+    | '/$org/ledgers/$ledger/holds'
+    | '/$org/ledgers/$ledger/settings'
+    | '/$org/ledgers/$ledger/transactions'
   id:
     | '__root__'
     | '/'
     | '/_console'
-    | '/_console/system'
+    | '/_console/staff'
+    | '/_console/$org'
     | '/_console/design-system'
+    | '/_console/me'
     | '/_console/preferences'
-    | '/_console/ledgers/$ledger'
-    | '/_console/system/reconciler'
-    | '/_console/ledgers/'
-    | '/_console/system/'
-    | '/_console/ledgers/$ledger/accounts'
-    | '/_console/ledgers/$ledger/holds'
-    | '/_console/ledgers/$ledger/settings'
-    | '/_console/ledgers/$ledger/transactions'
-    | '/_console/ledgers/$ledger/assets'
-    | '/_console/ledgers/$ledger/balances'
-    | '/_console/ledgers/$ledger/requests'
-    | '/_console/ledgers/$ledger/'
-    | '/_console/ledgers/$ledger/accounts/$address'
-    | '/_console/ledgers/$ledger/holds/$holdId'
-    | '/_console/ledgers/$ledger/holds/new'
-    | '/_console/ledgers/$ledger/settings/event-types'
-    | '/_console/ledgers/$ledger/settings/rules'
-    | '/_console/ledgers/$ledger/transactions/$txId'
-    | '/_console/ledgers/$ledger/transactions/new'
-    | '/_console/ledgers/$ledger/accounts/'
-    | '/_console/ledgers/$ledger/holds/'
-    | '/_console/ledgers/$ledger/settings/'
-    | '/_console/ledgers/$ledger/transactions/'
+    | '/_console/welcome'
+    | '/_console/$org/api-keys'
+    | '/_console/$org/machine-clients'
+    | '/_console/$org/members'
+    | '/_console/$org/settings'
+    | '/_console/$org/system'
+    | '/_console/staff/organizations'
+    | '/_console/$org/api-keys/$key'
+    | '/_console/$org/ledgers/$ledger'
+    | '/_console/$org/machine-clients/$client'
+    | '/_console/$org/members/$member'
+    | '/_console/$org/settings/roles'
+    | '/_console/$org/system/reconciler'
+    | '/_console/staff/organizations/$alias'
+    | '/_console/$org/api-keys/'
+    | '/_console/$org/ledgers/'
+    | '/_console/$org/machine-clients/'
+    | '/_console/$org/members/'
+    | '/_console/$org/settings/'
+    | '/_console/$org/system/'
+    | '/_console/staff/organizations/'
+    | '/_console/$org/ledgers/$ledger/accounts'
+    | '/_console/$org/ledgers/$ledger/holds'
+    | '/_console/$org/ledgers/$ledger/settings'
+    | '/_console/$org/ledgers/$ledger/transactions'
+    | '/_console/$org/ledgers/$ledger/assets'
+    | '/_console/$org/ledgers/$ledger/balances'
+    | '/_console/$org/ledgers/$ledger/requests'
+    | '/_console/$org/ledgers/$ledger/'
+    | '/_console/$org/ledgers/$ledger/accounts/$address'
+    | '/_console/$org/ledgers/$ledger/holds/$holdId'
+    | '/_console/$org/ledgers/$ledger/holds/new'
+    | '/_console/$org/ledgers/$ledger/settings/access'
+    | '/_console/$org/ledgers/$ledger/settings/event-types'
+    | '/_console/$org/ledgers/$ledger/settings/rules'
+    | '/_console/$org/ledgers/$ledger/transactions/$txId'
+    | '/_console/$org/ledgers/$ledger/transactions/new'
+    | '/_console/$org/ledgers/$ledger/accounts/'
+    | '/_console/$org/ledgers/$ledger/holds/'
+    | '/_console/$org/ledgers/$ledger/settings/'
+    | '/_console/$org/ledgers/$ledger/transactions/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -386,11 +624,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConsoleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_console/$org': {
+      id: '/_console/$org'
+      path: '/$org'
+      fullPath: '/$org'
+      preLoaderRoute: typeof ConsoleOrgRouteImport
+      parentRoute: typeof ConsoleRoute
+    }
     '/_console/design-system': {
       id: '/_console/design-system'
       path: '/design-system'
       fullPath: '/design-system'
       preLoaderRoute: typeof ConsoleDesignSystemRouteImport
+      parentRoute: typeof ConsoleRoute
+    }
+    '/_console/me': {
+      id: '/_console/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof ConsoleMeRouteImport
       parentRoute: typeof ConsoleRoute
     }
     '/_console/preferences': {
@@ -400,311 +652,566 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConsolePreferencesRouteImport
       parentRoute: typeof ConsoleRoute
     }
-    '/_console/system': {
-      id: '/_console/system'
-      path: '/system'
-      fullPath: '/system'
-      preLoaderRoute: typeof ConsoleSystemRouteRouteImport
+    '/_console/staff': {
+      id: '/_console/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof ConsoleStaffRouteRouteImport
       parentRoute: typeof ConsoleRoute
     }
-    '/_console/ledgers/': {
-      id: '/_console/ledgers/'
-      path: '/ledgers'
-      fullPath: '/ledgers/'
-      preLoaderRoute: typeof ConsoleLedgersIndexRouteImport
+    '/_console/welcome': {
+      id: '/_console/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof ConsoleWelcomeRouteImport
       parentRoute: typeof ConsoleRoute
     }
-    '/_console/ledgers/$ledger': {
-      id: '/_console/ledgers/$ledger'
-      path: '/ledgers/$ledger'
-      fullPath: '/ledgers/$ledger'
-      preLoaderRoute: typeof ConsoleLedgersLedgerRouteImport
-      parentRoute: typeof ConsoleRoute
+    '/_console/$org/api-keys': {
+      id: '/_console/$org/api-keys'
+      path: '/api-keys'
+      fullPath: '/$org/api-keys'
+      preLoaderRoute: typeof ConsoleOrgApiKeysRouteRouteImport
+      parentRoute: typeof ConsoleOrgRoute
     }
-    '/_console/system/': {
-      id: '/_console/system/'
-      path: '/'
-      fullPath: '/system/'
-      preLoaderRoute: typeof ConsoleSystemIndexRouteImport
-      parentRoute: typeof ConsoleSystemRouteRoute
+    '/_console/$org/machine-clients': {
+      id: '/_console/$org/machine-clients'
+      path: '/machine-clients'
+      fullPath: '/$org/machine-clients'
+      preLoaderRoute: typeof ConsoleOrgMachineClientsRouteRouteImport
+      parentRoute: typeof ConsoleOrgRoute
     }
-    '/_console/system/reconciler': {
-      id: '/_console/system/reconciler'
-      path: '/reconciler'
-      fullPath: '/system/reconciler'
-      preLoaderRoute: typeof ConsoleSystemReconcilerRouteImport
-      parentRoute: typeof ConsoleSystemRouteRoute
+    '/_console/$org/members': {
+      id: '/_console/$org/members'
+      path: '/members'
+      fullPath: '/$org/members'
+      preLoaderRoute: typeof ConsoleOrgMembersRouteRouteImport
+      parentRoute: typeof ConsoleOrgRoute
     }
-    '/_console/ledgers/$ledger/': {
-      id: '/_console/ledgers/$ledger/'
-      path: '/'
-      fullPath: '/ledgers/$ledger/'
-      preLoaderRoute: typeof ConsoleLedgersLedgerIndexRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerRoute
-    }
-    '/_console/ledgers/$ledger/accounts': {
-      id: '/_console/ledgers/$ledger/accounts'
-      path: '/accounts'
-      fullPath: '/ledgers/$ledger/accounts'
-      preLoaderRoute: typeof ConsoleLedgersLedgerAccountsRouteRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerRoute
-    }
-    '/_console/ledgers/$ledger/assets': {
-      id: '/_console/ledgers/$ledger/assets'
-      path: '/assets'
-      fullPath: '/ledgers/$ledger/assets'
-      preLoaderRoute: typeof ConsoleLedgersLedgerAssetsRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerRoute
-    }
-    '/_console/ledgers/$ledger/balances': {
-      id: '/_console/ledgers/$ledger/balances'
-      path: '/balances'
-      fullPath: '/ledgers/$ledger/balances'
-      preLoaderRoute: typeof ConsoleLedgersLedgerBalancesRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerRoute
-    }
-    '/_console/ledgers/$ledger/holds': {
-      id: '/_console/ledgers/$ledger/holds'
-      path: '/holds'
-      fullPath: '/ledgers/$ledger/holds'
-      preLoaderRoute: typeof ConsoleLedgersLedgerHoldsRouteRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerRoute
-    }
-    '/_console/ledgers/$ledger/requests': {
-      id: '/_console/ledgers/$ledger/requests'
-      path: '/requests'
-      fullPath: '/ledgers/$ledger/requests'
-      preLoaderRoute: typeof ConsoleLedgersLedgerRequestsRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerRoute
-    }
-    '/_console/ledgers/$ledger/settings': {
-      id: '/_console/ledgers/$ledger/settings'
+    '/_console/$org/settings': {
+      id: '/_console/$org/settings'
       path: '/settings'
-      fullPath: '/ledgers/$ledger/settings'
-      preLoaderRoute: typeof ConsoleLedgersLedgerSettingsRouteRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerRoute
+      fullPath: '/$org/settings'
+      preLoaderRoute: typeof ConsoleOrgSettingsRouteRouteImport
+      parentRoute: typeof ConsoleOrgRoute
     }
-    '/_console/ledgers/$ledger/transactions': {
-      id: '/_console/ledgers/$ledger/transactions'
+    '/_console/$org/system': {
+      id: '/_console/$org/system'
+      path: '/system'
+      fullPath: '/$org/system'
+      preLoaderRoute: typeof ConsoleOrgSystemRouteRouteImport
+      parentRoute: typeof ConsoleOrgRoute
+    }
+    '/_console/staff/organizations': {
+      id: '/_console/staff/organizations'
+      path: '/organizations'
+      fullPath: '/staff/organizations'
+      preLoaderRoute: typeof ConsoleStaffOrganizationsRouteRouteImport
+      parentRoute: typeof ConsoleStaffRouteRoute
+    }
+    '/_console/$org/api-keys/': {
+      id: '/_console/$org/api-keys/'
+      path: '/'
+      fullPath: '/$org/api-keys/'
+      preLoaderRoute: typeof ConsoleOrgApiKeysIndexRouteImport
+      parentRoute: typeof ConsoleOrgApiKeysRouteRoute
+    }
+    '/_console/$org/api-keys/$key': {
+      id: '/_console/$org/api-keys/$key'
+      path: '/$key'
+      fullPath: '/$org/api-keys/$key'
+      preLoaderRoute: typeof ConsoleOrgApiKeysKeyRouteImport
+      parentRoute: typeof ConsoleOrgApiKeysRouteRoute
+    }
+    '/_console/$org/ledgers/': {
+      id: '/_console/$org/ledgers/'
+      path: '/ledgers'
+      fullPath: '/$org/ledgers/'
+      preLoaderRoute: typeof ConsoleOrgLedgersIndexRouteImport
+      parentRoute: typeof ConsoleOrgRoute
+    }
+    '/_console/$org/ledgers/$ledger': {
+      id: '/_console/$org/ledgers/$ledger'
+      path: '/ledgers/$ledger'
+      fullPath: '/$org/ledgers/$ledger'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerRouteImport
+      parentRoute: typeof ConsoleOrgRoute
+    }
+    '/_console/$org/machine-clients/': {
+      id: '/_console/$org/machine-clients/'
+      path: '/'
+      fullPath: '/$org/machine-clients/'
+      preLoaderRoute: typeof ConsoleOrgMachineClientsIndexRouteImport
+      parentRoute: typeof ConsoleOrgMachineClientsRouteRoute
+    }
+    '/_console/$org/machine-clients/$client': {
+      id: '/_console/$org/machine-clients/$client'
+      path: '/$client'
+      fullPath: '/$org/machine-clients/$client'
+      preLoaderRoute: typeof ConsoleOrgMachineClientsClientRouteImport
+      parentRoute: typeof ConsoleOrgMachineClientsRouteRoute
+    }
+    '/_console/$org/members/': {
+      id: '/_console/$org/members/'
+      path: '/'
+      fullPath: '/$org/members/'
+      preLoaderRoute: typeof ConsoleOrgMembersIndexRouteImport
+      parentRoute: typeof ConsoleOrgMembersRouteRoute
+    }
+    '/_console/$org/members/$member': {
+      id: '/_console/$org/members/$member'
+      path: '/$member'
+      fullPath: '/$org/members/$member'
+      preLoaderRoute: typeof ConsoleOrgMembersMemberRouteImport
+      parentRoute: typeof ConsoleOrgMembersRouteRoute
+    }
+    '/_console/$org/settings/': {
+      id: '/_console/$org/settings/'
+      path: '/'
+      fullPath: '/$org/settings/'
+      preLoaderRoute: typeof ConsoleOrgSettingsIndexRouteImport
+      parentRoute: typeof ConsoleOrgSettingsRouteRoute
+    }
+    '/_console/$org/settings/roles': {
+      id: '/_console/$org/settings/roles'
+      path: '/roles'
+      fullPath: '/$org/settings/roles'
+      preLoaderRoute: typeof ConsoleOrgSettingsRolesRouteImport
+      parentRoute: typeof ConsoleOrgSettingsRouteRoute
+    }
+    '/_console/$org/system/': {
+      id: '/_console/$org/system/'
+      path: '/'
+      fullPath: '/$org/system/'
+      preLoaderRoute: typeof ConsoleOrgSystemIndexRouteImport
+      parentRoute: typeof ConsoleOrgSystemRouteRoute
+    }
+    '/_console/$org/system/reconciler': {
+      id: '/_console/$org/system/reconciler'
+      path: '/reconciler'
+      fullPath: '/$org/system/reconciler'
+      preLoaderRoute: typeof ConsoleOrgSystemReconcilerRouteImport
+      parentRoute: typeof ConsoleOrgSystemRouteRoute
+    }
+    '/_console/staff/organizations/': {
+      id: '/_console/staff/organizations/'
+      path: '/'
+      fullPath: '/staff/organizations/'
+      preLoaderRoute: typeof ConsoleStaffOrganizationsIndexRouteImport
+      parentRoute: typeof ConsoleStaffOrganizationsRouteRoute
+    }
+    '/_console/staff/organizations/$alias': {
+      id: '/_console/staff/organizations/$alias'
+      path: '/$alias'
+      fullPath: '/staff/organizations/$alias'
+      preLoaderRoute: typeof ConsoleStaffOrganizationsAliasRouteImport
+      parentRoute: typeof ConsoleStaffOrganizationsRouteRoute
+    }
+    '/_console/$org/ledgers/$ledger/': {
+      id: '/_console/$org/ledgers/$ledger/'
+      path: '/'
+      fullPath: '/$org/ledgers/$ledger/'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerIndexRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerRoute
+    }
+    '/_console/$org/ledgers/$ledger/accounts': {
+      id: '/_console/$org/ledgers/$ledger/accounts'
+      path: '/accounts'
+      fullPath: '/$org/ledgers/$ledger/accounts'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerAccountsRouteRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerRoute
+    }
+    '/_console/$org/ledgers/$ledger/assets': {
+      id: '/_console/$org/ledgers/$ledger/assets'
+      path: '/assets'
+      fullPath: '/$org/ledgers/$ledger/assets'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerAssetsRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerRoute
+    }
+    '/_console/$org/ledgers/$ledger/balances': {
+      id: '/_console/$org/ledgers/$ledger/balances'
+      path: '/balances'
+      fullPath: '/$org/ledgers/$ledger/balances'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerBalancesRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerRoute
+    }
+    '/_console/$org/ledgers/$ledger/holds': {
+      id: '/_console/$org/ledgers/$ledger/holds'
+      path: '/holds'
+      fullPath: '/$org/ledgers/$ledger/holds'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerHoldsRouteRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerRoute
+    }
+    '/_console/$org/ledgers/$ledger/requests': {
+      id: '/_console/$org/ledgers/$ledger/requests'
+      path: '/requests'
+      fullPath: '/$org/ledgers/$ledger/requests'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerRequestsRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerRoute
+    }
+    '/_console/$org/ledgers/$ledger/settings': {
+      id: '/_console/$org/ledgers/$ledger/settings'
+      path: '/settings'
+      fullPath: '/$org/ledgers/$ledger/settings'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerSettingsRouteRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerRoute
+    }
+    '/_console/$org/ledgers/$ledger/transactions': {
+      id: '/_console/$org/ledgers/$ledger/transactions'
       path: '/transactions'
-      fullPath: '/ledgers/$ledger/transactions'
-      preLoaderRoute: typeof ConsoleLedgersLedgerTransactionsRouteRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerRoute
+      fullPath: '/$org/ledgers/$ledger/transactions'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerTransactionsRouteRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerRoute
     }
-    '/_console/ledgers/$ledger/accounts/': {
-      id: '/_console/ledgers/$ledger/accounts/'
+    '/_console/$org/ledgers/$ledger/accounts/': {
+      id: '/_console/$org/ledgers/$ledger/accounts/'
       path: '/'
-      fullPath: '/ledgers/$ledger/accounts/'
-      preLoaderRoute: typeof ConsoleLedgersLedgerAccountsIndexRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerAccountsRouteRoute
+      fullPath: '/$org/ledgers/$ledger/accounts/'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerAccountsIndexRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerAccountsRouteRoute
     }
-    '/_console/ledgers/$ledger/accounts/$address': {
-      id: '/_console/ledgers/$ledger/accounts/$address'
+    '/_console/$org/ledgers/$ledger/accounts/$address': {
+      id: '/_console/$org/ledgers/$ledger/accounts/$address'
       path: '/$address'
-      fullPath: '/ledgers/$ledger/accounts/$address'
-      preLoaderRoute: typeof ConsoleLedgersLedgerAccountsAddressRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerAccountsRouteRoute
+      fullPath: '/$org/ledgers/$ledger/accounts/$address'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerAccountsAddressRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerAccountsRouteRoute
     }
-    '/_console/ledgers/$ledger/holds/': {
-      id: '/_console/ledgers/$ledger/holds/'
+    '/_console/$org/ledgers/$ledger/holds/': {
+      id: '/_console/$org/ledgers/$ledger/holds/'
       path: '/'
-      fullPath: '/ledgers/$ledger/holds/'
-      preLoaderRoute: typeof ConsoleLedgersLedgerHoldsIndexRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerHoldsRouteRoute
+      fullPath: '/$org/ledgers/$ledger/holds/'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerHoldsIndexRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerHoldsRouteRoute
     }
-    '/_console/ledgers/$ledger/holds/$holdId': {
-      id: '/_console/ledgers/$ledger/holds/$holdId'
+    '/_console/$org/ledgers/$ledger/holds/$holdId': {
+      id: '/_console/$org/ledgers/$ledger/holds/$holdId'
       path: '/$holdId'
-      fullPath: '/ledgers/$ledger/holds/$holdId'
-      preLoaderRoute: typeof ConsoleLedgersLedgerHoldsHoldIdRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerHoldsRouteRoute
+      fullPath: '/$org/ledgers/$ledger/holds/$holdId'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerHoldsHoldIdRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerHoldsRouteRoute
     }
-    '/_console/ledgers/$ledger/holds/new': {
-      id: '/_console/ledgers/$ledger/holds/new'
+    '/_console/$org/ledgers/$ledger/holds/new': {
+      id: '/_console/$org/ledgers/$ledger/holds/new'
       path: '/new'
-      fullPath: '/ledgers/$ledger/holds/new'
-      preLoaderRoute: typeof ConsoleLedgersLedgerHoldsNewRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerHoldsRouteRoute
+      fullPath: '/$org/ledgers/$ledger/holds/new'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerHoldsNewRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerHoldsRouteRoute
     }
-    '/_console/ledgers/$ledger/settings/': {
-      id: '/_console/ledgers/$ledger/settings/'
+    '/_console/$org/ledgers/$ledger/settings/': {
+      id: '/_console/$org/ledgers/$ledger/settings/'
       path: '/'
-      fullPath: '/ledgers/$ledger/settings/'
-      preLoaderRoute: typeof ConsoleLedgersLedgerSettingsIndexRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerSettingsRouteRoute
+      fullPath: '/$org/ledgers/$ledger/settings/'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerSettingsIndexRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerSettingsRouteRoute
     }
-    '/_console/ledgers/$ledger/settings/event-types': {
-      id: '/_console/ledgers/$ledger/settings/event-types'
+    '/_console/$org/ledgers/$ledger/settings/access': {
+      id: '/_console/$org/ledgers/$ledger/settings/access'
+      path: '/access'
+      fullPath: '/$org/ledgers/$ledger/settings/access'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerSettingsAccessRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerSettingsRouteRoute
+    }
+    '/_console/$org/ledgers/$ledger/settings/event-types': {
+      id: '/_console/$org/ledgers/$ledger/settings/event-types'
       path: '/event-types'
-      fullPath: '/ledgers/$ledger/settings/event-types'
-      preLoaderRoute: typeof ConsoleLedgersLedgerSettingsEventTypesRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerSettingsRouteRoute
+      fullPath: '/$org/ledgers/$ledger/settings/event-types'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerSettingsEventTypesRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerSettingsRouteRoute
     }
-    '/_console/ledgers/$ledger/settings/rules': {
-      id: '/_console/ledgers/$ledger/settings/rules'
+    '/_console/$org/ledgers/$ledger/settings/rules': {
+      id: '/_console/$org/ledgers/$ledger/settings/rules'
       path: '/rules'
-      fullPath: '/ledgers/$ledger/settings/rules'
-      preLoaderRoute: typeof ConsoleLedgersLedgerSettingsRulesRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerSettingsRouteRoute
+      fullPath: '/$org/ledgers/$ledger/settings/rules'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerSettingsRulesRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerSettingsRouteRoute
     }
-    '/_console/ledgers/$ledger/transactions/': {
-      id: '/_console/ledgers/$ledger/transactions/'
+    '/_console/$org/ledgers/$ledger/transactions/': {
+      id: '/_console/$org/ledgers/$ledger/transactions/'
       path: '/'
-      fullPath: '/ledgers/$ledger/transactions/'
-      preLoaderRoute: typeof ConsoleLedgersLedgerTransactionsIndexRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerTransactionsRouteRoute
+      fullPath: '/$org/ledgers/$ledger/transactions/'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerTransactionsIndexRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerTransactionsRouteRoute
     }
-    '/_console/ledgers/$ledger/transactions/$txId': {
-      id: '/_console/ledgers/$ledger/transactions/$txId'
+    '/_console/$org/ledgers/$ledger/transactions/$txId': {
+      id: '/_console/$org/ledgers/$ledger/transactions/$txId'
       path: '/$txId'
-      fullPath: '/ledgers/$ledger/transactions/$txId'
-      preLoaderRoute: typeof ConsoleLedgersLedgerTransactionsTxIdRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerTransactionsRouteRoute
+      fullPath: '/$org/ledgers/$ledger/transactions/$txId'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerTransactionsTxIdRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerTransactionsRouteRoute
     }
-    '/_console/ledgers/$ledger/transactions/new': {
-      id: '/_console/ledgers/$ledger/transactions/new'
+    '/_console/$org/ledgers/$ledger/transactions/new': {
+      id: '/_console/$org/ledgers/$ledger/transactions/new'
       path: '/new'
-      fullPath: '/ledgers/$ledger/transactions/new'
-      preLoaderRoute: typeof ConsoleLedgersLedgerTransactionsNewRouteImport
-      parentRoute: typeof ConsoleLedgersLedgerTransactionsRouteRoute
+      fullPath: '/$org/ledgers/$ledger/transactions/new'
+      preLoaderRoute: typeof ConsoleOrgLedgersLedgerTransactionsNewRouteImport
+      parentRoute: typeof ConsoleOrgLedgersLedgerTransactionsRouteRoute
     }
   }
 }
 
-interface ConsoleSystemRouteRouteChildren {
-  ConsoleSystemReconcilerRoute: typeof ConsoleSystemReconcilerRoute
-  ConsoleSystemIndexRoute: typeof ConsoleSystemIndexRoute
+interface ConsoleStaffOrganizationsRouteRouteChildren {
+  ConsoleStaffOrganizationsAliasRoute: typeof ConsoleStaffOrganizationsAliasRoute
+  ConsoleStaffOrganizationsIndexRoute: typeof ConsoleStaffOrganizationsIndexRoute
 }
 
-const ConsoleSystemRouteRouteChildren: ConsoleSystemRouteRouteChildren = {
-  ConsoleSystemReconcilerRoute: ConsoleSystemReconcilerRoute,
-  ConsoleSystemIndexRoute: ConsoleSystemIndexRoute,
-}
-
-const ConsoleSystemRouteRouteWithChildren =
-  ConsoleSystemRouteRoute._addFileChildren(ConsoleSystemRouteRouteChildren)
-
-interface ConsoleLedgersLedgerAccountsRouteRouteChildren {
-  ConsoleLedgersLedgerAccountsAddressRoute: typeof ConsoleLedgersLedgerAccountsAddressRoute
-  ConsoleLedgersLedgerAccountsIndexRoute: typeof ConsoleLedgersLedgerAccountsIndexRoute
-}
-
-const ConsoleLedgersLedgerAccountsRouteRouteChildren: ConsoleLedgersLedgerAccountsRouteRouteChildren =
+const ConsoleStaffOrganizationsRouteRouteChildren: ConsoleStaffOrganizationsRouteRouteChildren =
   {
-    ConsoleLedgersLedgerAccountsAddressRoute:
-      ConsoleLedgersLedgerAccountsAddressRoute,
-    ConsoleLedgersLedgerAccountsIndexRoute:
-      ConsoleLedgersLedgerAccountsIndexRoute,
+    ConsoleStaffOrganizationsAliasRoute: ConsoleStaffOrganizationsAliasRoute,
+    ConsoleStaffOrganizationsIndexRoute: ConsoleStaffOrganizationsIndexRoute,
   }
 
-const ConsoleLedgersLedgerAccountsRouteRouteWithChildren =
-  ConsoleLedgersLedgerAccountsRouteRoute._addFileChildren(
-    ConsoleLedgersLedgerAccountsRouteRouteChildren,
+const ConsoleStaffOrganizationsRouteRouteWithChildren =
+  ConsoleStaffOrganizationsRouteRoute._addFileChildren(
+    ConsoleStaffOrganizationsRouteRouteChildren,
   )
 
-interface ConsoleLedgersLedgerHoldsRouteRouteChildren {
-  ConsoleLedgersLedgerHoldsHoldIdRoute: typeof ConsoleLedgersLedgerHoldsHoldIdRoute
-  ConsoleLedgersLedgerHoldsNewRoute: typeof ConsoleLedgersLedgerHoldsNewRoute
-  ConsoleLedgersLedgerHoldsIndexRoute: typeof ConsoleLedgersLedgerHoldsIndexRoute
+interface ConsoleStaffRouteRouteChildren {
+  ConsoleStaffOrganizationsRouteRoute: typeof ConsoleStaffOrganizationsRouteRouteWithChildren
 }
 
-const ConsoleLedgersLedgerHoldsRouteRouteChildren: ConsoleLedgersLedgerHoldsRouteRouteChildren =
+const ConsoleStaffRouteRouteChildren: ConsoleStaffRouteRouteChildren = {
+  ConsoleStaffOrganizationsRouteRoute:
+    ConsoleStaffOrganizationsRouteRouteWithChildren,
+}
+
+const ConsoleStaffRouteRouteWithChildren =
+  ConsoleStaffRouteRoute._addFileChildren(ConsoleStaffRouteRouteChildren)
+
+interface ConsoleOrgApiKeysRouteRouteChildren {
+  ConsoleOrgApiKeysKeyRoute: typeof ConsoleOrgApiKeysKeyRoute
+  ConsoleOrgApiKeysIndexRoute: typeof ConsoleOrgApiKeysIndexRoute
+}
+
+const ConsoleOrgApiKeysRouteRouteChildren: ConsoleOrgApiKeysRouteRouteChildren =
   {
-    ConsoleLedgersLedgerHoldsHoldIdRoute: ConsoleLedgersLedgerHoldsHoldIdRoute,
-    ConsoleLedgersLedgerHoldsNewRoute: ConsoleLedgersLedgerHoldsNewRoute,
-    ConsoleLedgersLedgerHoldsIndexRoute: ConsoleLedgersLedgerHoldsIndexRoute,
+    ConsoleOrgApiKeysKeyRoute: ConsoleOrgApiKeysKeyRoute,
+    ConsoleOrgApiKeysIndexRoute: ConsoleOrgApiKeysIndexRoute,
   }
 
-const ConsoleLedgersLedgerHoldsRouteRouteWithChildren =
-  ConsoleLedgersLedgerHoldsRouteRoute._addFileChildren(
-    ConsoleLedgersLedgerHoldsRouteRouteChildren,
+const ConsoleOrgApiKeysRouteRouteWithChildren =
+  ConsoleOrgApiKeysRouteRoute._addFileChildren(
+    ConsoleOrgApiKeysRouteRouteChildren,
   )
 
-interface ConsoleLedgersLedgerSettingsRouteRouteChildren {
-  ConsoleLedgersLedgerSettingsEventTypesRoute: typeof ConsoleLedgersLedgerSettingsEventTypesRoute
-  ConsoleLedgersLedgerSettingsRulesRoute: typeof ConsoleLedgersLedgerSettingsRulesRoute
-  ConsoleLedgersLedgerSettingsIndexRoute: typeof ConsoleLedgersLedgerSettingsIndexRoute
+interface ConsoleOrgMachineClientsRouteRouteChildren {
+  ConsoleOrgMachineClientsClientRoute: typeof ConsoleOrgMachineClientsClientRoute
+  ConsoleOrgMachineClientsIndexRoute: typeof ConsoleOrgMachineClientsIndexRoute
 }
 
-const ConsoleLedgersLedgerSettingsRouteRouteChildren: ConsoleLedgersLedgerSettingsRouteRouteChildren =
+const ConsoleOrgMachineClientsRouteRouteChildren: ConsoleOrgMachineClientsRouteRouteChildren =
   {
-    ConsoleLedgersLedgerSettingsEventTypesRoute:
-      ConsoleLedgersLedgerSettingsEventTypesRoute,
-    ConsoleLedgersLedgerSettingsRulesRoute:
-      ConsoleLedgersLedgerSettingsRulesRoute,
-    ConsoleLedgersLedgerSettingsIndexRoute:
-      ConsoleLedgersLedgerSettingsIndexRoute,
+    ConsoleOrgMachineClientsClientRoute: ConsoleOrgMachineClientsClientRoute,
+    ConsoleOrgMachineClientsIndexRoute: ConsoleOrgMachineClientsIndexRoute,
   }
 
-const ConsoleLedgersLedgerSettingsRouteRouteWithChildren =
-  ConsoleLedgersLedgerSettingsRouteRoute._addFileChildren(
-    ConsoleLedgersLedgerSettingsRouteRouteChildren,
+const ConsoleOrgMachineClientsRouteRouteWithChildren =
+  ConsoleOrgMachineClientsRouteRoute._addFileChildren(
+    ConsoleOrgMachineClientsRouteRouteChildren,
   )
 
-interface ConsoleLedgersLedgerTransactionsRouteRouteChildren {
-  ConsoleLedgersLedgerTransactionsTxIdRoute: typeof ConsoleLedgersLedgerTransactionsTxIdRoute
-  ConsoleLedgersLedgerTransactionsNewRoute: typeof ConsoleLedgersLedgerTransactionsNewRoute
-  ConsoleLedgersLedgerTransactionsIndexRoute: typeof ConsoleLedgersLedgerTransactionsIndexRoute
+interface ConsoleOrgMembersRouteRouteChildren {
+  ConsoleOrgMembersMemberRoute: typeof ConsoleOrgMembersMemberRoute
+  ConsoleOrgMembersIndexRoute: typeof ConsoleOrgMembersIndexRoute
 }
 
-const ConsoleLedgersLedgerTransactionsRouteRouteChildren: ConsoleLedgersLedgerTransactionsRouteRouteChildren =
+const ConsoleOrgMembersRouteRouteChildren: ConsoleOrgMembersRouteRouteChildren =
   {
-    ConsoleLedgersLedgerTransactionsTxIdRoute:
-      ConsoleLedgersLedgerTransactionsTxIdRoute,
-    ConsoleLedgersLedgerTransactionsNewRoute:
-      ConsoleLedgersLedgerTransactionsNewRoute,
-    ConsoleLedgersLedgerTransactionsIndexRoute:
-      ConsoleLedgersLedgerTransactionsIndexRoute,
+    ConsoleOrgMembersMemberRoute: ConsoleOrgMembersMemberRoute,
+    ConsoleOrgMembersIndexRoute: ConsoleOrgMembersIndexRoute,
   }
 
-const ConsoleLedgersLedgerTransactionsRouteRouteWithChildren =
-  ConsoleLedgersLedgerTransactionsRouteRoute._addFileChildren(
-    ConsoleLedgersLedgerTransactionsRouteRouteChildren,
+const ConsoleOrgMembersRouteRouteWithChildren =
+  ConsoleOrgMembersRouteRoute._addFileChildren(
+    ConsoleOrgMembersRouteRouteChildren,
   )
 
-interface ConsoleLedgersLedgerRouteChildren {
-  ConsoleLedgersLedgerAccountsRouteRoute: typeof ConsoleLedgersLedgerAccountsRouteRouteWithChildren
-  ConsoleLedgersLedgerHoldsRouteRoute: typeof ConsoleLedgersLedgerHoldsRouteRouteWithChildren
-  ConsoleLedgersLedgerSettingsRouteRoute: typeof ConsoleLedgersLedgerSettingsRouteRouteWithChildren
-  ConsoleLedgersLedgerTransactionsRouteRoute: typeof ConsoleLedgersLedgerTransactionsRouteRouteWithChildren
-  ConsoleLedgersLedgerAssetsRoute: typeof ConsoleLedgersLedgerAssetsRoute
-  ConsoleLedgersLedgerBalancesRoute: typeof ConsoleLedgersLedgerBalancesRoute
-  ConsoleLedgersLedgerRequestsRoute: typeof ConsoleLedgersLedgerRequestsRoute
-  ConsoleLedgersLedgerIndexRoute: typeof ConsoleLedgersLedgerIndexRoute
+interface ConsoleOrgSettingsRouteRouteChildren {
+  ConsoleOrgSettingsRolesRoute: typeof ConsoleOrgSettingsRolesRoute
+  ConsoleOrgSettingsIndexRoute: typeof ConsoleOrgSettingsIndexRoute
 }
 
-const ConsoleLedgersLedgerRouteChildren: ConsoleLedgersLedgerRouteChildren = {
-  ConsoleLedgersLedgerAccountsRouteRoute:
-    ConsoleLedgersLedgerAccountsRouteRouteWithChildren,
-  ConsoleLedgersLedgerHoldsRouteRoute:
-    ConsoleLedgersLedgerHoldsRouteRouteWithChildren,
-  ConsoleLedgersLedgerSettingsRouteRoute:
-    ConsoleLedgersLedgerSettingsRouteRouteWithChildren,
-  ConsoleLedgersLedgerTransactionsRouteRoute:
-    ConsoleLedgersLedgerTransactionsRouteRouteWithChildren,
-  ConsoleLedgersLedgerAssetsRoute: ConsoleLedgersLedgerAssetsRoute,
-  ConsoleLedgersLedgerBalancesRoute: ConsoleLedgersLedgerBalancesRoute,
-  ConsoleLedgersLedgerRequestsRoute: ConsoleLedgersLedgerRequestsRoute,
-  ConsoleLedgersLedgerIndexRoute: ConsoleLedgersLedgerIndexRoute,
+const ConsoleOrgSettingsRouteRouteChildren: ConsoleOrgSettingsRouteRouteChildren =
+  {
+    ConsoleOrgSettingsRolesRoute: ConsoleOrgSettingsRolesRoute,
+    ConsoleOrgSettingsIndexRoute: ConsoleOrgSettingsIndexRoute,
+  }
+
+const ConsoleOrgSettingsRouteRouteWithChildren =
+  ConsoleOrgSettingsRouteRoute._addFileChildren(
+    ConsoleOrgSettingsRouteRouteChildren,
+  )
+
+interface ConsoleOrgSystemRouteRouteChildren {
+  ConsoleOrgSystemReconcilerRoute: typeof ConsoleOrgSystemReconcilerRoute
+  ConsoleOrgSystemIndexRoute: typeof ConsoleOrgSystemIndexRoute
 }
 
-const ConsoleLedgersLedgerRouteWithChildren =
-  ConsoleLedgersLedgerRoute._addFileChildren(ConsoleLedgersLedgerRouteChildren)
+const ConsoleOrgSystemRouteRouteChildren: ConsoleOrgSystemRouteRouteChildren = {
+  ConsoleOrgSystemReconcilerRoute: ConsoleOrgSystemReconcilerRoute,
+  ConsoleOrgSystemIndexRoute: ConsoleOrgSystemIndexRoute,
+}
+
+const ConsoleOrgSystemRouteRouteWithChildren =
+  ConsoleOrgSystemRouteRoute._addFileChildren(
+    ConsoleOrgSystemRouteRouteChildren,
+  )
+
+interface ConsoleOrgLedgersLedgerAccountsRouteRouteChildren {
+  ConsoleOrgLedgersLedgerAccountsAddressRoute: typeof ConsoleOrgLedgersLedgerAccountsAddressRoute
+  ConsoleOrgLedgersLedgerAccountsIndexRoute: typeof ConsoleOrgLedgersLedgerAccountsIndexRoute
+}
+
+const ConsoleOrgLedgersLedgerAccountsRouteRouteChildren: ConsoleOrgLedgersLedgerAccountsRouteRouteChildren =
+  {
+    ConsoleOrgLedgersLedgerAccountsAddressRoute:
+      ConsoleOrgLedgersLedgerAccountsAddressRoute,
+    ConsoleOrgLedgersLedgerAccountsIndexRoute:
+      ConsoleOrgLedgersLedgerAccountsIndexRoute,
+  }
+
+const ConsoleOrgLedgersLedgerAccountsRouteRouteWithChildren =
+  ConsoleOrgLedgersLedgerAccountsRouteRoute._addFileChildren(
+    ConsoleOrgLedgersLedgerAccountsRouteRouteChildren,
+  )
+
+interface ConsoleOrgLedgersLedgerHoldsRouteRouteChildren {
+  ConsoleOrgLedgersLedgerHoldsHoldIdRoute: typeof ConsoleOrgLedgersLedgerHoldsHoldIdRoute
+  ConsoleOrgLedgersLedgerHoldsNewRoute: typeof ConsoleOrgLedgersLedgerHoldsNewRoute
+  ConsoleOrgLedgersLedgerHoldsIndexRoute: typeof ConsoleOrgLedgersLedgerHoldsIndexRoute
+}
+
+const ConsoleOrgLedgersLedgerHoldsRouteRouteChildren: ConsoleOrgLedgersLedgerHoldsRouteRouteChildren =
+  {
+    ConsoleOrgLedgersLedgerHoldsHoldIdRoute:
+      ConsoleOrgLedgersLedgerHoldsHoldIdRoute,
+    ConsoleOrgLedgersLedgerHoldsNewRoute: ConsoleOrgLedgersLedgerHoldsNewRoute,
+    ConsoleOrgLedgersLedgerHoldsIndexRoute:
+      ConsoleOrgLedgersLedgerHoldsIndexRoute,
+  }
+
+const ConsoleOrgLedgersLedgerHoldsRouteRouteWithChildren =
+  ConsoleOrgLedgersLedgerHoldsRouteRoute._addFileChildren(
+    ConsoleOrgLedgersLedgerHoldsRouteRouteChildren,
+  )
+
+interface ConsoleOrgLedgersLedgerSettingsRouteRouteChildren {
+  ConsoleOrgLedgersLedgerSettingsAccessRoute: typeof ConsoleOrgLedgersLedgerSettingsAccessRoute
+  ConsoleOrgLedgersLedgerSettingsEventTypesRoute: typeof ConsoleOrgLedgersLedgerSettingsEventTypesRoute
+  ConsoleOrgLedgersLedgerSettingsRulesRoute: typeof ConsoleOrgLedgersLedgerSettingsRulesRoute
+  ConsoleOrgLedgersLedgerSettingsIndexRoute: typeof ConsoleOrgLedgersLedgerSettingsIndexRoute
+}
+
+const ConsoleOrgLedgersLedgerSettingsRouteRouteChildren: ConsoleOrgLedgersLedgerSettingsRouteRouteChildren =
+  {
+    ConsoleOrgLedgersLedgerSettingsAccessRoute:
+      ConsoleOrgLedgersLedgerSettingsAccessRoute,
+    ConsoleOrgLedgersLedgerSettingsEventTypesRoute:
+      ConsoleOrgLedgersLedgerSettingsEventTypesRoute,
+    ConsoleOrgLedgersLedgerSettingsRulesRoute:
+      ConsoleOrgLedgersLedgerSettingsRulesRoute,
+    ConsoleOrgLedgersLedgerSettingsIndexRoute:
+      ConsoleOrgLedgersLedgerSettingsIndexRoute,
+  }
+
+const ConsoleOrgLedgersLedgerSettingsRouteRouteWithChildren =
+  ConsoleOrgLedgersLedgerSettingsRouteRoute._addFileChildren(
+    ConsoleOrgLedgersLedgerSettingsRouteRouteChildren,
+  )
+
+interface ConsoleOrgLedgersLedgerTransactionsRouteRouteChildren {
+  ConsoleOrgLedgersLedgerTransactionsTxIdRoute: typeof ConsoleOrgLedgersLedgerTransactionsTxIdRoute
+  ConsoleOrgLedgersLedgerTransactionsNewRoute: typeof ConsoleOrgLedgersLedgerTransactionsNewRoute
+  ConsoleOrgLedgersLedgerTransactionsIndexRoute: typeof ConsoleOrgLedgersLedgerTransactionsIndexRoute
+}
+
+const ConsoleOrgLedgersLedgerTransactionsRouteRouteChildren: ConsoleOrgLedgersLedgerTransactionsRouteRouteChildren =
+  {
+    ConsoleOrgLedgersLedgerTransactionsTxIdRoute:
+      ConsoleOrgLedgersLedgerTransactionsTxIdRoute,
+    ConsoleOrgLedgersLedgerTransactionsNewRoute:
+      ConsoleOrgLedgersLedgerTransactionsNewRoute,
+    ConsoleOrgLedgersLedgerTransactionsIndexRoute:
+      ConsoleOrgLedgersLedgerTransactionsIndexRoute,
+  }
+
+const ConsoleOrgLedgersLedgerTransactionsRouteRouteWithChildren =
+  ConsoleOrgLedgersLedgerTransactionsRouteRoute._addFileChildren(
+    ConsoleOrgLedgersLedgerTransactionsRouteRouteChildren,
+  )
+
+interface ConsoleOrgLedgersLedgerRouteChildren {
+  ConsoleOrgLedgersLedgerAccountsRouteRoute: typeof ConsoleOrgLedgersLedgerAccountsRouteRouteWithChildren
+  ConsoleOrgLedgersLedgerHoldsRouteRoute: typeof ConsoleOrgLedgersLedgerHoldsRouteRouteWithChildren
+  ConsoleOrgLedgersLedgerSettingsRouteRoute: typeof ConsoleOrgLedgersLedgerSettingsRouteRouteWithChildren
+  ConsoleOrgLedgersLedgerTransactionsRouteRoute: typeof ConsoleOrgLedgersLedgerTransactionsRouteRouteWithChildren
+  ConsoleOrgLedgersLedgerAssetsRoute: typeof ConsoleOrgLedgersLedgerAssetsRoute
+  ConsoleOrgLedgersLedgerBalancesRoute: typeof ConsoleOrgLedgersLedgerBalancesRoute
+  ConsoleOrgLedgersLedgerRequestsRoute: typeof ConsoleOrgLedgersLedgerRequestsRoute
+  ConsoleOrgLedgersLedgerIndexRoute: typeof ConsoleOrgLedgersLedgerIndexRoute
+}
+
+const ConsoleOrgLedgersLedgerRouteChildren: ConsoleOrgLedgersLedgerRouteChildren =
+  {
+    ConsoleOrgLedgersLedgerAccountsRouteRoute:
+      ConsoleOrgLedgersLedgerAccountsRouteRouteWithChildren,
+    ConsoleOrgLedgersLedgerHoldsRouteRoute:
+      ConsoleOrgLedgersLedgerHoldsRouteRouteWithChildren,
+    ConsoleOrgLedgersLedgerSettingsRouteRoute:
+      ConsoleOrgLedgersLedgerSettingsRouteRouteWithChildren,
+    ConsoleOrgLedgersLedgerTransactionsRouteRoute:
+      ConsoleOrgLedgersLedgerTransactionsRouteRouteWithChildren,
+    ConsoleOrgLedgersLedgerAssetsRoute: ConsoleOrgLedgersLedgerAssetsRoute,
+    ConsoleOrgLedgersLedgerBalancesRoute: ConsoleOrgLedgersLedgerBalancesRoute,
+    ConsoleOrgLedgersLedgerRequestsRoute: ConsoleOrgLedgersLedgerRequestsRoute,
+    ConsoleOrgLedgersLedgerIndexRoute: ConsoleOrgLedgersLedgerIndexRoute,
+  }
+
+const ConsoleOrgLedgersLedgerRouteWithChildren =
+  ConsoleOrgLedgersLedgerRoute._addFileChildren(
+    ConsoleOrgLedgersLedgerRouteChildren,
+  )
+
+interface ConsoleOrgRouteChildren {
+  ConsoleOrgApiKeysRouteRoute: typeof ConsoleOrgApiKeysRouteRouteWithChildren
+  ConsoleOrgMachineClientsRouteRoute: typeof ConsoleOrgMachineClientsRouteRouteWithChildren
+  ConsoleOrgMembersRouteRoute: typeof ConsoleOrgMembersRouteRouteWithChildren
+  ConsoleOrgSettingsRouteRoute: typeof ConsoleOrgSettingsRouteRouteWithChildren
+  ConsoleOrgSystemRouteRoute: typeof ConsoleOrgSystemRouteRouteWithChildren
+  ConsoleOrgLedgersLedgerRoute: typeof ConsoleOrgLedgersLedgerRouteWithChildren
+  ConsoleOrgLedgersIndexRoute: typeof ConsoleOrgLedgersIndexRoute
+}
+
+const ConsoleOrgRouteChildren: ConsoleOrgRouteChildren = {
+  ConsoleOrgApiKeysRouteRoute: ConsoleOrgApiKeysRouteRouteWithChildren,
+  ConsoleOrgMachineClientsRouteRoute:
+    ConsoleOrgMachineClientsRouteRouteWithChildren,
+  ConsoleOrgMembersRouteRoute: ConsoleOrgMembersRouteRouteWithChildren,
+  ConsoleOrgSettingsRouteRoute: ConsoleOrgSettingsRouteRouteWithChildren,
+  ConsoleOrgSystemRouteRoute: ConsoleOrgSystemRouteRouteWithChildren,
+  ConsoleOrgLedgersLedgerRoute: ConsoleOrgLedgersLedgerRouteWithChildren,
+  ConsoleOrgLedgersIndexRoute: ConsoleOrgLedgersIndexRoute,
+}
+
+const ConsoleOrgRouteWithChildren = ConsoleOrgRoute._addFileChildren(
+  ConsoleOrgRouteChildren,
+)
 
 interface ConsoleRouteChildren {
-  ConsoleSystemRouteRoute: typeof ConsoleSystemRouteRouteWithChildren
+  ConsoleStaffRouteRoute: typeof ConsoleStaffRouteRouteWithChildren
+  ConsoleOrgRoute: typeof ConsoleOrgRouteWithChildren
   ConsoleDesignSystemRoute: typeof ConsoleDesignSystemRoute
+  ConsoleMeRoute: typeof ConsoleMeRoute
   ConsolePreferencesRoute: typeof ConsolePreferencesRoute
-  ConsoleLedgersLedgerRoute: typeof ConsoleLedgersLedgerRouteWithChildren
-  ConsoleLedgersIndexRoute: typeof ConsoleLedgersIndexRoute
+  ConsoleWelcomeRoute: typeof ConsoleWelcomeRoute
 }
 
 const ConsoleRouteChildren: ConsoleRouteChildren = {
-  ConsoleSystemRouteRoute: ConsoleSystemRouteRouteWithChildren,
+  ConsoleStaffRouteRoute: ConsoleStaffRouteRouteWithChildren,
+  ConsoleOrgRoute: ConsoleOrgRouteWithChildren,
   ConsoleDesignSystemRoute: ConsoleDesignSystemRoute,
+  ConsoleMeRoute: ConsoleMeRoute,
   ConsolePreferencesRoute: ConsolePreferencesRoute,
-  ConsoleLedgersLedgerRoute: ConsoleLedgersLedgerRouteWithChildren,
-  ConsoleLedgersIndexRoute: ConsoleLedgersIndexRoute,
+  ConsoleWelcomeRoute: ConsoleWelcomeRoute,
 }
 
 const ConsoleRouteWithChildren =

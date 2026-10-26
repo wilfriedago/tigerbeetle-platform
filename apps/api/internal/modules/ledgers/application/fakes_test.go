@@ -35,10 +35,10 @@ func (f *fakeStore) GetLedger(_ context.Context, name string) (ledger.Ledger, er
 	return l, nil
 }
 
-func (f *fakeStore) ListLedgers(_ context.Context, after string, limit int) ([]ledger.Ledger, error) {
+func (f *fakeStore) ListLedgers(_ context.Context, all bool, names []string, after string, limit int) ([]ledger.Ledger, error) {
 	var out []ledger.Ledger
 	for _, l := range f.ledgers {
-		if l.Name > after {
+		if l.Name > after && (all || slices.Contains(names, l.Name)) {
 			out = append(out, l)
 		}
 	}
@@ -125,6 +125,6 @@ func (f fakeBookkeeping) AddressAssets(_ context.Context, _ string, a ledger.Add
 func newApplication(store *fakeStore, bk fakeBookkeeping, clock ledger.Clock) Application {
 	return New(Deps{
 		Ledgers: store, Rules: store, EventTypes: store, Directory: NewDirectory(store),
-		Footprints: bk, Usage: bk, Addresses: bk, Clock: clock,
+		Footprints: bk, Usage: bk, Addresses: bk, Clock: clock, Authorizer: allowAll{},
 	})
 }

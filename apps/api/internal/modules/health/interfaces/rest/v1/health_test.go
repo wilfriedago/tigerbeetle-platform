@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
@@ -28,7 +30,7 @@ func newTestServer(t *testing.T, deps Deps) http.Handler {
 	mux := http.NewServeMux()
 	api := restapi.NewAPI(mux)
 	Register(api, deps)
-	return restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	return restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), restapi.Options{Auth: authntest.Default()})
 }
 
 func statusDeps(pg, tb readyFunc) Deps {
@@ -82,11 +84,11 @@ func TestReadinessAndInfo(t *testing.T) {
 		{name: "all up", pg: up, tb: up, wantReadyCode: 200, wantStatus: "ready", wantTB: scalar.DependencyUp},
 		{
 			name: "tigerbeetle down", pg: up, tb: func(context.Context) error { return errDown },
-			wantReadyCode: 503, wantStatus: "not_ready", wantTB: scalar.DependencyDown, wantTBError: "unreachable",
+			wantReadyCode: 503, wantTB: scalar.DependencyDown, wantTBError: "unreachable",
 		},
 		{
 			name: "tigerbeetle timeout", pg: up, tb: slow,
-			wantReadyCode: 503, wantStatus: "not_ready", wantTB: scalar.DependencyDown, wantTBError: "timeout",
+			wantReadyCode: 503, wantTB: scalar.DependencyDown, wantTBError: "timeout",
 		},
 	}
 	for _, tt := range tests {
@@ -98,14 +100,18 @@ func TestReadinessAndInfo(t *testing.T) {
 			if rec.Code != tt.wantReadyCode {
 				t.Fatalf("/readyz status = %d, want %d: %s", rec.Code, tt.wantReadyCode, rec.Body.String())
 			}
-			if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
-				t.Errorf("/readyz Content-Type = %q", ct)
+			if rec.Code == http.StatusOK {
+				if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
+					t.Errorf("/readyz Content-Type = %q", ct)
+				}
+				ready := decode[dto.Readiness](t, rec)
+				if ready.Status != tt.wantStatus {
+					t.Errorf("/readyz status field = %q, want %q", ready.Status, tt.wantStatus)
+				}
+				checkDeps(t, ready.Dependencies, tt.wantTB, tt.wantTBError)
+			} else {
+				checkNotReady(t, rec, tt.wantTB, tt.wantTBError)
 			}
-			ready := decode[dto.Readiness](t, rec)
-			if ready.Status != tt.wantStatus {
-				t.Errorf("/readyz status field = %q, want %q", ready.Status, tt.wantStatus)
-			}
-			checkDeps(t, ready.Dependencies, tt.wantTB, tt.wantTBError)
 
 			rec = get(t, h, "/v1/_info")
 			if rec.Code != http.StatusOK {
@@ -118,6 +124,26 @@ func TestReadinessAndInfo(t *testing.T) {
 			checkDeps(t, info.Dependencies, tt.wantTB, tt.wantTBError)
 		})
 	}
+}
+
+// checkNotReady checks the 503 of /readyz: a not-ready problem with the dependencies as an
+// extension member.
+func checkNotReady(t *testing.T, rec *httptest.ResponseRecorder, wantTB scalar.DependencyStatus, wantTBError string) {
+	t.Helper()
+	if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
+		t.Errorf("/readyz Content-Type = %q, want application/problem+json", ct)
+	}
+	got := decode[struct {
+		Type         string           `json:"type"`
+		Title        string           `json:"title"`
+		Status       int              `json:"status"`
+		Instance     string           `json:"instance"`
+		Dependencies dto.Dependencies `json:"dependencies"`
+	}](t, rec)
+	if got.Type != problem.TypeOf("not-ready") || got.Title != "Not ready" || got.Status != http.StatusServiceUnavailable || got.Instance != "/readyz" {
+		t.Errorf("/readyz problem = %+v", got)
+	}
+	checkDeps(t, got.Dependencies, wantTB, wantTBError)
 }
 
 func checkDeps(t *testing.T, deps dto.Dependencies, wantTB scalar.DependencyStatus, wantTBError string) {

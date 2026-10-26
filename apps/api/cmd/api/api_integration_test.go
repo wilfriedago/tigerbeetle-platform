@@ -19,8 +19,10 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/devstack"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/application/directorytest"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 )
 
 // faultyLedger wraps the TigerBeetle port to simulate the two crash windows of ADR-0007: a
@@ -47,6 +49,11 @@ type harness struct {
 	server *httptest.Server
 	app    *bootstrap.App
 	faults *faultyLedger
+	auth   testAuth
+	// dir stands in for Keycloak's admin API: organizations, accounts and invitations.
+	dir *directorytest.Directory
+	// cfgPostgresURL is the database of the harness, for tests that seed grants.
+	cfgPostgresURL string
 }
 
 func newHarness(t *testing.T) *harness {
@@ -62,10 +69,16 @@ func newHarness(t *testing.T) *harness {
 		TigerBeetleTimeout:    10 * time.Second,
 		ReconcilerGracePeriod: time.Millisecond,
 		ReconcilerInterval:    time.Hour,
+		// 32 bytes for the API key HMAC (ADR-0029), fixed for tests.
+		AuthAPIKeyPepper: "dGVzdC1vbmx5LWFwaS1rZXktcGVwcGVyLTMyLWJ5dGVz",
 	}
 	h := &harness{t: t}
+	h.auth = trustTestIssuer(t, &cfg)
+	h.dir = directorytest.New(h.auth.iss.URL)
+	h.dir.AddOrganization("default")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	built, err := bootstrap.Build(context.Background(), cfg, bootstrap.Service{Name: serviceName, Version: version}, logger,
+		bootstrap.WithDirectory(h.dir),
 		bootstrap.WithLedgerStore(func(s domain.LedgerStore) domain.LedgerStore {
 			h.faults = &faultyLedger{LedgerStore: s}
 			return h.faults
@@ -75,7 +88,9 @@ func newHarness(t *testing.T) *harness {
 	}
 	t.Cleanup(built.Close)
 	h.app = built
-	h.server = httptest.NewServer(built.Handler())
+	h.cfgPostgresURL = cfg.PostgresURL
+	h.auth.ownDefault(t, cfg.PostgresURL)
+	h.server = httptest.NewServer(h.auth.withCredentials(built.Handler()))
 	t.Cleanup(h.server.Close)
 	return h
 }
@@ -210,12 +225,12 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		}
 		reused := h.do(http.MethodPost, base+"/transactions", "fund-1", map[string]any{"postings": []any{posting("world", "users:1:wallet", "EUR/2", "1")}})
 		h.expect(reused, 422, "key reused")
-		if reused.str("type") != "/problems/idempotency-key-reused" {
+		if reused.str("type") != problem.TypeOf("idempotency-key-reused") {
 			t.Fatalf("type = %s", reused.str("type"))
 		}
 		missing := h.do(http.MethodPost, base+"/transactions", "", body)
 		h.expect(missing, 400, "missing key")
-		if missing.str("type") != "/problems/missing-idempotency-key" {
+		if missing.str("type") != problem.TypeOf("missing-idempotency-key") {
 			t.Fatalf("type = %s", missing.str("type"))
 		}
 		if b, _, _ := h.balance("users:1:wallet", "EUR/2"); b != "100000" {
@@ -230,7 +245,7 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		}}
 		r := h.do(http.MethodPost, base+"/transactions", "declined-1", body)
 		h.expect(r, 422, "declined")
-		if r.str("type") != "/problems/exceeds-credits" || r.str("posting") != "1" || r.str("results", "0") != "linked_event_failed" {
+		if r.str("type") != problem.TypeOf("exceeds-credits") || r.str("posting") != "1" || r.str("results", "0") != "linked_event_failed" {
 			t.Fatalf("decline problem = %v", r.body)
 		}
 		if b, _, _ := h.balance("users:1:wallet", "EUR/2"); b != "100000" {
@@ -238,7 +253,7 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		}
 		h.expect(h.do(http.MethodPost, base+"/transactions", "declined-1", body), 422, "a declined key stays declined")
 		rec := h.do(http.MethodGet, base+"/requests/declined-1", "", nil)
-		if rec.str("status") != "declined" || rec.str("problemType") != "/problems/exceeds-credits" {
+		if rec.str("status") != "declined" || rec.str("problemType") != problem.TypeOf("exceeds-credits") {
 			t.Fatalf("record = %v", rec.body)
 		}
 	})
@@ -325,7 +340,7 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		time.Sleep(time.Second)
 		late := h.do(http.MethodPost, base+"/holds/"+short.str("id")+"/capture", "cap-expired", map[string]any{})
 		h.expect(late, 409, "capture after expiry")
-		if late.str("type") != "/problems/hold-expired" {
+		if late.str("type") != problem.TypeOf("hold-expired") {
 			t.Fatalf("type = %s", late.str("type"))
 		}
 		list := h.do(http.MethodGet, base+"/holds", "", nil)
@@ -380,7 +395,7 @@ func TestLedgerAPIEndToEnd(t *testing.T) {
 		body := map[string]any{"postings": []any{posting("world", "users:4:wallet", "EUR/2", "700")}}
 		r := h.do(http.MethodPost, base+"/transactions", "lost-request", body)
 		h.expect(r, 503, "lost request")
-		if r.str("type") != "/problems/write-pending" {
+		if r.str("type") != problem.TypeOf("write-pending") {
 			t.Fatalf("type = %s", r.str("type"))
 		}
 		inFlight := h.do(http.MethodPost, base+"/transactions", "lost-request", body)

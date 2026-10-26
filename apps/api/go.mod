@@ -1,13 +1,13 @@
 module github.com/wilfriedago/tigerbeetle-platform/apps/api
 
-go 1.27.0
-
-toolchain go1.27.3
+go 1.27.3
 
 require (
 	github.com/99designs/gqlgen v0.17.98
 	github.com/caarlos0/env/v11 v11.4.1
+	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/danielgtaylor/huma/v2 v2.39.1
+	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/google/go-cmp v0.7.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/moby/moby/api v1.56.1
@@ -21,6 +21,7 @@ require (
 	github.com/tigerbeetle/tigerbeetle-go v0.17.10
 	github.com/twmb/franz-go v1.22.2
 	github.com/vektah/gqlparser/v2 v2.5.64
+	golang.org/x/oauth2 v0.37.0
 	golang.org/x/sync v0.24.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261005182115-fad411399dd8
 	google.golang.org/grpc v1.84.0

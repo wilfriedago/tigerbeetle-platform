@@ -1,0 +1,8 @@
+$kind: http-request
+name: List Event Types
+order: 1000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/event-types'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'

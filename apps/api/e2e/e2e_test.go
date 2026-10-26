@@ -3,7 +3,9 @@
 // Package e2e calls the compose stack from the host through its published ports, on every
 // transport: REST, GraphQL, gRPC, AMQP RPC and NATS RPC (plan section 11.4). Start the stack with
 // `just compose-up-brokers`, then run `just test-e2e`. The addresses default to the compose
-// ports; E2E_API_URL, E2E_GRPC_ADDR, E2E_AMQP_URL and E2E_NATS_URL override them.
+// ports; E2E_API_URL, E2E_GRPC_ADDR, E2E_AMQP_URL, E2E_NATS_URL and E2E_KEYCLOAK_URL override
+// them. Every call signs in as the dev user ada of the realm file, acting for the organization
+// "default" (ADR-0026, ADR-0027).
 package e2e
 
 import (
@@ -12,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -19,6 +22,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/amqprpc"
 	pb "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1"
@@ -29,7 +33,7 @@ import (
 
 // caller is what the AMQP and NATS clients have in common.
 type caller interface {
-	Call(ctx context.Context, method string, env rpc.Envelope, key, requestID string) (rpc.Answer, error)
+	Call(ctx context.Context, method string, env rpc.Envelope, h rpc.Headers) (rpc.Answer, error)
 }
 
 func env(name, fallback string) string {
@@ -42,9 +46,39 @@ func env(name, fallback string) string {
 var (
 	apiURL   = env("E2E_API_URL", "http://localhost:8080")
 	grpcAddr = env("E2E_GRPC_ADDR", "localhost:9090")
-	amqpURL  = env("E2E_AMQP_URL", "amqp://guest:guest@localhost:5672/")
-	natsURL  = env("E2E_NATS_URL", "nats://localhost:4222")
+	amqpURL  = env("E2E_AMQP_URL", "amqp://tbp-service:tbp-service-dev@localhost:5672/")
+	natsURL  = env("E2E_NATS_URL", "nats://tbp-service:tbp-service-dev@localhost:4222")
+	// keycloakURL is the realm of deploy/compose/keycloak/realm.json.
+	keycloakURL = env("E2E_KEYCLOAK_URL", "http://localhost:18080/realms/tbp")
 )
+
+// organization is the organization every call acts for.
+const organization = "default"
+
+// signIn gets an access token for the dev user ada through the development-only client tbp-cli,
+// which allows the password grant (never outside the local stack).
+func signIn(t *testing.T) string {
+	t.Helper()
+	form := url.Values{
+		"grant_type": {"password"}, "client_id": {"tbp-cli"}, "username": {"ada"}, "password": {"password"},
+		"scope": {"openid organization:*"},
+	}
+	resp, err := http.PostForm(keycloakURL+"/protocol/openid-connect/token", form)
+	if err != nil {
+		t.Fatalf("sign in: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	var tok struct {
+		AccessToken string `json:"access_token"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&tok); err != nil || tok.AccessToken == "" {
+		t.Fatalf("sign in: status %d, %v", resp.StatusCode, err)
+	}
+	return tok.AccessToken
+}
+
+// token is the access token of the run, set at the start of TestEveryTransport.
+var token string
 
 func postJSON(t *testing.T, path, key string, body, out any) int {
 	t.Helper()
@@ -57,6 +91,8 @@ func postJSON(t *testing.T, path, key string, body, out any) int {
 		t.Fatal(err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-Organization", organization)
 	if key != "" {
 		req.Header.Set("Idempotency-Key", key)
 	}
@@ -78,6 +114,7 @@ func postJSON(t *testing.T, path, key string, body, out any) int {
 func TestEveryTransport(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
+	token = signIn(t)
 	ledger := "e2e-" + requestid.New()[:12]
 	key := "e2e-" + requestid.New()
 	postings := []any{map[string]string{"source": "world", "destination": "users:1:wallet", "asset": "EUR/2", "amount": "1250"}}
@@ -110,6 +147,7 @@ func TestEveryTransport(t *testing.T) {
 
 	t.Run("gRPC", func(t *testing.T) {
 		conn, err := grpc.NewClient(grpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		ctx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token, "x-organization", organization)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -141,7 +179,7 @@ func TestEveryTransport(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			answer, err := c.Call(ctx, "v1.createTransaction", rpc.Envelope{
 				Params: map[string]string{"ledger": ledger}, Body: map[string]any{"postings": postings},
-			}, key, "")
+			}, rpc.Headers{IdempotencyKey: key, Authorization: "Bearer " + token, Organization: organization})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -153,7 +191,13 @@ func TestEveryTransport(t *testing.T) {
 	}
 
 	t.Run("one balance and every broker up", func(t *testing.T) {
-		resp, err := http.Get(fmt.Sprintf("%s/v1/ledgers/%s/accounts/users:1:wallet", apiURL, ledger))
+		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/v1/ledgers/%s/accounts/users:1:wallet", apiURL, ledger), http.NoBody)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("X-Organization", organization)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
 		}

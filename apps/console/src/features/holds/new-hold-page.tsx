@@ -28,6 +28,7 @@ import { settingsQueries } from '~/features/settings/api'
 
 import { keyIsSpent, useIdempotencyKey } from '~/lib/idempotency'
 import { formatAsset, parseAsset, parseMajorUnits, subtractAmounts } from '~/lib/money'
+import { useOrganization } from '~/lib/organization'
 import { formatTime } from '~/lib/time'
 import { useNow } from '~/lib/use-now'
 import { addressError, amountError, assetError } from '~/lib/validation'
@@ -38,7 +39,7 @@ import { useCreateHold } from './api'
 // transfer, ADR-0010), plus a timeout on the cluster clock. The preview shows what the source can
 // still spend once the hold exists.
 
-const route = getRouteApi('/_console/ledgers/$ledger/holds/new')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/holds/new')
 
 /** TigerBeetle stores the timeout in a u32 of seconds. */
 const MAX_TIMEOUT = 4_294_967_295
@@ -89,6 +90,7 @@ function toRequest(draft: HoldDraft): CreateHoldRequest | undefined {
 }
 
 export function NewHoldPage() {
+  const org = useOrganization()
   const { ledger } = route.useParams()
   const search = route.useSearch()
   const navigate = useNavigate()
@@ -120,7 +122,7 @@ export function NewHoldPage() {
       try {
         const hold = await create.mutateAsync({ body, idempotencyKey: idempotency.keyFor(body) })
         toast.success('Hold created', { description: `${hold.source} reserves the amount until capture, void or expiry.` })
-        await navigate({ params: { holdId: hold.id, ledger }, to: '/ledgers/$ledger/holds/$holdId' })
+        await navigate({ params: { holdId: hold.id, ledger, org }, to: '/$org/ledgers/$ledger/holds/$holdId' })
       } catch (error_) {
         setError(error_)
         if (keyIsSpent(error_)) {
@@ -236,7 +238,7 @@ export function NewHoldPage() {
             <IdempotencyKeyField value={idempotency.key} />
             {error ? <ProblemPanel error={error} /> : null}
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" render={<Link to="/ledgers/$ledger/holds" params={{ ledger }} />}>
+              <Button variant="ghost" render={<Link to="/$org/ledgers/$ledger/holds" params={{ ledger, org }} />}>
                 Cancel
               </Button>
               <form.AppForm>

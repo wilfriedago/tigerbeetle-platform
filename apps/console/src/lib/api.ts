@@ -1,6 +1,7 @@
 import { configureClient } from '@tigerbeetle-platform/api-client'
 
-import { configureGraphQL } from './graphql/client'
+import { configureSession } from './auth/session'
+import { configureGraphQL, setGraphQLOrganization } from './graphql/client'
 
 /**
  * Points the API clients at the platform API, the only server the console talks to (ADR-0003):
@@ -9,7 +10,17 @@ import { configureGraphQL } from './graphql/client'
  * before the first render.
  */
 export function configureApi(): void {
-  const baseUrl = import.meta.env.VITE_API_URL ?? '/api'
-  configureClient({ baseUrl })
-  configureGraphQL(baseUrl)
+  configureClient({ baseUrl: baseUrl() })
+  configureGraphQL(baseUrl())
+  configureSession(baseUrl())
+}
+
+function baseUrl(): string {
+  return import.meta.env.VITE_API_URL ?? '/api'
+}
+
+/** Makes every later call act for the organization (ADR-0027); the $org route calls it. */
+export function actForOrganization(alias: string | undefined): void {
+  configureClient({ baseUrl: baseUrl(), ...(alias ? { organization: alias } : {}) })
+  setGraphQLOrganization(alias)
 }

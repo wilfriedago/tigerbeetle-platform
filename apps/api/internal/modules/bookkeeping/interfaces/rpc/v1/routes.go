@@ -74,6 +74,7 @@ type (
 		Status    string `json:"status"`
 		Operation string `json:"operation"`
 		Search    string `json:"search"`
+		Actor     string `json:"actor"`
 		Cursor    string `json:"cursor"`
 		Limit     int    `json:"limit"`
 	}
@@ -170,7 +171,7 @@ func registerOverview(r *rpc.Router, app application.Application) {
 		return dto.SearchResultsFrom(p.Q, &res), nil
 	}))
 	r.Handle("v1.getReconcilerStatus", rpc.Bind(func(ctx context.Context, _ struct{}, _ rpc.NoBody, _ rpc.Request) (any, error) {
-		st, err := app.Reconciler.Status(ctx)
+		st, err := app.ReconcilerQueries.Status(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -317,7 +318,7 @@ func registerHolds(r *rpc.Router, app application.Application) {
 func registerRequests(r *rpc.Router, app application.Application) {
 	r.Handle("v1.listWriteRequests", rpc.Bind(func(ctx context.Context, p listRequestsParams, _ rpc.NoBody, _ rpc.Request) (any, error) {
 		rows, next, err := app.RequestQueries.List(ctx, application.ListRequestsInput{
-			Ledger: p.Ledger, Status: p.Status, Operation: p.Operation, Search: p.Search, Cursor: p.Cursor, Limit: p.Limit,
+			Ledger: p.Ledger, Status: p.Status, Operation: p.Operation, Search: p.Search, Actor: p.Actor, Cursor: p.Cursor, Limit: p.Limit,
 		})
 		if err != nil {
 			return nil, err

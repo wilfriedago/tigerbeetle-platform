@@ -16,10 +16,17 @@ type LedgerRepository interface {
 	CreateLedger(ctx context.Context, l ledger.Ledger) (ledger.Ledger, error)
 	// GetLedger returns ledger.ErrNotFound when no ledger has that name.
 	GetLedger(ctx context.Context, name string) (ledger.Ledger, error)
-	// ListLedgers returns ledgers in name order after the given name.
-	ListLedgers(ctx context.Context, after string, limit int) ([]ledger.Ledger, error)
+	// ListLedgers returns ledgers in name order after the given name: every ledger of the
+	// organization when all is true, otherwise only the named ones.
+	ListLedgers(ctx context.Context, all bool, names []string, after string, limit int) ([]ledger.Ledger, error)
 	// ReplaceLedgerMetadata returns ledger.ErrNotFound when no ledger has that name.
 	ReplaceLedgerMetadata(ctx context.Context, name string, metadata map[string]string) error
+}
+
+// LedgerCounter counts the ledgers of organizations. It reads across organizations, for the
+// staff's organization pages, which show counts and never contents (ADR-0027).
+type LedgerCounter interface {
+	CountLedgers(ctx context.Context, organizations []ledger.ID) (map[ledger.ID]int, error)
 }
 
 // RuleRepository stores account rules. Built-in rules are not stored.

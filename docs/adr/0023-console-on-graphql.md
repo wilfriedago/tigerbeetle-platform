@@ -1,6 +1,6 @@
 # 23. Console on GraphQL
 
-Status: Accepted
+Status: Accepted, amended by [ADR-0030](0030-console-sessions-through-a-backend-for-frontend.md)
 Date: 2026-10-25
 
 ## Context and Problem Statement

@@ -1,6 +1,6 @@
 # 24. Transport-neutral write protocol in the bookkeeping module
 
-Status: Accepted
+Status: Accepted, amended by [ADR-0031](0031-idempotency-keys-belong-to-their-principal.md)
 Date: 2026-10-25
 
 ## Context and Problem Statement

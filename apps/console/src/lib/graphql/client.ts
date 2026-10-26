@@ -1,4 +1,12 @@
-import { ApiError, HttpStatusError, randomRequestId, REQUEST_ID_HEADER } from '@tigerbeetle-platform/api-client'
+import {
+  ApiError,
+  HttpStatusError,
+  ORGANIZATION_HEADER,
+  problemFrom,
+  problemTypeOf,
+  randomRequestId,
+  REQUEST_ID_HEADER
+} from '@tigerbeetle-platform/api-client'
 
 import { type TypedDocumentString } from '~/graphql/gen/graphql'
 
@@ -8,10 +16,16 @@ import { type GraphQLErrorEntry, GraphQLProblemError } from './errors'
 const TIMEOUT_MS = 15_000
 
 let endpoint = '/api/graphql'
+let organization: string | undefined
 
 /** Points the client at the API; the endpoint is POST {baseUrl}/graphql. */
 export function configureGraphQL(baseUrl: string): void {
   endpoint = `${baseUrl.replace(/\/+$/, '')}/graphql`
+}
+
+/** Names the organization every request acts for, sent as X-Organization (ADR-0027). */
+export function setGraphQLOrganization(alias: string | undefined): void {
+  organization = alias
 }
 
 export interface RequestOptions {
@@ -31,9 +45,19 @@ export async function request<TResult, TVariables>(
   options: RequestOptions = {}
 ): Promise<TResult> {
   const timeout = AbortSignal.timeout(TIMEOUT_MS)
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    [REQUEST_ID_HEADER]: randomRequestId()
+  }
+  if (organization) {
+    headers[ORGANIZATION_HEADER] = organization
+  }
+  // The session cookie authenticates the request (ADR-0030); the console holds no token.
   const response = await globalThis.fetch(endpoint, {
     body: JSON.stringify({ query: document.toString(), variables }),
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json', [REQUEST_ID_HEADER]: randomRequestId() },
+    credentials: 'same-origin',
+    headers,
     method: 'POST',
     signal: options.signal ? AbortSignal.any([options.signal, timeout]) : timeout
   })
@@ -49,6 +73,11 @@ export async function request<TResult, TVariables>(
   if (first) {
     throw new GraphQLProblemError(first, requestId)
   }
+  // A body the API could not read as a GraphQL request at all is answered with a REST problem.
+  const problem = isProblem(response) ? problemFrom(text) : undefined
+  if (problem) {
+    throw new ApiError(problem, problem.requestId ?? requestId)
+  }
   if (!response.ok || body?.data === undefined || body.data === null) {
     throw new HttpStatusError(response.status, response.statusText, requestId)
   }
@@ -60,5 +89,9 @@ export async function request<TResult, TVariables>(
  * 404 problem the routes already turn into their not-found view.
  */
 export function notFound(what: string): ApiError {
-  return new ApiError({ detail: `${what} does not exist`, status: 404, title: 'Not found', type: '/problems/not-found' })
+  return new ApiError({ detail: `${what} does not exist`, status: 404, title: 'Not found', type: problemTypeOf('not-found') })
+}
+
+function isProblem(response: Response): boolean {
+  return response.headers.get('Content-Type')?.split(';')[0]?.trim().toLowerCase() === 'application/problem+json'
 }

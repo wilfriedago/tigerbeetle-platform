@@ -1,3 +1,4 @@
+import { problemReason } from '@tigerbeetle-platform/api-client'
 import { CircleXIcon, RotateCwIcon } from 'lucide-react'
 
 import { Button } from '~/components/ui/button'
@@ -8,7 +9,8 @@ import { cn } from '~/lib/utils'
 import { CopyButton } from './copy-button'
 
 // 12 Feedback, Problem Panel: renders any application/problem+json answer. Title and status,
-// the problem type in mono, the detail, when to retry, and a footer with the copyable request ID.
+// the problem type in mono (its reason, linked to its entry in the catalogue), the detail, when to
+// retry, and a footer with the copyable request ID.
 interface ProblemPanelProps {
   error: unknown
   /** Overrides the problem title, for example "Transaction declined". */
@@ -27,7 +29,16 @@ export function ProblemPanel({ error, title, onRetry, className, children }: Pro
         <span className="flex-1 text-body font-semibold text-foreground">{title ?? problem.title}</span>
         {problem.status ? <span className="font-mono text-caption text-danger-fg">{problem.status}</span> : null}
       </div>
-      {problem.type && problem.type !== 'about:blank' ? <div className="font-mono text-caption text-muted-foreground">{problem.type}</div> : null}
+      {problem.type && problem.type !== 'about:blank' ? (
+        <a
+          href={problem.type}
+          target="_blank"
+          rel="noreferrer"
+          className="w-fit font-mono text-caption text-muted-foreground underline-offset-2 hover:underline"
+        >
+          {problemReason(problem.type) ?? problem.type}
+        </a>
+      ) : null}
       {problem.detail ? <p className="text-small leading-[1.45] text-foreground">{problem.detail}</p> : null}
       {problem.retryAfter ? <p className="text-caption text-muted-foreground">The API asks to retry after {problem.retryAfter} s.</p> : null}
       {children}

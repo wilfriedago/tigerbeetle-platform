@@ -1,0 +1,17 @@
+$kind: http-request
+name: Get Aggregate Balances
+order: 1000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/aggregate/balances'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+queryParams:
+  - key: prefix
+    value: 'users:'
+    description: 'Sum balances for addresses at or below this prefix'
+    disabled: true
+  - key: asset
+    value: 'EUR/2'
+    description: 'Filter by asset (CODE/SCALE)'
+    disabled: true

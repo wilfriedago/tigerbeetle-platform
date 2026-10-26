@@ -18,6 +18,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 )
 
@@ -64,7 +65,7 @@ func (p *probeService) desc() *grpc.ServiceDesc {
 
 func newTestServer(t *testing.T, timeout time.Duration) (*Server, *bufconn.Listener, *probeService) {
 	t.Helper()
-	srv := New(Options{ShutdownTimeout: timeout, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	srv := New(Options{ShutdownTimeout: timeout, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Auth: authntest.Default()})
 	probe := &probeService{release: make(chan struct{})}
 	srv.RegisterService(probe.desc(), probe)
 	return srv, bufconn.Listen(1 << 20), probe
@@ -75,6 +76,17 @@ func dial(t *testing.T, lis *bufconn.Listener) *grpc.ClientConn {
 	conn, err := grpc.NewClient("passthrough:///bufconn",
 		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return lis.DialContext(ctx) }),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+	return conn
+}
+
+// dialAddr connects in plaintext to a server on a real listener.
+func dialAddr(t *testing.T, addr string) *grpc.ClientConn {
+	t.Helper()
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal(err)
 	}

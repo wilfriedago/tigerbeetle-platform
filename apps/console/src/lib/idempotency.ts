@@ -56,6 +56,5 @@ export function keyIsSpent(error: unknown): boolean {
   if (!(error instanceof ApiError) || error.status >= 500) {
     return false
   }
-  const { type } = error
-  return !type.endsWith('/request-in-flight') && !type.endsWith('/write-pending')
+  return error.reason !== 'request-in-flight' && error.reason !== 'write-pending'
 }

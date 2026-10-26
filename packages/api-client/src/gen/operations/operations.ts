@@ -44,8 +44,9 @@ export const getGetReadinessUrl = () => {
 }
 
 /**
- * Checks Postgres and TigerBeetle with a short timeout and reports each one. Returns 503 when
- * any dependency is down so load balancers stop routing traffic to this instance.
+ * Checks Postgres and TigerBeetle with a short timeout and reports each one. Returns a
+ * 503 `not-ready` problem when any required dependency is down, so load balancers stop routing
+ * traffic to this instance.
  * @summary Readiness probe
  */
 export const getReadiness = async ( options?: Parameters<typeof readinessFetcher>[1]): Promise<Readiness> => {

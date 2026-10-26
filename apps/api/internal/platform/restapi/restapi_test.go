@@ -18,6 +18,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
 
@@ -75,7 +77,7 @@ func newTestHandler(t *testing.T) (http.Handler, huma.API) {
 		}
 		return &struct{ Body thing }{Body: thing{Name: "made", Limit: in.Body.Code, Amount: "1", Tags: in.Body.Items}}, nil
 	})
-	return Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil))), api
+	return Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), Options{Auth: authntest.Default()}), api
 }
 
 func do(t *testing.T, h http.Handler, method, path, body string, headers map[string]string) *httptest.ResponseRecorder {
@@ -85,6 +87,9 @@ func do(t *testing.T, h http.Handler, method, path, body string, headers map[str
 		r = strings.NewReader(body)
 	}
 	req := httptest.NewRequest(method, path, r)
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
@@ -123,30 +128,30 @@ func TestHandlerErrorsBecomeProblems(t *testing.T) {
 			name: "declined chain keeps posting and results",
 			body: `{"code":1}`,
 			want: problemBody{
-				Type: "/problems/exceeds-credits", Title: "Declined: exceeds credits", Status: 422, Detail: "posting 1 is short",
+				Type: problem.TypeOf("exceeds-credits"), Title: "Declined: exceeds credits", Status: 422, Detail: "posting 1 is short",
 				Instance: "/things", RequestID: "req-1", Posting: intPtr(0), Results: []string{"exceeds_credits", "linked_event_failed"},
 			},
 		},
 		{
 			name:           "in flight carries Retry-After rounded up",
 			body:           `{"code":2}`,
-			want:           problemBody{Type: "/problems/request-in-flight", Title: "Request in flight", Status: 409, Instance: "/things", RequestID: "req-1"},
+			want:           problemBody{Type: problem.TypeOf("request-in-flight"), Title: "Request in flight", Status: 409, Instance: "/things", RequestID: "req-1"},
 			wantRetryAfter: "2",
 		},
 		{
 			name: "dependency down hides the driver text",
 			body: `{"code":3}`,
-			want: problemBody{Type: "/problems/dependency-unavailable", Title: "Dependency unavailable", Status: 503, Instance: "/things", RequestID: "req-1"},
+			want: problemBody{Type: problem.TypeOf("dependency-unavailable"), Title: "Dependency unavailable", Status: 503, Instance: "/things", RequestID: "req-1"},
 		},
 		{
 			name: "unknown error is an internal problem without detail",
 			body: `{"code":4}`,
-			want: problemBody{Type: "about:blank", Title: "Internal server error", Status: 500, Instance: "/things", RequestID: "req-1"},
+			want: problemBody{Type: "about:blank", Title: "Internal Server Error", Status: 500, Instance: "/things", RequestID: "req-1"},
 		},
 		{
 			name: "panic is an internal problem",
 			body: `{"code":5}`,
-			want: problemBody{Type: "about:blank", Title: "Internal server error", Status: 500, Instance: "/things", RequestID: "req-1"},
+			want: problemBody{Type: "about:blank", Title: "Internal Server Error", Status: 500, Instance: "/things", RequestID: "req-1"},
 		},
 	}
 	for _, tt := range tests {
@@ -173,28 +178,94 @@ func TestInputErrorsAreInvalidRequests(t *testing.T) {
 	t.Parallel()
 	h, _ := newTestHandler(t)
 	tests := []struct {
-		name       string
-		method     string
-		path       string
-		body       string
-		wantDetail string
+		name         string
+		method       string
+		path         string
+		body         string
+		wantDetail   string
+		wantErrors   []InputError
+		wantInstance string
 	}{
-		{name: "unparsable integer", method: http.MethodGet, path: "/things/eu?limit=abc", wantDetail: "query.limit"},
-		{name: "missing required body", method: http.MethodPost, path: "/things", wantDetail: "request body is required"},
-		{name: "malformed JSON", method: http.MethodPost, path: "/things", body: `{"code":`, wantDetail: "body"},
+		{
+			name: "unparsable integer", method: http.MethodGet, path: "/things/eu?limit=abc",
+			wantDetail:   "query.limit: invalid integer",
+			wantErrors:   []InputError{{Detail: "invalid integer", Parameter: "limit", In: "query"}},
+			wantInstance: "/things/eu",
+		},
+		{
+			name: "instance keeps the escaped path", method: http.MethodGet, path: "/things/a%20b?limit=abc",
+			wantDetail:   "query.limit: invalid integer",
+			wantErrors:   []InputError{{Detail: "invalid integer", Parameter: "limit", In: "query"}},
+			wantInstance: "/things/a%20b",
+		},
+		{
+			name: "missing required body", method: http.MethodPost, path: "/things",
+			wantDetail: "request body is required", wantInstance: "/things",
+		},
+		{
+			name: "malformed JSON points at the whole body", method: http.MethodPost, path: "/things", body: `{"code":`,
+			wantDetail:   "body: malformed JSON at byte 8: unexpected end of JSON input",
+			wantErrors:   []InputError{{Detail: "malformed JSON at byte 8: unexpected end of JSON input", Pointer: "#"}},
+			wantInstance: "/things",
+		},
+		{
+			name: "wrong type points at the member and names no Go type", method: http.MethodPost, path: "/things",
+			body:         `{"code":7,"items":["a",1]}`,
+			wantDetail:   "body/items/1: expected string, got number",
+			wantErrors:   []InputError{{Detail: "expected string, got number", Pointer: "#/items/1"}},
+			wantInstance: "/things",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			rec := do(t, h, tt.method, tt.path, tt.body, map[string]string{"Idempotency-Key": "k"})
+			rec := do(t, h, tt.method, tt.path, tt.body, map[string]string{"Idempotency-Key": "k", "X-Request-Id": "req-1"})
 			if rec.Code != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400: %s", rec.Code, rec.Body.String())
 			}
-			p := problemOf(t, rec)
-			if p.Type != "/problems/invalid-request" || p.Title != "Invalid request" || !strings.Contains(p.Detail, tt.wantDetail) {
-				t.Fatalf("problem = %+v, want invalid-request with detail containing %q", p, tt.wantDetail)
+			want := problemBody{
+				Type: problem.TypeOf("invalid-request"), Title: "Invalid request", Status: 400, Detail: tt.wantDetail,
+				Instance: tt.wantInstance, RequestID: "req-1", Errors: tt.wantErrors,
+			}
+			if diff := cmp.Diff(want, problemOf(t, rec)); diff != "" {
+				t.Fatalf("problem mismatch (-want +got):\n%s", diff)
+			}
+			if strings.Contains(rec.Body.String(), "Go struct") || strings.Contains(rec.Body.String(), "thingRequest") {
+				t.Errorf("a Go type leaked: %s", rec.Body.String())
 			}
 		})
+	}
+}
+
+// The other errors Huma raises keep their status: a body over the limit is a 413, not a 400.
+func TestOtherStatusesHumaRaisesKeepTheirStatus(t *testing.T) {
+	t.Parallel()
+	h, _ := newTestHandler(t)
+	body := `{"code":7,"items":["` + strings.Repeat("a", 1<<20) + `"]}`
+	rec := do(t, h, http.MethodPost, "/things", body, map[string]string{"Idempotency-Key": "k"})
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status = %d, want 413: %.200s", rec.Code, rec.Body.String())
+	}
+	p := problemOf(t, rec)
+	if p.Type != problem.TypeBlank || p.Title != "Request Entity Too Large" || p.Status != 413 || p.Detail == "" {
+		t.Fatalf("problem = %+v", p)
+	}
+}
+
+func TestExtensionMembers(t *testing.T) {
+	t.Parallel()
+	e := &Error{Problem: problem.Blank(http.StatusServiceUnavailable), Instance: "/readyz", Extensions: map[string]any{"dependencies": map[string]string{"postgres": "down"}}}
+	got, err := json.Marshal(e)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = `{"type":"about:blank","title":"Service Unavailable","status":503,"instance":"/readyz","dependencies":{"postgres":"down"}}`
+	if string(got) != want {
+		t.Fatalf("body = %s, want %s", got, want)
+	}
+	e.Extensions = map[string]any{"status": "not_ready"}
+	if _, err := json.Marshal(e); err == nil {
+		t.Fatal("an extension member reusing status was written")
 	}
 }
 
@@ -218,13 +289,21 @@ func TestValidationStaysInTheDomain(t *testing.T) {
 	}
 }
 
-func TestBodiesAreJSONWhateverTheContentType(t *testing.T) {
+// TestBodiesMustSayTheyAreJSON: a body sent as a form or as text is refused with 415 instead of
+// being read as JSON (ADR-0032), which keeps cross-site form posts away from cookie sessions.
+func TestBodiesMustSayTheyAreJSON(t *testing.T) {
 	t.Parallel()
 	h, _ := newTestHandler(t)
-	for _, ct := range []string{"", "application/x-www-form-urlencoded", "text/plain", "application/json; charset=utf-8"} {
+	tests := map[string]int{
+		"application/json":                  http.StatusCreated,
+		"application/json; charset=utf-8":   http.StatusCreated,
+		"application/x-www-form-urlencoded": http.StatusUnsupportedMediaType,
+		"text/plain":                        http.StatusUnsupportedMediaType,
+	}
+	for ct, want := range tests {
 		rec := do(t, h, http.MethodPost, "/things", `{"code":7}`, map[string]string{"Content-Type": ct})
-		if rec.Code != http.StatusCreated {
-			t.Errorf("Content-Type %q: status = %d, want 201: %s", ct, rec.Code, rec.Body.String())
+		if rec.Code != want {
+			t.Errorf("Content-Type %q: status = %d, want %d: %s", ct, rec.Code, want, rec.Body.String())
 		}
 	}
 }
@@ -238,8 +317,8 @@ func TestUnknownRoutes(t *testing.T) {
 		wantTitle          string
 		wantAllow          string
 	}{
-		{name: "unknown path", method: http.MethodGet, path: "/nope", wantStatus: 404, wantTitle: "Not found"},
-		{name: "wrong method", method: http.MethodDelete, path: "/things", wantStatus: 405, wantTitle: "Method not allowed", wantAllow: "POST"},
+		{name: "unknown path", method: http.MethodGet, path: "/nope", wantStatus: 404, wantTitle: "Not Found"},
+		{name: "wrong method", method: http.MethodDelete, path: "/things", wantStatus: 405, wantTitle: "Method Not Allowed", wantAllow: "POST"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -1,4 +1,4 @@
-import { type WriteRequestDetail } from '@tigerbeetle-platform/api-client'
+import { problemTypeOf, type WriteRequestDetail } from '@tigerbeetle-platform/api-client'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { storedProblem } from './stored-problem'
@@ -35,7 +35,7 @@ describe('storedProblem', () => {
       status: 'declined'
     })
     expect(error?.status).toBe(422)
-    expect(error?.type).toBe('/problems/exceeds-credits')
+    expect(error?.type).toBe(problemTypeOf('exceeds-credits'))
     expect(error?.problem.title).toBe('Transaction declined')
     expect(error?.problem.detail).toBe('Posting 2 would take users:1 below zero.')
     expect(error?.problem.posting).toBe(1)

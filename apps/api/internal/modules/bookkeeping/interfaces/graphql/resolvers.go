@@ -315,9 +315,9 @@ func (f *LedgerFields) Hold(ctx context.Context, ledgerName string, id scalar.ID
 }
 
 // Requests resolves Ledger.requests.
-func (f *LedgerFields) Requests(ctx context.Context, ledgerName string, first *int, after *string, status *scalar.RequestStatus, operation *scalar.Operation, search *string) (*WriteRequestConnection, error) {
+func (f *LedgerFields) Requests(ctx context.Context, ledgerName string, first *int, after *string, status *scalar.RequestStatus, operation *scalar.Operation, search, actor *string) (*WriteRequestConnection, error) {
 	rows, next, err := f.app.RequestQueries.List(ctx, application.ListRequestsInput{
-		Ledger: ledgerName, Status: string(deref(status)), Operation: string(deref(operation)), Search: deref(search),
+		Ledger: ledgerName, Status: string(deref(status)), Operation: string(deref(operation)), Search: deref(search), Actor: deref(actor),
 		Cursor: deref(after), Limit: deref(first),
 	})
 	if err != nil {

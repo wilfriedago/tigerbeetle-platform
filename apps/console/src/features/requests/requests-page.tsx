@@ -3,8 +3,8 @@ import { useMemo } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { getRouteApi, Link } from '@tanstack/react-router'
 
-import { type Operation, type RequestStatus, type WriteRequest, type WriteRequestDetail } from '@tigerbeetle-platform/api-client'
-import { InfoIcon } from 'lucide-react'
+import { type Operation, problemReason, type RequestStatus, type WriteRequest, type WriteRequestDetail } from '@tigerbeetle-platform/api-client'
+import { InfoIcon, XIcon } from 'lucide-react'
 
 import { columnHelper, DataTable } from '~/components/data-table/data-table'
 import { FilterBar, SearchFilter, SelectFilter } from '~/components/data-table/filters'
@@ -26,6 +26,7 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { systemQueries } from '~/features/system/api'
 
 import { shortId } from '~/lib/ids'
+import { useOrganization } from '~/lib/organization'
 import { formatTime } from '~/lib/time'
 import { useNow } from '~/lib/use-now'
 
@@ -36,7 +37,7 @@ import { storedProblem } from './stored-problem'
 // in-flight writes are visible. A pending record older than the reconciler's grace period is
 // highlighted: the API lost its answer and the reconciler is settling it.
 
-const route = getRouteApi('/_console/ledgers/$ledger/requests')
+const route = getRouteApi('/_console/$org/ledgers/$ledger/requests')
 
 const OPERATIONS: readonly Operation[] = ['transaction', 'revert', 'hold', 'capture', 'void']
 const STATUSES: readonly RequestStatus[] = ['pending', 'committed', 'declined', 'failed']
@@ -51,17 +52,18 @@ const ENDPOINT: Record<Operation, string> = {
 
 /** Where the record's target lives: transactions and reverts create transactions, the rest act on holds. */
 function TargetLink({ ledger, request }: { ledger: string; request: WriteRequest }) {
+  const org = useOrganization()
   const isTransaction = request.operation === 'transaction' || request.operation === 'revert'
   const label = shortId(request.targetId)
   if (request.status !== 'committed') {
     return <span className="font-mono text-subtle-foreground">{label}</span>
   }
   return isTransaction ? (
-    <Link to="/ledgers/$ledger/transactions/$txId" params={{ ledger, txId: request.targetId }} className="font-mono hover:underline">
+    <Link to="/$org/ledgers/$ledger/transactions/$txId" params={{ ledger, org, txId: request.targetId }} className="font-mono hover:underline">
       {label}
     </Link>
   ) : (
-    <Link to="/ledgers/$ledger/holds/$holdId" params={{ holdId: request.targetId, ledger }} className="font-mono hover:underline">
+    <Link to="/$org/ledgers/$ledger/holds/$holdId" params={{ holdId: request.targetId, ledger, org }} className="font-mono hover:underline">
       {label}
     </Link>
   )
@@ -80,7 +82,7 @@ function Outcome({ ledger, request }: { ledger: string; request: WriteRequest })
   if (request.status === 'committed') {
     return <TargetLink ledger={ledger} request={request} />
   }
-  return <span className="font-mono text-danger-fg">{request.problemType?.split('/').pop() ?? request.status}</span>
+  return <span className="font-mono text-danger-fg">{problemReason(request.problemType) ?? request.status}</span>
 }
 
 const column = columnHelper<WriteRequest>()
@@ -90,7 +92,7 @@ function requestColumns(ledger: string) {
     column.accessor('key', {
       cell: (info) => (
         <Link
-          from="/ledgers/$ledger/requests"
+          from="/$org/ledgers/$ledger/requests"
           to="."
           search={(prev) => ({ ...prev, key: info.getValue() })}
           className="block max-w-[260px] truncate font-mono outline-none hover:underline focus-visible:ring-3 focus-visible:ring-focus-ring"
@@ -124,7 +126,14 @@ export function RequestsPage() {
   const reconciler = useQuery(systemQueries.reconciler())
   const grace = (reconciler.data?.gracePeriodSeconds ?? 30) * 1000
   const list = useQuery({
-    ...requestQueries.list(ledger, { cursor: search.cursor, limit: 25, operation: search.operation, search: search.search, status: search.status }),
+    ...requestQueries.list(ledger, {
+      actor: search.actor,
+      cursor: search.cursor,
+      limit: 25,
+      operation: search.operation,
+      search: search.search,
+      status: search.status
+    }),
     placeholderData: keepPreviousData
   })
   const columns = useMemo(() => requestColumns(ledger), [ledger])
@@ -132,7 +141,7 @@ export function RequestsPage() {
     cursor: search.cursor,
     next: list.data?.next,
     onChange: (cursor) => void navigate({ search: (prev) => ({ ...prev, cursor }) }),
-    scope: `${search.status ?? ''}|${search.operation ?? ''}|${search.search ?? ''}`
+    scope: `${search.status ?? ''}|${search.operation ?? ''}|${search.search ?? ''}|${search.actor ?? ''}`
   })
   const setFilter = (patch: Partial<typeof search>) => void navigate({ replace: true, search: (prev) => ({ ...prev, ...patch, cursor: undefined }) })
 
@@ -161,6 +170,12 @@ export function RequestsPage() {
           options={OPERATIONS.map((operation) => ({ label: operation, value: operation }))}
           onChange={(value) => setFilter({ operation: OPERATIONS.find((operation) => operation === value) })}
         />
+        {search.actor ? (
+          <Button variant="secondary" size="sm" onClick={() => setFilter({ actor: undefined })} aria-label="Show the writes of every actor">
+            Actor <span className="font-mono">{search.actor}</span>
+            <XIcon />
+          </Button>
+        ) : null}
       </FilterBar>
       {list.error ? <ProblemPanel error={list.error} onRetry={() => void list.refetch()} /> : null}
       <DataTable

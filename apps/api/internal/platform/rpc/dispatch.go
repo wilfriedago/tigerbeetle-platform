@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"runtime/debug"
 	"strconv"
 	"time"
@@ -21,7 +22,25 @@ const (
 	HeaderIdempotencyKey = "idempotency-key"
 	// HeaderDeadline is the client's deadline in Unix milliseconds.
 	HeaderDeadline = "x-deadline"
+	// HeaderAuthorization carries "Bearer <token or API key>" (ADR-0032).
+	HeaderAuthorization = "authorization"
+	// HeaderOrganization names the organization a person acts for (ADR-0027).
+	HeaderOrganization = "organization"
 )
+
+// Headers are the metadata a client sends with a call.
+type Headers struct {
+	RequestID      string
+	IdempotencyKey string
+	Authorization  string
+	Organization   string
+}
+
+// Authenticator checks the credential of a call and resolves the organization it names
+// (internal/platform/authn).
+type Authenticator interface {
+	Authenticate(ctx context.Context, authorization, organization string) (context.Context, error)
+}
 
 // Call is one delivered request with the metadata its broker message carried.
 type Call struct {
@@ -30,7 +49,9 @@ type Call struct {
 	RequestID      string
 	IdempotencyKey string
 	// Deadline is the x-deadline header as sent, "" when absent.
-	Deadline string
+	Deadline      string
+	Authorization string
+	Organization  string
 }
 
 // Answer is a reply ready to send.
@@ -50,11 +71,18 @@ type Dispatcher struct {
 	maxTimeout time.Duration
 	logger     *slog.Logger
 	now        func() time.Time
+	auth       Authenticator
+	public     map[string]bool
 }
 
-// NewDispatcher builds a dispatcher. maxTimeout bounds every call (RPC_TIMEOUT_MAX).
-func NewDispatcher(router *Router, maxTimeout time.Duration, logger *slog.Logger) *Dispatcher {
-	return &Dispatcher{router: router, maxTimeout: maxTimeout, logger: logger, now: time.Now}
+// NewDispatcher builds a dispatcher. maxTimeout bounds every call (RPC_TIMEOUT_MAX). Every method
+// except the public ones, such as the health probes, needs a credential (ADR-0032).
+func NewDispatcher(router *Router, maxTimeout time.Duration, logger *slog.Logger, auth Authenticator, public ...string) *Dispatcher {
+	open := make(map[string]bool, len(public))
+	for _, m := range public {
+		open[m] = true
+	}
+	return &Dispatcher{router: router, maxTimeout: maxTimeout, logger: logger, now: time.Now, auth: auth, public: open}
 }
 
 // Answer runs one call. ctx should not be cancelled by a server shutdown: a call in flight
@@ -79,7 +107,7 @@ func (d *Dispatcher) Answer(ctx context.Context, c Call) Answer {
 	if encErr != nil {
 		// A handler returned something JSON cannot hold: a bug, answered as one.
 		logging.From(ctx).ErrorContext(ctx, "encode reply", slog.Any("error", encErr))
-		reply = Reply{Error: ErrorOf(problem.Blank(500, "Internal server error"), id)}
+		reply = Reply{Error: ErrorOf(problem.Blank(http.StatusInternalServerError), id)}
 		body, _ = json.Marshal(reply)
 	}
 	code := "OK"
@@ -104,6 +132,13 @@ func (d *Dispatcher) run(ctx context.Context, c Call, start time.Time) (data any
 	}
 	if !start.Before(deadline) {
 		return nil, ledger.NewProblem(ledger.ErrUnavailable, "deadline-exceeded", "the deadline passed before the request ran; it was not executed")
+	}
+	if !d.public[c.Method] {
+		authed, err := d.auth.Authenticate(ctx, c.Authorization, c.Organization)
+		if err != nil {
+			return nil, err
+		}
+		ctx = authed
 	}
 	h, ok := d.router.lookup(c.Method)
 	if !ok {

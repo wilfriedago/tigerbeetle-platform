@@ -1,6 +1,6 @@
 # 4. Ledger API surface
 
-Status: Accepted, amended by [ADR-0013](0013-ledger-api-implementation.md), [ADR-0024](0024-transport-neutral-write-protocol.md)
+Status: Accepted, amended by [ADR-0013](0013-ledger-api-implementation.md), [ADR-0024](0024-transport-neutral-write-protocol.md), [ADR-0027](0027-organizations-as-tenants.md)
 Date: 2026-10-24
 
 ## Context and Problem Statement

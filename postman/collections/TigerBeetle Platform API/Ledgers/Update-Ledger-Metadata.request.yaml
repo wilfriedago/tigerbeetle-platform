@@ -1,0 +1,19 @@
+$kind: http-request
+name: Update Ledger Metadata
+order: 4000
+method: PUT
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/metadata'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+    description: The ledger name
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "env": "local",
+      "owner": "platform-team"
+    }

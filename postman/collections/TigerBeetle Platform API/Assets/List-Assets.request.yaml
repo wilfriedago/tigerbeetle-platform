@@ -1,0 +1,8 @@
+$kind: http-request
+name: List Assets
+order: 1000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/assets'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'

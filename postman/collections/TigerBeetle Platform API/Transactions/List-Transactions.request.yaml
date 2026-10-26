@@ -1,0 +1,40 @@
+$kind: http-request
+name: List Transactions
+order: 1000
+method: GET
+url: '{{baseUrl}}/v1/ledgers/{{ledger}}/transactions'
+pathVariables:
+  - key: ledger
+    value: '{{ledger}}'
+queryParams:
+  - key: address
+    value: '{{address}}'
+    description: Filter by posting source or destination address prefix
+    disabled: true
+  - key: asset
+    value: 'EUR/2'
+    description: 'Filter by asset (CODE/SCALE)'
+    disabled: true
+  - key: reference
+    value: ''
+    description: Exact reference match
+    disabled: true
+  - key: eventType
+    value: ''
+    description: Filter by event type name
+    disabled: true
+  - key: after
+    value: ''
+    description: Committed at or after this ISO-8601 datetime
+    disabled: true
+  - key: before
+    value: ''
+    description: Committed before this ISO-8601 datetime
+    disabled: true
+  - key: cursor
+    value: ''
+    disabled: true
+  - key: limit
+    value: '25'
+    description: 'Page size (1–100, default 25)'
+    disabled: true

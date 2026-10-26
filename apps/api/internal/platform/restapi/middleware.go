@@ -16,19 +16,114 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 )
 
+// Authenticator checks the credential of a call and resolves the organization it names
+// (internal/platform/authn).
+type Authenticator interface {
+	Authenticate(ctx context.Context, authorization, organization string) (context.Context, error)
+}
+
+// Sessions turns the console's session cookie into an access token (ADR-0030); the access
+// module implements it.
+type Sessions interface {
+	AccessToken(ctx context.Context, sessionID string) (string, error)
+}
+
+// Options configure Handler.
+type Options struct {
+	// Auth authenticates every request outside Public.
+	Auth Authenticator
+	// Public paths need no credential, such as the health probes.
+	Public []string
+	// Sessions, SessionCookie and ConsoleOrigin let the console authenticate with its session
+	// cookie instead of a bearer token; Sessions is nil when the API serves no console.
+	Sessions      Sessions
+	SessionCookie string
+	// ConsoleOrigin is the console's origin, such as http://localhost:5173. A cookie-authenticated
+	// request that changes state must come from it (ADR-0030).
+	ConsoleOrigin string
+}
+
 // Handler wraps mux, on which NewAPI registered the operations, with the standard-library
-// middleware every request goes through: request ID, access log, panic recovery, JSON bodies and
-// problem+json answers for unknown routes. Huma does no routing of its own; the ServeMux does.
-func Handler(mux *http.ServeMux, logger *slog.Logger) http.Handler {
+// middleware every request goes through: request ID, access log, panic recovery, authentication
+// and problem+json answers for unknown routes. A body must say it is JSON: anything else answers
+// 415, which also keeps cross-site form posts away from cookie sessions (ADR-0032). Huma does no
+// routing of its own; the ServeMux does.
+func Handler(mux *http.ServeMux, logger *slog.Logger, opts Options) http.Handler {
 	h := unknownRoutes(mux)
-	h = jsonBodies(h)
+	h = jsonOnly(h)
+	h = authenticate(opts)(h)
 	h = recoverPanic(h)
 	h = accessLog(h)
 	h = requestID(logger)(h)
 	return h
 }
 
-// pathKey carries the request path, the instance of a problem, to errors built from a context.
+// OrganizationHeader names the organization a person acts for (ADR-0027).
+const OrganizationHeader = "X-Organization"
+
+// authenticate puts the principal and the tenant in the context of every request outside the
+// public paths, or answers the problem of a missing or bad credential (ADR-0026). Without an
+// Authorization header, the console's session cookie stands in for it (ADR-0030).
+func authenticate(opts Options) func(http.Handler) http.Handler {
+	open := make(map[string]bool, len(opts.Public))
+	for _, p := range opts.Public {
+		open[p] = true
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if open[r.URL.Path] {
+				next.ServeHTTP(w, r)
+				return
+			}
+			authorization := r.Header.Get("Authorization")
+			if authorization == "" && opts.Sessions != nil {
+				if c, err := r.Cookie(opts.SessionCookie); err == nil && c.Value != "" {
+					if !SameOrigin(r, opts.ConsoleOrigin) {
+						WriteProblem(w, r, crossSite)
+						return
+					}
+					token, err := opts.Sessions.AccessToken(r.Context(), c.Value)
+					if err != nil {
+						WriteProblem(w, r, problem.From(err))
+						return
+					}
+					authorization = "Bearer " + token
+				}
+			}
+			ctx, err := opts.Auth.Authenticate(r.Context(), authorization, r.Header.Get(OrganizationHeader))
+			if err != nil {
+				WriteProblem(w, r.WithContext(ctx), problem.From(err))
+				return
+			}
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// crossSite answers a cookie-authenticated request that changes state from another site.
+var crossSite = problem.Problem{
+	Kind: problem.KindForbidden, Reason: "cross-site-request", Title: problem.TitleFor("cross-site-request"),
+	Status: http.StatusForbidden, Detail: "a request that changes state must come from the console", Posting: -1,
+}
+
+// SameOrigin reports whether a request may use the session cookie: reads always, since SameSite
+// already keeps the cookie off cross-site requests that change state; writes only when the browser
+// says the request comes from the same origin (Fetch Metadata), or its Origin is the console's.
+// It is the second layer of CSRF defence under SameSite=Lax (ADR-0030).
+func SameOrigin(r *http.Request, consoleOrigin string) bool {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return true
+	}
+	if r.Header.Get("Sec-Fetch-Site") == "same-origin" {
+		return true
+	}
+	origin := r.Header.Get("Origin")
+	return origin != "" && origin == consoleOrigin
+}
+
+// pathKey carries the request path, the instance of a problem, to errors built from a context. The
+// path identifies the resource the failed request addressed; requestId identifies the occurrence.
 type pathKey struct{}
 
 func pathFrom(ctx context.Context) string {
@@ -48,7 +143,8 @@ func requestID(base *slog.Logger) func(http.Handler) http.Handler {
 			w.Header().Set(requestid.Header, id)
 			ctx := requestid.With(r.Context(), id)
 			ctx = logging.With(ctx, base.With(slog.String("request_id", id)))
-			ctx = context.WithValue(ctx, pathKey{}, r.URL.Path)
+			// The escaped form, so instance stays a valid URI reference for a path such as /a%20b.
+			ctx = context.WithValue(ctx, pathKey{}, r.URL.EscapedPath())
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -111,21 +207,24 @@ func recoverPanic(next http.Handler) http.Handler {
 				logging.From(r.Context()).ErrorContext(r.Context(), "panic",
 					slog.Any("panic", rec),
 					slog.String("stack", string(debug.Stack())))
-				writeProblem(w, r, problem.Blank(http.StatusInternalServerError, "Internal server error"))
+				WriteProblem(w, r, problem.Blank(http.StatusInternalServerError))
 			}
 		}()
 		next.ServeHTTP(w, r)
 	})
 }
 
-// jsonBodies keeps today's handling of request bodies. Every body is JSON, and the previous
-// server decoded it as JSON whatever its Content-Type, so `curl -d '{...}'`, which sends
-// application/x-www-form-urlencoded, worked. Huma picks the decoder by Content-Type and would
-// answer 415 instead. A stricter answer waits for a new API minor version (plan, question 6).
-func jsonBodies(next http.Handler) http.Handler {
+// jsonOnly answers 415 to a request whose body does not say it is JSON. Every body of the API is
+// JSON; reading a form or text post as JSON would let a page on another site post to the API
+// with the console's session cookie (ADR-0032). It runs in front of REST and GraphQL alike.
+func jsonOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Body != nil && r.Body != http.NoBody && !isJSON(r.Header.Get("Content-Type")) {
-			r.Header.Set("Content-Type", "application/json")
+		if r.Body != nil && r.Body != http.NoBody && r.ContentLength != 0 && !isJSON(r.Header.Get("Content-Type")) {
+			WriteProblem(w, r, problem.Problem{
+				Kind: problem.KindInvalid, Reason: "unsupported-media-type", Title: problem.TitleFor("unsupported-media-type"),
+				Status: http.StatusUnsupportedMediaType, Detail: "send the body as application/json", Posting: -1,
+			})
+			return
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -152,9 +251,9 @@ func unknownRoutes(mux *http.ServeMux) http.Handler {
 		mux.ServeHTTP(rec, r)
 		switch rec.status {
 		case http.StatusNotFound:
-			writeProblem(w, r, problem.Blank(http.StatusNotFound, "Not found"))
+			WriteProblem(w, r, problem.Blank(http.StatusNotFound))
 		case http.StatusMethodNotAllowed:
-			writeProblem(w, r, problem.Blank(http.StatusMethodNotAllowed, "Method not allowed"))
+			WriteProblem(w, r, problem.Blank(http.StatusMethodNotAllowed))
 		default:
 			// Redirects for path cleaning carry only headers, which are already on w.
 			w.WriteHeader(rec.status)
@@ -184,9 +283,10 @@ func (h *headerOnlyRecorder) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// writeProblem answers with a problem the middleware made itself, outside Huma.
-func writeProblem(w http.ResponseWriter, r *http.Request, p problem.Problem) {
-	e := newError(r.Context(), p)
+// WriteProblem answers with a problem made outside Huma: by the middleware, or by a handler on the
+// same mux such as POST /graphql when the body is not a GraphQL request at all.
+func WriteProblem(w http.ResponseWriter, r *http.Request, p problem.Problem) {
+	e := NewError(r.Context(), p)
 	for k, v := range e.GetHeaders() {
 		w.Header()[k] = v
 	}

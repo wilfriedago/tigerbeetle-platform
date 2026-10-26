@@ -2,22 +2,85 @@
   "rabbit_version": "4.4.0",
   "users": [
     {
-      "name": "guest",
-      "password_hash": "ZnUsaQmh3i6PK+Sh02klsQCq1w7WhN150j2dF4UJ5lIL/MzX",
+      "name": "tbp-admin",
+      "password_hash": "hTkpWYYuYWBSJ/GP411vxFi7VQmllu+qIzKx7vcBnAITR8gR",
       "hashing_algorithm": "rabbit_password_hashing_sha256",
       "tags": ["administrator"]
+    },
+    {
+      "name": "tbp-api",
+      "password_hash": "InKGQAGUrW9+LO8fKlIGCGkoPrZhMnL3wG4yAR1hn1VINvSL",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    },
+    {
+      "name": "tbp-cdc",
+      "password_hash": "KDEHcFsOWyFqtcYx74RB8sAPpSy72OuFbWFZJ6jdeGWOypE/",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    },
+    {
+      "name": "tbp-service",
+      "password_hash": "11qOY4gBgRnIAhuvQrrnVKJxsCjtiYXofbR0Z2E5+hUtlvzZ",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
     }
   ],
-  "vhosts": [{ "name": "/" }],
-  "permissions": [{ "user": "guest", "vhost": "/", "configure": ".*", "write": ".*", "read": ".*" }],
-  "exchanges": [{ "name": "tbp.cdc", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false, "internal": false, "arguments": {} }],
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "tbp-admin",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "user": "tbp-api",
+      "vhost": "/",
+      "configure": "^tbp\\..*$",
+      "write": "^(tbp\\..*|amq\\.default)$",
+      "read": "^tbp\\..*$"
+    },
+    {
+      "user": "tbp-cdc",
+      "vhost": "/",
+      "configure": "^(tbp\\.cdc|tigerbeetle\\..*)$",
+      "write": "^(tbp\\.cdc|tigerbeetle\\..*|amq\\.default)$",
+      "read": "^(tbp\\.cdc|tigerbeetle\\..*)$"
+    },
+    {
+      "user": "tbp-service",
+      "vhost": "/",
+      "configure": "^$",
+      "write": "^tbp\\.rpc$",
+      "read": "^$"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "tbp.cdc",
+      "vhost": "/",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
   "queues": [
     {
       "name": "tbp.ledger-events.relay",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
-      "arguments": { "x-single-active-consumer": true }
+      "arguments": {
+        "x-single-active-consumer": true
+      }
     }
   ],
   "bindings": [

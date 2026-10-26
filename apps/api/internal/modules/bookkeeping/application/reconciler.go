@@ -77,8 +77,9 @@ func (r *Reconciler) RunOnce(ctx context.Context) int {
 		if ctx.Err() != nil {
 			break
 		}
-		ok, err := r.settle(ctx, *rec)
-		id := rec.Ledger + "/" + rec.Key
+		// The record's tenant, so every read and write of the settlement stays in its organization.
+		ok, err := r.settle(ledger.WithTenant(ctx, ledger.Tenant{ID: rec.Organization}), *rec)
+		id := rec.Organization.String() + "/" + rec.Ledger + "/" + rec.Key
 		r.mu.Lock()
 		if ok {
 			settled++
@@ -88,7 +89,7 @@ func (r *Reconciler) RunOnce(ctx context.Context) int {
 			if err != nil {
 				note = "TigerBeetle or Postgres did not answer; retrying"
 			}
-			r.stuck[id] = StuckRecord{Ledger: rec.Ledger, Key: rec.Key, Operation: rec.Operation, CreatedAt: rec.CreatedAt, Attempts: rec.Attempts, Note: note}
+			r.stuck[id] = StuckRecord{Organization: rec.Organization, Ledger: rec.Ledger, Key: rec.Key, Operation: rec.Operation, CreatedAt: rec.CreatedAt, Attempts: rec.Attempts, Note: note}
 		}
 		r.mu.Unlock()
 		if err != nil {
@@ -113,7 +114,8 @@ func (r *Reconciler) settle(ctx context.Context, rec domain.WriteRecord) (bool, 
 	}
 }
 
-// Status reports the last run and the records the reconciler is waiting on.
+// Status reports the last run and the records the reconciler is waiting on in the organization
+// of the call.
 func (r *Reconciler) Status(ctx context.Context) (ReconcilerStatus, error) {
 	pending, stuck, err := r.writes.CountPending(ctx, r.clock.Now().Add(-r.grace))
 	if err != nil {
@@ -130,8 +132,11 @@ func (r *Reconciler) Status(ctx context.Context) (ReconcilerStatus, error) {
 		Pending:     pending,
 		Stuck:       stuck,
 	}
+	tenant, _ := ledger.TenantFrom(ctx)
 	for _, rec := range r.stuck {
-		s.Records = append(s.Records, rec)
+		if rec.Organization == tenant.ID {
+			s.Records = append(s.Records, rec)
+		}
 	}
 	return s, nil
 }

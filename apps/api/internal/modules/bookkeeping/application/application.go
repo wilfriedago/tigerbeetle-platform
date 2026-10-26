@@ -26,6 +26,7 @@ type Deps struct {
 	// ReconcilerInterval is how often the reconciler runs.
 	ReconcilerInterval time.Duration
 	Logger             *slog.Logger
+	Authorizer         Authorizer
 }
 
 // Application is the bookkeeping module's use cases, as the transports and bootstrap see them.
@@ -38,6 +39,8 @@ type Application struct {
 	AccountQueries      AccountQueries
 	RequestQueries      RequestQueries
 	OverviewQueries     OverviewQueries
+	// ReconcilerQueries reports the reconciler of the organization of the call.
+	ReconcilerQueries ReconcilerQueries
 	// Footprints answers the ledgers module's ports.
 	Footprints *FootprintQueries
 	// Reconciler settles interrupted writes; bootstrap runs its loop.
@@ -68,19 +71,26 @@ func New(d Deps) Application {
 		ledgers: d.Ledgers, events: d.EventTypes, holds: d.Holds, accounts: ensurer, flow: flow,
 		tb: d.Ledger, ids: d.IDs, clock: d.Clock, queries: holds,
 	}
+	reconciler := newReconciler(d.Writes, txCommands, holdCmds, d.Clock, grace, d.ReconcilerInterval, logger)
+	// Every use case the transports see is behind its permission check (authorize.go). The
+	// reconciler settles writes with the unwrapped commands: it acts for the platform itself.
+	auth := d.Authorizer
 	return Application{
-		TransactionCommands: txCommands,
-		TransactionQueries:  transactions,
-		HoldCommands:        holdCmds,
-		HoldQueries:         holds,
-		AccountCommands:     &accountCommands{ledgers: d.Ledgers, accounts: d.Accounts, queries: accounts},
-		AccountQueries:      accounts,
-		RequestQueries:      &requestQueries{ledgers: d.Ledgers, writes: d.Writes},
-		OverviewQueries: &overviewQueries{
+		TransactionCommands: authorizedTransactionCommands{auth: auth, next: txCommands},
+		TransactionQueries:  authorizedTransactionQueries{auth: auth, next: transactions},
+		HoldCommands:        authorizedHoldCommands{auth: auth, next: holdCmds},
+		HoldQueries:         authorizedHoldQueries{auth: auth, next: holds},
+		AccountCommands: authorizedAccountCommands{auth: auth, next: &accountCommands{
+			ledgers: d.Ledgers, accounts: d.Accounts, queries: accounts,
+		}},
+		AccountQueries: authorizedAccountQueries{auth: auth, next: accounts},
+		RequestQueries: authorizedRequestQueries{auth: auth, next: &requestQueries{ledgers: d.Ledgers, writes: d.Writes}},
+		OverviewQueries: authorizedOverviewQueries{auth: auth, next: &overviewQueries{
 			ledgers: d.Ledgers, accounts: accounts, addrs: d.Accounts, writes: d.Writes, txs: d.Transactions,
 			holds: d.Holds, tb: d.Ledger, clock: d.Clock,
-		},
-		Footprints: &FootprintQueries{accounts: d.Accounts, txs: d.Transactions},
-		Reconciler: newReconciler(d.Writes, txCommands, holdCmds, d.Clock, grace, d.ReconcilerInterval, logger),
+		}},
+		ReconcilerQueries: authorizedReconcilerQueries{auth: auth, next: reconciler},
+		Footprints:        &FootprintQueries{accounts: d.Accounts, txs: d.Transactions},
+		Reconciler:        reconciler,
 	}
 }

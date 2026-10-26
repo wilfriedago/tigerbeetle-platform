@@ -3,6 +3,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -44,40 +45,113 @@ type Config struct {
 	GraphQLEnabled bool `env:"GRAPHQL_ENABLED" envDefault:"true"`
 	// ReconcilerEnabled runs the reconciler in this process (plan section 13.1).
 	ReconcilerEnabled bool `env:"RECONCILER_ENABLED" envDefault:"true"`
-	// GRPCEnabled serves gRPC on GRPCAddr. Off by default: like the broker transports it stays
-	// development-only until authentication is decided (ADR-0021).
+	// GRPCEnabled serves gRPC on GRPCAddr (ADR-0021), authenticated like REST; off by default
+	// (ADR-0032).
 	GRPCEnabled bool `env:"GRPC_ENABLED" envDefault:"false"`
 	// GRPCAddr is the listen address of the gRPC server.
 	GRPCAddr string `env:"GRPC_ADDR" envDefault:":9090"`
-	// AMQPRPCEnabled serves the RPC methods over RabbitMQ (ADR-0021); off by default, development
-	// only until authentication is decided. It needs AMQPURL.
+	// GRPCTLSCertFile and GRPCTLSKeyFile make gRPC serve TLS with that certificate (PEM). Without
+	// them it serves plaintext, for a proxy that terminates TLS.
+	GRPCTLSCertFile string `env:"GRPC_TLS_CERT_FILE"`
+	GRPCTLSKeyFile  string `env:"GRPC_TLS_KEY_FILE"`
+	// AMQPRPCEnabled serves the RPC methods over RabbitMQ (ADR-0021) for the platform's own
+	// services; off by default. It needs AMQPURL.
 	AMQPRPCEnabled bool `env:"AMQP_RPC_ENABLED" envDefault:"false"`
-	// AMQPURL is the RabbitMQ URL, amqp://user:password@host:5672/vhost.
+	// AMQPURL is the RabbitMQ URL, amqp://user:password@host:5672/vhost; amqps:// for TLS.
 	AMQPURL string `env:"AMQP_URL"`
+	// AMQPTLSCAFile is the CA (PEM) that signed RabbitMQ's certificate, for AMQP_URL and
+	// CDC_AMQP_URL with amqps://; empty trusts the system's CAs.
+	AMQPTLSCAFile string `env:"AMQP_TLS_CA_FILE"`
 	// AMQPRPCQueue is the durable request queue every replica consumes.
 	AMQPRPCQueue string `env:"AMQP_RPC_QUEUE" envDefault:"tbp.rpc.v1"`
 	// NATSRPCEnabled serves the RPC methods over NATS; off by default, like AMQP RPC. It needs
 	// NATSURL.
 	NATSRPCEnabled bool `env:"NATS_RPC_ENABLED" envDefault:"false"`
-	// NATSURL is the NATS URL, nats://host:4222.
+	// NATSURL is the NATS URL, nats://user:password@host:4222; tls:// for TLS.
 	NATSURL string `env:"NATS_URL"`
+	// NATSTLSCAFile is the CA (PEM) that signed the NATS server's certificate; setting it turns
+	// TLS on.
+	NATSTLSCAFile string `env:"NATS_TLS_CA_FILE"`
 	// NATSRPCQueueGroup is the queue group every replica joins, so each request runs once.
 	NATSRPCQueueGroup string `env:"NATS_RPC_QUEUE_GROUP" envDefault:"tbp-api"`
 	// RPCConcurrency bounds the requests each broker server runs at once.
 	RPCConcurrency int `env:"RPC_CONCURRENCY" envDefault:"16"`
 	// RPCTimeoutMax bounds every broker request, whatever deadline the client sends.
 	RPCTimeoutMax time.Duration `env:"RPC_TIMEOUT_MAX" envDefault:"30s"`
-	// KafkaEventsEnabled relays TigerBeetle change events to Kafka (ADR-0022); off by default,
-	// development only until authentication is decided. It needs KafkaBrokers and CDCAMQPURL.
+	// KafkaEventsEnabled relays TigerBeetle change events to Kafka (ADR-0022), for the platform's
+	// own consumers; off by default. It needs KafkaBrokers and CDCAMQPURL.
 	KafkaEventsEnabled bool `env:"KAFKA_EVENTS_ENABLED" envDefault:"false"`
 	// KafkaBrokers lists the seed brokers, host:port.
 	KafkaBrokers []string `env:"KAFKA_BROKERS" envSeparator:","`
+	// KafkaTLS connects to the brokers with TLS; KafkaTLSCAFile (PEM) replaces the system's CAs
+	// and turns TLS on.
+	KafkaTLS       bool   `env:"KAFKA_TLS" envDefault:"false"`
+	KafkaTLSCAFile string `env:"KAFKA_TLS_CA_FILE"`
+	// KafkaSASLMechanism is PLAIN, SCRAM-SHA-256 or SCRAM-SHA-512, with KafkaSASLUsername and
+	// KafkaSASLPassword; empty for no SASL.
+	KafkaSASLMechanism string `env:"KAFKA_SASL_MECHANISM"`
+	KafkaSASLUsername  string `env:"KAFKA_SASL_USERNAME"`
+	KafkaSASLPassword  string `env:"KAFKA_SASL_PASSWORD"`
 	// KafkaEventsTopic is the topic of ledger events.
 	KafkaEventsTopic string `env:"KAFKA_EVENTS_TOPIC" envDefault:"tbp.ledger-events.v1"`
 	// CDCAMQPURL is the RabbitMQ the TigerBeetle CDC job publishes to.
 	CDCAMQPURL string `env:"CDC_AMQP_URL"`
 	// CDCQueue is the relay queue, bound to the CDC exchange tbp.cdc.
 	CDCQueue string `env:"CDC_QUEUE" envDefault:"tbp.ledger-events.relay"`
+
+	// Authentication is always on (ADR-0026): there is no switch to turn it off.
+
+	// AuthIssuerURL is the identity provider's issuer, as access tokens name it.
+	AuthIssuerURL string `env:"AUTH_ISSUER_URL,required,notEmpty"`
+	// AuthDiscoveryURL is where the API reads the provider's discovery document and keys, when it
+	// reaches the provider at another address than browsers do. Empty means AUTH_ISSUER_URL.
+	AuthDiscoveryURL string `env:"AUTH_DISCOVERY_URL"`
+	// AuthAudience is the audience access tokens must carry: the API's identifier.
+	AuthAudience string `env:"AUTH_AUDIENCE,required,notEmpty"`
+	// AuthStaffClaim and AuthStaffValue mark the platform's staff in a token.
+	AuthStaffClaim string `env:"AUTH_STAFF_CLAIM" envDefault:"roles"`
+	AuthStaffValue string `env:"AUTH_STAFF_VALUE" envDefault:"tbp-staff"`
+	// AuthOrganizationClaim lists the aliases of a person's organizations (ADR-0027).
+	AuthOrganizationClaim string `env:"AUTH_ORGANIZATION_CLAIM" envDefault:"organization"`
+
+	// The console's sign-in through the backend-for-frontend (ADR-0030); off when AUTH_CLIENT_ID is
+	// empty, for an API that serves no console.
+
+	// AuthClientID and AuthClientSecret are the console's confidential client.
+	AuthClientID     string `env:"AUTH_CLIENT_ID"`
+	AuthClientSecret string `env:"AUTH_CLIENT_SECRET"`
+	// AuthRedirectURL is where the provider sends the browser back, through the console's origin.
+	AuthRedirectURL string `env:"AUTH_REDIRECT_URL"`
+	// AuthConsoleOrigin is the console's origin, the only one allowed to change state with the
+	// session cookie.
+	AuthConsoleOrigin string `env:"AUTH_CONSOLE_ORIGIN"`
+	// AuthSessionKey seals the stored tokens and the sign-in cookie: 32 bytes in standard base64,
+	// comma-separated during a rotation, the new key first.
+	AuthSessionKey string `env:"AUTH_SESSION_KEY"`
+	// AuthCookieSecure marks the cookies Secure; false only for plain-HTTP development.
+	AuthCookieSecure bool `env:"AUTH_COOKIE_SECURE" envDefault:"true"`
+
+	// AuthAdminClientID and AuthAdminClientSecret are the service account the API uses for
+	// Keycloak's admin API: organizations, members and invitations (ADR-0027). Without them those
+	// calls answer 503 and the rest of the API runs.
+	AuthAdminClientID     string `env:"AUTH_ADMIN_CLIENT_ID"`
+	AuthAdminClientSecret string `env:"AUTH_ADMIN_CLIENT_SECRET"`
+
+	// AuthAPIKeyPepper keys the HMAC of API key secrets (ADR-0029): 32 random bytes in standard
+	// base64. Without it, API keys are refused and cannot be created.
+	AuthAPIKeyPepper string `env:"AUTH_API_KEY_PEPPER"`
+}
+
+// APIKeyPepper decodes AUTH_API_KEY_PEPPER; nil when it is not set.
+func (c Config) APIKeyPepper() ([]byte, error) {
+	if c.AuthAPIKeyPepper == "" {
+		return nil, nil
+	}
+	b, err := base64.StdEncoding.DecodeString(c.AuthAPIKeyPepper)
+	if err != nil || len(b) < 32 {
+		return nil, fmt.Errorf("config: AUTH_API_KEY_PEPPER must be at least 32 bytes in standard base64")
+	}
+	return b, nil
 }
 
 // Load reads the process environment.
@@ -120,6 +194,27 @@ func (c *Config) validate() error {
 	}
 	if (c.AMQPRPCEnabled || c.NATSRPCEnabled) && (c.RPCConcurrency < 1 || c.RPCTimeoutMax <= 0) {
 		return fmt.Errorf("config: RPC_CONCURRENCY and RPC_TIMEOUT_MAX must be positive")
+	}
+	if c.AuthClientID != "" && (c.AuthClientSecret == "" || c.AuthRedirectURL == "" || c.AuthConsoleOrigin == "" || c.AuthSessionKey == "") {
+		return fmt.Errorf("config: AUTH_CLIENT_ID needs AUTH_CLIENT_SECRET, AUTH_REDIRECT_URL, AUTH_CONSOLE_ORIGIN and AUTH_SESSION_KEY")
+	}
+	if (c.GRPCTLSCertFile == "") != (c.GRPCTLSKeyFile == "") {
+		return fmt.Errorf("config: GRPC_TLS_CERT_FILE and GRPC_TLS_KEY_FILE go together")
+	}
+	switch c.KafkaSASLMechanism {
+	case "":
+	case "PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512":
+		if c.KafkaSASLUsername == "" {
+			return fmt.Errorf("config: KAFKA_SASL_MECHANISM needs KAFKA_SASL_USERNAME and KAFKA_SASL_PASSWORD")
+		}
+	default:
+		return fmt.Errorf("config: KAFKA_SASL_MECHANISM must be PLAIN, SCRAM-SHA-256 or SCRAM-SHA-512")
+	}
+	if _, err := c.APIKeyPepper(); err != nil {
+		return err
+	}
+	if (c.AuthAdminClientID == "") != (c.AuthAdminClientSecret == "") {
+		return fmt.Errorf("config: AUTH_ADMIN_CLIENT_ID and AUTH_ADMIN_CLIENT_SECRET go together")
 	}
 	if c.ShutdownTimeout <= 0 || c.ReadinessTimeout <= 0 || c.TigerBeetleTimeout <= 0 {
 		return fmt.Errorf("config: SHUTDOWN_TIMEOUT, READINESS_TIMEOUT and TIGERBEETLE_TIMEOUT must be positive")

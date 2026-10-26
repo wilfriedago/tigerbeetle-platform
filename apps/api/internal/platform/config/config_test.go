@@ -13,6 +13,8 @@ func TestParse(t *testing.T) {
 	required := map[string]string{
 		"POSTGRES_URL":          "postgres://u:p@localhost:5432/db",
 		"TIGERBEETLE_ADDRESSES": "localhost:3000,localhost:3001",
+		"AUTH_ISSUER_URL":       "http://localhost:18080/realms/tbp",
+		"AUTH_AUDIENCE":         "tbp-api",
 	}
 	tests := []struct {
 		name    string
@@ -44,6 +46,12 @@ func TestParse(t *testing.T) {
 				RPCTimeoutMax:         30 * time.Second,
 				KafkaEventsTopic:      "tbp.ledger-events.v1",
 				CDCQueue:              "tbp.ledger-events.relay",
+				AuthIssuerURL:         "http://localhost:18080/realms/tbp",
+				AuthAudience:          "tbp-api",
+				AuthStaffClaim:        "roles",
+				AuthStaffValue:        "tbp-staff",
+				AuthOrganizationClaim: "organization",
+				AuthCookieSecure:      true,
 			},
 		},
 		{
@@ -61,8 +69,12 @@ func TestParse(t *testing.T) {
 				RESTEnabled: true, GraphQLEnabled: true, GRPCEnabled: true, GRPCAddr: ":9191",
 				AMQPRPCQueue: "tbp.rpc.v1", NATSRPCQueueGroup: "tbp-api", RPCConcurrency: 16, RPCTimeoutMax: 30 * time.Second,
 				KafkaEventsTopic: "tbp.ledger-events.v1", CDCQueue: "tbp.ledger-events.relay",
+				AuthIssuerURL: "http://localhost:18080/realms/tbp", AuthAudience: "tbp-api",
+				AuthStaffClaim: "roles", AuthStaffValue: "tbp-staff", AuthOrganizationClaim: "organization",
+				AuthCookieSecure: true,
 			},
 		},
+		{name: "missing issuer", environ: map[string]string{"POSTGRES_URL": "postgres://x", "TIGERBEETLE_ADDRESSES": "localhost:3000", "AUTH_AUDIENCE": "tbp-api"}, wantErr: true},
 		{name: "missing postgres url", environ: map[string]string{"TIGERBEETLE_ADDRESSES": "localhost:3000"}, wantErr: true},
 		{name: "missing tigerbeetle addresses", environ: map[string]string{"POSTGRES_URL": "postgres://x"}, wantErr: true},
 		{name: "bad log level", environ: merge(required, map[string]string{"LOG_LEVEL": "loud"}), wantErr: true},
@@ -73,6 +85,9 @@ func TestParse(t *testing.T) {
 		{name: "nats rpc without url", environ: merge(required, map[string]string{"NATS_RPC_ENABLED": "true"}), wantErr: true},
 		{name: "kafka events without brokers", environ: merge(required, map[string]string{"KAFKA_EVENTS_ENABLED": "true", "CDC_AMQP_URL": "amqp://x"}), wantErr: true},
 		{name: "kafka events without cdc url", environ: merge(required, map[string]string{"KAFKA_EVENTS_ENABLED": "true", "KAFKA_BROKERS": "k:9092"}), wantErr: true},
+		{name: "grpc cert without key", environ: merge(required, map[string]string{"GRPC_TLS_CERT_FILE": "/tls/cert.pem"}), wantErr: true},
+		{name: "unknown sasl mechanism", environ: merge(required, map[string]string{"KAFKA_SASL_MECHANISM": "GSSAPI", "KAFKA_SASL_USERNAME": "u"}), wantErr: true},
+		{name: "sasl without username", environ: merge(required, map[string]string{"KAFKA_SASL_MECHANISM": "PLAIN"}), wantErr: true},
 		{name: "zero rpc concurrency", environ: merge(required, map[string]string{"NATS_RPC_ENABLED": "true", "NATS_URL": "nats://x:4222", "RPC_CONCURRENCY": "0"}), wantErr: true},
 	}
 	for _, tt := range tests {

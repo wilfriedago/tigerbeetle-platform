@@ -1,4 +1,4 @@
-import { ApiError, HttpStatusError } from '@tigerbeetle-platform/api-client'
+import { ApiError, HttpStatusError, problemTypeOf } from '@tigerbeetle-platform/api-client'
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { TypedDocumentString } from '~/graphql/gen/graphql'
@@ -48,7 +48,7 @@ describe('request', () => {
                 retryAfter: 1,
                 status: 409,
                 title: 'Request in flight',
-                type: '/problems/request-in-flight'
+                type: problemTypeOf('request-in-flight')
               },
               message: 'still running',
               path: ['createTransaction']
@@ -66,7 +66,7 @@ describe('request', () => {
       requestId: 'req-7',
       retryAfter: 1,
       status: 409,
-      type: '/problems/request-in-flight'
+      type: problemTypeOf('request-in-flight')
     })
   })
 
@@ -79,6 +79,17 @@ describe('request', () => {
     )
     const error = await request(Doc, { name: 'eu' }).catch((error_: unknown) => error_)
     expect(error).toMatchObject({ code: 'GRAPHQL_VALIDATION_FAILED', problem: { detail: 'Cannot query field "x"', status: 400 }, requestId: 'srv-1' })
+  })
+
+  it('rejects the problem the API answers for a body that is no GraphQL request with ApiError', async () => {
+    const problem = { requestId: 'srv-2', status: 413, title: 'Request Entity Too Large', type: 'about:blank' }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof globalThis.fetch>(async () => Response.json(problem, { headers: { 'Content-Type': 'application/problem+json' }, status: 413 }))
+    )
+    const error = await request(Doc, { name: 'eu' }).catch((error_: unknown) => error_)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({ problem, requestId: 'srv-2', status: 413 })
   })
 
   it('rejects an answer that is not GraphQL with HttpStatusError', async () => {
@@ -98,6 +109,6 @@ describe('present', () => {
 
 describe('notFound', () => {
   it('is the 404 problem the routes turn into their not-found view', () => {
-    expect(notFound('ledger eu')).toMatchObject({ status: 404, type: '/problems/not-found' })
+    expect(notFound('ledger eu')).toMatchObject({ status: 404, type: problemTypeOf('not-found') })
   })
 })

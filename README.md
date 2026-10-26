@@ -12,7 +12,8 @@ that compiles to batches of linked transfers comes later.
 **Status: pre-alpha.** The API serves the ledger surface: ledgers, accounts with lazy creation
 and address rules, multi-posting transactions with idempotency and a reconciler, holds,
 reverts, prefix balances and the write-request log. The console covers every page of
-[docs/console.md](docs/console.md). No authentication yet.
+[docs/console.md](docs/console.md). Authentication through Keycloak and multi-tenancy are being
+added (docs/plans/auth/plan.md); the API already requires a token on every call.
 
 ## Quickstart
 

@@ -23,7 +23,7 @@ func NewWriteRequestServer(app application.Application) *WriteRequestServer {
 func (s *WriteRequestServer) ListWriteRequests(ctx context.Context, req *pb.ListWriteRequestsRequest) (*pb.ListWriteRequestsResponse, error) {
 	rows, next, err := s.queries.List(ctx, application.ListRequestsInput{
 		Ledger: req.GetLedger(), Status: grpcapi.ValueOf(req.GetStatus()), Operation: grpcapi.ValueOf(req.GetOperation()),
-		Search: req.GetSearch(), Cursor: req.GetPageToken(), Limit: grpcapi.PageSize(req.GetPageSize()),
+		Search: req.GetSearch(), Actor: req.GetActor(), Cursor: req.GetPageToken(), Limit: grpcapi.PageSize(req.GetPageSize()),
 	})
 	if err != nil {
 		return nil, err

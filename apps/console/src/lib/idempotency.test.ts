@@ -1,10 +1,10 @@
-import { ApiError, HttpStatusError } from '@tigerbeetle-platform/api-client'
+import { ApiError, HttpStatusError, problemTypeOf } from '@tigerbeetle-platform/api-client'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { keyIsSpent, newIdempotencyKey } from './idempotency'
 
 function problem(status: number, reason: string) {
-  return new ApiError({ status, title: reason, type: `/problems/${reason}` }, 'req')
+  return new ApiError({ status, title: reason, type: problemTypeOf(reason) }, 'req')
 }
 
 describe('newIdempotencyKey', () => {

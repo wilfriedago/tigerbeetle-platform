@@ -7,6 +7,7 @@ package natsrpc
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -28,6 +29,8 @@ const (
 	HeaderRequestID      = "X-Request-Id"
 	HeaderIdempotencyKey = "Idempotency-Key"
 	HeaderDeadline       = "X-Deadline"
+	HeaderAuthorization  = "Authorization"
+	HeaderOrganization   = "Organization"
 )
 
 // Options configures a Server.
@@ -40,6 +43,8 @@ type Options struct {
 	Router          *rpc.Router
 	Dispatcher      *rpc.Dispatcher
 	Logger          *slog.Logger
+	// TLS secures the connection; nil keeps the URL's scheme (tls:// turns TLS on).
+	TLS *tls.Config
 }
 
 // Server is the micro service.
@@ -52,7 +57,12 @@ type Server struct {
 // New connects and registers every method of the router as an endpoint. The connection keeps
 // retrying, also when NATS is down at start-up; readiness reports it down meanwhile.
 func New(opts Options) (*Server, error) {
+	secure := func(*nats.Options) error { return nil }
+	if opts.TLS != nil {
+		secure = nats.Secure(opts.TLS)
+	}
 	nc, err := nats.Connect(opts.URL,
+		secure,
 		nats.Name("tbp-api rpc"),
 		nats.RetryOnFailedConnect(true),
 		nats.MaxReconnects(-1),
@@ -128,24 +138,34 @@ func (s *Server) accept(ctx context.Context, method string, req micro.Request) {
 		RequestID:      headerOf(req.Headers(), HeaderRequestID),
 		IdempotencyKey: headerOf(req.Headers(), HeaderIdempotencyKey),
 		Deadline:       headerOf(req.Headers(), HeaderDeadline),
+		Authorization:  headerOf(req.Headers(), HeaderAuthorization),
+		Organization:   headerOf(req.Headers(), HeaderOrganization),
 	}
 	_ = s.pool.Go(ctx, func() { s.answer(ctx, call, req) })
 }
 
+// answer runs on the pool, after micro's handler has returned. It publishes the reply itself
+// rather than through req.Respond or req.Error: those record the outcome on the request, which
+// micro reads for its statistics once the handler returns, a data race once the answer comes from
+// another goroutine. micro's error count therefore leaves these replies out.
 func (s *Server) answer(ctx context.Context, call rpc.Call, req micro.Request) {
 	answer := s.opts.Dispatcher.Answer(ctx, call)
-	headers := micro.WithHeaders(micro.Headers{HeaderRequestID: []string{answer.RequestID}})
-	var err error
-	if answer.Error == nil {
-		err = req.Respond(answer.Body, headers)
-	} else {
+	reply := &nats.Msg{Subject: req.Reply(), Data: answer.Body, Header: nats.Header{HeaderRequestID: []string{answer.RequestID}}}
+	if answer.Error != nil {
 		// micro's error headers carry the REST status and the reason, so `nats micro` tooling
 		// shows them; the body is still the envelope.
 		description := answer.Error.Reason
 		if description == "" {
 			description = answer.Error.Title
 		}
-		err = req.Error(strconv.Itoa(answer.Error.Status), description, answer.Body, headers)
+		reply.Header.Set(micro.ErrorCodeHeader, strconv.Itoa(answer.Error.Status))
+		reply.Header.Set(micro.ErrorHeader, description)
+	}
+	var err error
+	if reply.Subject == "" {
+		err = errors.New("no reply subject")
+	} else {
+		err = s.nc.PublishMsg(reply)
 	}
 	if err != nil {
 		s.opts.Logger.WarnContext(ctx, "nats rpc reply not sent", slog.String("request_id", answer.RequestID), slog.Any("error", err))

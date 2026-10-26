@@ -77,7 +77,11 @@ func (s *Store) withLegs(ctx context.Context, rows []domain.TransactionRow) ([]d
 
 // GetTransaction returns a transaction with its legs.
 func (s *Store) GetTransaction(ctx context.Context, ledgerName string, id ledger.ID) (domain.TransactionRow, error) {
-	r, err := s.queries.GetTransaction(ctx, gen.GetTransactionParams{Ledger: ledgerName, ID: platformpg.UUIDOf(id)})
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return domain.TransactionRow{}, err
+	}
+	r, err := s.queries.GetTransaction(ctx, gen.GetTransactionParams{OrganizationID: org, Ledger: ledgerName, ID: platformpg.UUIDOf(id)})
 	if err != nil {
 		return domain.TransactionRow{}, fmt.Errorf("postgres: get transaction: %w", mapError(err))
 	}
@@ -94,7 +98,12 @@ func (s *Store) GetTransaction(ctx context.Context, ledgerName string, id ledger
 
 // ListTransactions returns transactions newest first, before the given ID.
 func (s *Store) ListTransactions(ctx context.Context, ledgerName string, filter domain.TransactionFilter, before ledger.ID, limit int) ([]domain.TransactionRow, error) {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := s.queries.ListTransactions(ctx, gen.ListTransactionsParams{
+		OrganizationID:  org,
 		Ledger:          ledgerName,
 		BeforeID:        platformpg.NullableUUID(before),
 		Reference:       platformpg.OptionalString(filter.Reference),
@@ -122,11 +131,15 @@ func (s *Store) ListTransactions(ctx context.Context, ledgerName string, filter 
 
 // ReplaceTransactionMetadata replaces the metadata of a transaction.
 func (s *Store) ReplaceTransactionMetadata(ctx context.Context, ledgerName string, id ledger.ID, metadata map[string]string) error {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return err
+	}
 	raw, err := platformpg.EncodeMetadata(metadata)
 	if err != nil {
 		return err
 	}
-	n, err := s.queries.ReplaceTransactionMetadata(ctx, gen.ReplaceTransactionMetadataParams{Ledger: ledgerName, ID: platformpg.UUIDOf(id), Metadata: raw})
+	n, err := s.queries.ReplaceTransactionMetadata(ctx, gen.ReplaceTransactionMetadataParams{OrganizationID: org, Ledger: ledgerName, ID: platformpg.UUIDOf(id), Metadata: raw})
 	if err != nil {
 		return fmt.Errorf("postgres: replace transaction metadata: %w", mapError(err))
 	}
@@ -138,7 +151,11 @@ func (s *Store) ReplaceTransactionMetadata(ctx context.Context, ledgerName strin
 
 // SearchTransactions finds transactions by ID or reference prefix.
 func (s *Store) SearchTransactions(ctx context.Context, ledgerName, text string, limit int) ([]domain.TransactionRow, error) {
-	params := gen.SearchTransactionsParams{Ledger: ledgerName, Text: text, MaxRows: int32(limit)}
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := gen.SearchTransactionsParams{OrganizationID: org, Ledger: ledgerName, Text: text, MaxRows: int32(limit)}
 	if id, err := ledger.ParseID(text); err == nil {
 		params.ID = platformpg.UUIDOf(id)
 	}
