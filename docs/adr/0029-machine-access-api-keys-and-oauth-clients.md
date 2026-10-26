@@ -54,7 +54,13 @@ Machine clients:
   service account in Keycloak and records its client ID against the organization in
   `machine_clients`. The platform's own mapping, not Keycloak's organization claim, decides the
   organization of its tokens.
-- The client secret is shown once; revoking deletes the Keycloak client and the row.
+- The client secret is shown once; deleting removes the Keycloak client and marks the row
+  deleted, so its grants and writes keep naming it, as a revoked key's do.
+- Built in phase 6 of the plan: `api_keys` and `machine_clients` (migration 00014),
+  the platform's `tbp-admin` service account creates the clients (it now also holds
+  realm-management's `manage-clients`, `view-clients` and `query-clients`), tokens last five
+  minutes, and the API recognises a client credentials token by its `client_id` claim. Keys and
+  clients hold ledger roles only, never an organization role. `docs/integrators.md` is the guide.
 
 ### Consequences
 

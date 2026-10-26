@@ -74,6 +74,10 @@ Every path below is under /$org, the organization's alias, such as /acme/ledgers
 /ledgers/$ledger/settings/access       Access: who holds a role on the ledger
 /members                               Members (?tab=invitations, ?invite opens the dialog)
 /members/$member                       Member: roles, the account, removing or leaving
+/api-keys                              API keys (?create opens the sheet)
+/api-keys/$key                         API key: roles, details, revoke
+/machine-clients                       Machine clients (?create opens the sheet)
+/machine-clients/$client               Machine client: roles, details, new secret, delete
 /settings                              Organization settings: owners, leaving
 /settings/roles                        Roles and permissions
 /system                                System health
@@ -83,7 +87,6 @@ Every path below is under /$org, the organization's alias, such as /acme/ledgers
 Later
 /ledgers/$ledger/posting-rules[/$rule[/versions/$v]]   posting-rule DSL
 /ledgers/$ledger/live                                  live feed (TigerBeetle CDC)
-/api-keys, /machine-clients                            phase 6 of docs/plans/auth/plan.md
 /audit                                                 later
 ```
 
@@ -332,6 +335,21 @@ cannot do, derived from the role table. Remove (or Leave, on your own page) expl
 `/ledgers/$ledger/settings/access`. Who holds a role on this ledger, and the admins and owners who
 hold every role through the organization. Ledger admins grant and revoke here (`ledger.members`).
 API keys and machine clients join the list in phase 6.
+
+### API keys and machine clients
+
+`/api-keys` and `/machine-clients`, for owners and admins (`org.credentials`). API:
+`apiKeys`, `createApiKey`, `revokeApiKey`, `machineClients`, `createMachineClient`,
+`regenerateMachineClientSecret`, `deleteMachineClient`, `setCredentialRole`,
+`revokeCredentialRole` (GraphQL; REST `/v1/api-keys`, `/v1/machine-clients`).
+
+- Lists with name and status filters in the URL; a create sheet with a name, ledger roles (at
+  least one) and, for a key, an expiry.
+- The secret is shown once, in a dialog that cannot close until "I have stored it" is ticked,
+  with a command to try it.
+- A credential's page shows its roles (grant and revoke), its details and the way to revoke a key
+  or delete a client, which asks for the name. The design's "recent writes" panel is not built:
+  write requests cannot be filtered by actor yet.
 
 ### Organization settings and Roles and permissions
 

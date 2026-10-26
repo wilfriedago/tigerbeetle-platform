@@ -145,6 +145,22 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
     of a new invitee through verify, password and profile, and every designed page in the mock.
   - Not done: Keycloak's emails keep Keycloak's look (an email theme is later work); Keycloak's
     default user profile asks a new invitee for a last name when the invitation gave none.
+- Phase 6 (machine access) is done, from 79fd433:
+  - API keys (`tbp_<id>_<secret>`, HMAC under `AUTH_API_KEY_PEPPER`) and machine clients
+    (confidential Keycloak clients created by `tbp-admin`, five-minute tokens), migration 00014,
+    REST (`api-keys`, `machine-clients` tags) and GraphQL; no broker methods, as for members.
+  - Authentication: a `tbp_` bearer value is a key; a token with a `client_id` claim is a machine
+    client's, whose organization is the platform's record, not a claim. Either acts for its own
+    organization; another `X-Organization` is 403.
+  - Console pages per `.design/auth.pen`; the Access page of a ledger lists keys and clients too.
+    `docs/integrators.md` is the guide for every transport.
+  - Verified: `TestCredentialsEndToEnd` (REST, GraphQL and gRPC with a key and a machine token,
+    roles, revocation, deletion), and against Keycloak 26.8.1 in the second stack: a client
+    created by the API, its token (`client_id`, the `tbp-api` audience, 300 seconds), a call with
+    it and with a key, secret regeneration, and every page in a browser.
+  - Not done: the "recent writes" panel of a credential (write requests have no actor filter
+    yet); `tbp-admin` can manage every client of the realm until fine-grained admin permissions
+    v2 narrow it.
 
 A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
 owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the
