@@ -57,10 +57,16 @@ Chosen option: 1.
   claim lists every membership, and the API checks the header against it. A non-member gets 404.
   The header travels like the request ID: an HTTP header, `x-organization` gRPC metadata, an
   `organization` message header on the brokers.
-- Ledgers gain an internal `id` as primary key and `organization_id`; `UNIQUE (organization_id,
-  name)`. The eight tables replace `ledger text` with `ledger_id uuid`. Every use case resolves
-  the name once, inside the caller's organization, and uses the ID afterwards. A ledger ID is
-  unique across the platform, so the organization is checked at that one step.
+- A ledger is (organization, name). `ledgers` and the eight tables that name a ledger gain
+  `organization_id`; their primary, unique and foreign keys lead with it, so a row can only point
+  at a ledger of its own organization. Use cases keep working with ledger names: the repositories
+  read the tenant from the request context (`ledger.RequireTenant`) and every query filters or
+  writes by it. A context without a tenant fails instead of reading every organization.
+- `apps/api/migrations/tenancy_test.go` reads every sqlc query and fails when one touches a tenant
+  table without `organization_id`. The few queries that may cross organizations (the reconciler's
+  backlog, lookups by IDs unique across the platform) say why in a `-- tenant-free:` comment.
+- The reconciler reads pending writes of every organization; each record carries its
+  organization, and the reconciler acts for it while settling the record.
 - TigerBeetle is unchanged: ledger numbers are allocated per (ledger, asset) from one sequence,
   so they are unique across the cluster, and transfers cannot cross TigerBeetle ledgers.
 - Pre-alpha data moves into an organization with the alias `default`.
@@ -77,6 +83,10 @@ Chosen option: 1.
   account that needs `manage-organizations` and `manage-users`.
 - Bad: once any organization exists, Keycloak's login asks for the username or email first.
 - Bad: the ledger migration rewrites the keys of eight tables.
+- Bad: isolation relies on every query naming the organization; the guard test and the composite
+  foreign keys make a forgotten filter fail in CI, but it is a convention, not a type. The first
+  plan resolved the name once to a platform-wide ledger ID instead; that would have changed about
+  350 signatures in the application and domain layers, so it was not built.
 
 ## More Information
 

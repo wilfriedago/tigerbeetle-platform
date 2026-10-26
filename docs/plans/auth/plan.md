@@ -212,22 +212,21 @@ anyone else, and the grant shows in its member list.
 
 ### 5.5 Ledgers inside an organization
 
-- `ledgers` gains `id` (minted with the same time-ordered ID helper as everything else) as its
-  primary key, and `organization_id`. The name stays the public identifier, unique per
-  organization: `UNIQUE (organization_id, name)`.
-- The eight tables of F9 replace their `ledger text` column with `ledger_id uuid`, and their keys
-  and foreign keys follow. The sqlc queries switch from the name to the ID.
-- Every use case resolves the name once, scoped by the organization in the context, through the
-  ledgers module's existing port, and works with the ID afterwards. A ledger ID is unique across
-  the platform, so no later query can reach another tenant's rows: the organization only has to
-  be checked at that one resolution step, which is what the isolation tests target (section 8).
+- Deviation, decided in phase 1 (ADR-0026): a ledger is (organization, name). `ledgers` and the
+  eight tables of F9 gain `organization_id`, and their primary, unique and foreign keys lead with
+  it. The repositories read the tenant from the context and every query filters by it; use cases
+  keep their ledger-name signatures. The first version of this section resolved the name to a
+  platform-wide ledger ID instead, which would have changed about 350 signatures in the
+  application and domain layers.
+- `apps/api/migrations/tenancy_test.go` fails when a query touches a tenant table without
+  `organization_id`, unless a `-- tenant-free:` comment says why it may cross organizations.
 - TigerBeetle is unchanged: its ledger numbers are already unique across the cluster (F10).
 - One migration does it. Pre-alpha data moves into an organization with the alias `default`,
   which the dev seed also creates in Keycloak.
 
-Go note: resolving the name to an ID at one point and using the ID everywhere after is the
-simplest way to make tenant isolation a property of the data model rather than of every query
-remembering a `WHERE organization_id = ...`.
+Go note: the tenant travels in the `context.Context`, so repository signatures did not change;
+`platformpg.TenantOf(ctx)` reads it at the top of each repository method and fails when it is
+missing.
 
 ### 5.6 Events and the brokers
 
