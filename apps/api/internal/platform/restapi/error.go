@@ -93,6 +93,10 @@ func (e *Error) GetHeaders() http.Header {
 	if d := e.Problem.RetryAfter; d > 0 {
 		h.Set("Retry-After", strconv.Itoa(int((d+time.Second-1)/time.Second)))
 	}
+	if e.Problem.Status == http.StatusUnauthorized {
+		// The bearer challenge of RFC 6750, section 3.
+		h.Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+	}
 	return h
 }
 

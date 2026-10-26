@@ -23,6 +23,11 @@ var (
 	// the same Idempotency-Key is still in flight, a hold is already resolved, a transaction is
 	// already reverted.
 	ErrConflict = errors.New("conflict")
+	// ErrUnauthenticated means the call carries no credential, or one that is not valid: a bad or
+	// expired token, a revoked API key (ADR-0025).
+	ErrUnauthenticated = errors.New("unauthenticated")
+	// ErrForbidden means the caller is known but may not do this (ADR-0027).
+	ErrForbidden = errors.New("forbidden")
 )
 
 // Problem is a domain error with a stable, kebab-case reason that clients can branch on, such as

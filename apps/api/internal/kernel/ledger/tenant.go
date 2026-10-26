@@ -1,9 +1,6 @@
 package ledger
 
-import (
-	"context"
-	"fmt"
-)
+import "context"
 
 // Tenant is the organization a call acts for (ADR-0026). Every ledger belongs to exactly one
 // organization, and ledger names are unique inside it, so a ledger is found by the tenant and its
@@ -39,13 +36,16 @@ func TenantFrom(ctx context.Context) (Tenant, bool) {
 	return t, ok
 }
 
-// RequireTenant returns the tenant carried by ctx. A context without one is a programming error
-// in the entry point that built it, never a client error, so it does not match any sentinel a
-// transport renders as a client answer: repositories fail closed instead of reading every tenant.
+// RequireTenant returns the tenant carried by ctx. A call about a ledger that names no
+// organization is a client error: repositories fail closed instead of reading every tenant.
 func RequireTenant(ctx context.Context) (Tenant, error) {
 	t, ok := TenantFrom(ctx)
 	if !ok || t.ID.IsZero() {
-		return Tenant{}, fmt.Errorf("no tenant in context")
+		return Tenant{}, ErrNoOrganization
 	}
 	return t, nil
 }
+
+// ErrNoOrganization is the answer to a call about a ledger that names no organization.
+var ErrNoOrganization = NewProblem(ErrInvalid, "organization-required",
+	"name the organization: the X-Organization header, x-organization gRPC metadata, or the organization message header")

@@ -92,6 +92,10 @@ func codeOf(p problem.Problem) codes.Code {
 		return codes.FailedPrecondition
 	case problem.KindUnavailable:
 		return codes.Unavailable
+	case problem.KindUnauthenticated:
+		return codes.Unauthenticated
+	case problem.KindForbidden:
+		return codes.PermissionDenied
 	default:
 		return codes.Internal
 	}

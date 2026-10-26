@@ -24,7 +24,11 @@ const (
 	KindConflict      Kind = "CONFLICT"
 	KindRejected      Kind = "REJECTED"
 	KindUnavailable   Kind = "UNAVAILABLE"
-	KindInternal      Kind = "INTERNAL"
+	// KindUnauthenticated is a call without a valid credential (ADR-0025).
+	KindUnauthenticated Kind = "UNAUTHENTICATED"
+	// KindForbidden is a known caller that may not do this (ADR-0027).
+	KindForbidden Kind = "FORBIDDEN"
+	KindInternal  Kind = "INTERNAL"
 )
 
 // TypeBlank is the RFC 9457 type of a problem fully described by its HTTP status.
@@ -105,6 +109,8 @@ var sentinels = []sentinel{
 	{ledger.ErrConflict, KindConflict, http.StatusConflict, "conflict"},
 	{ledger.ErrRejected, KindRejected, http.StatusUnprocessableEntity, "rejected"},
 	{ledger.ErrUnavailable, KindUnavailable, http.StatusServiceUnavailable, "dependency-unavailable"},
+	{ledger.ErrUnauthenticated, KindUnauthenticated, http.StatusUnauthorized, "unauthenticated"},
+	{ledger.ErrForbidden, KindForbidden, http.StatusForbidden, "forbidden"},
 }
 
 // From maps err to a problem. A *ledger.Problem keeps its reason, detail, posting, results and
