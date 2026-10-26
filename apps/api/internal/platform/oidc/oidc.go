@@ -99,7 +99,8 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (ledger.Principal, er
 		Issuer:        tok.Issuer,
 		Subject:       tok.Subject,
 		Kind:          ledger.KindPerson,
-		Name:          firstString(claims, "preferred_username", "name", "azp"),
+		Name:          firstString(claims, "name", "preferred_username", "azp"),
+		Email:         firstString(claims, "email"),
 		Organizations: aliases(claims[v.cfg.OrganizationClaim]),
 	}
 	if v.cfg.StaffClaim != "" {

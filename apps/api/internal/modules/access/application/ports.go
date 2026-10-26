@@ -34,3 +34,9 @@ type Sealer interface {
 	Seal(plaintext []byte) []byte
 	Open(sealed []byte) ([]byte, error)
 }
+
+// LedgerCounter counts the ledgers of organizations, for the staff's organization pages; the
+// ledgers module answers it, wired by bootstrap.
+type LedgerCounter interface {
+	CountLedgers(ctx context.Context, organizations []ledger.ID) (map[ledger.ID]int, error)
+}

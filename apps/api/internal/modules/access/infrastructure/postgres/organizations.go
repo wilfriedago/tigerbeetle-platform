@@ -36,6 +36,7 @@ func (s *Store) SaveOrganization(ctx context.Context, o domain.NewOrganization) 
 		Name:             o.Name,
 		CreatedByIssuer:  platformpg.OptionalString(o.CreatedBy.Issuer),
 		CreatedBySubject: platformpg.OptionalString(o.CreatedBy.Subject),
+		CreatedByName:    platformpg.OptionalString(o.CreatedBy.Name),
 	})
 	if err != nil {
 		return domain.Organization{}, fmt.Errorf("postgres: save organization: %w", platformpg.MapError(err))
@@ -64,9 +65,9 @@ func (s *Store) RenameOrganization(ctx context.Context, alias, name string) (dom
 	return organizationOf(gen.OrganizationByAliasRow(row)), nil
 }
 
-// SetOrganizationStatus suspends or reactivates the organization with the alias.
-func (s *Store) SetOrganizationStatus(ctx context.Context, alias string, status domain.OrganizationStatus) (domain.Organization, error) {
-	row, err := s.queries.SetOrganizationStatus(ctx, gen.SetOrganizationStatusParams{Alias: alias, Status: string(status)})
+// SetOrganizationStatus suspends the organization with the alias for the reason, or reactivates it.
+func (s *Store) SetOrganizationStatus(ctx context.Context, alias string, status domain.OrganizationStatus, reason string) (domain.Organization, error) {
+	row, err := s.queries.SetOrganizationStatus(ctx, gen.SetOrganizationStatusParams{Alias: alias, Status: string(status), Reason: platformpg.OptionalString(reason)})
 	if err != nil {
 		return domain.Organization{}, fmt.Errorf("postgres: organization status: %w", platformpg.MapError(err))
 	}

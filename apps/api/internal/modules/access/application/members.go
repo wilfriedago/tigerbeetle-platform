@@ -19,6 +19,14 @@ type Invite struct {
 	LastName  string
 	// Role is the organization role the person gets; member when empty.
 	Role ledger.Role
+	// Ledgers are roles on single ledgers the person gets as well.
+	Ledgers []LedgerGrant
+}
+
+// LedgerGrant is a role on one ledger.
+type LedgerGrant struct {
+	Ledger string
+	Role   ledger.Role
 }
 
 // MemberStatus says where a person is on the way into the organization.
@@ -37,16 +45,28 @@ const (
 
 // MemberView is a person in the organization with the roles the platform gives them.
 type MemberView struct {
-	Subject string
-	Email   string
-	Name    string
-	Status  MemberStatus
+	Subject       string
+	Email         string
+	EmailVerified bool
+	Name          string
+	Status        MemberStatus
 	// Role is the organization role, "" when the person holds none.
 	Role ledger.Role
-	// Ledgers maps ledger names to the person's role on them.
-	Ledgers map[string]ledger.Role
+	// AddedAt and AddedBy say when and by whom the organization role was granted.
+	AddedAt time.Time
+	AddedBy string
+	// Ledgers are the person's roles on single ledgers, in ledger name order.
+	Ledgers []LedgerRoleView
 	// Invitation is set while Status is MemberInvited.
 	Invitation *InvitationView
+}
+
+// LedgerRoleView is a role on one ledger with when and by whom it was granted.
+type LedgerRoleView struct {
+	Ledger    string
+	Role      ledger.Role
+	GrantedAt time.Time
+	GrantedBy string
 }
 
 // InvitationView is a pending invitation.
@@ -67,9 +87,14 @@ type members struct {
 	clock  ledger.Clock
 }
 
-// List returns the members and the invited people, in name order. It needs org.members.
+// List returns the members and the invited people, in name order. Every member of the
+// organization may read it, as the roles page says: seeing who is in the organization needs no
+// permission beyond being in it (the tenant of the call).
 func (m *members) List(ctx context.Context) ([]MemberView, error) {
-	org, err := m.current(ctx, ledger.PermOrgMembers, "")
+	if _, ok := ledger.PrincipalFrom(ctx); !ok {
+		return nil, ledger.ErrUnauthenticated
+	}
+	org, err := m.organization(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -89,10 +114,10 @@ func (m *members) List(ctx context.Context) ([]MemberView, error) {
 	if err != nil {
 		return nil, fmt.Errorf("access: grants: %w", err)
 	}
-	bySubject := map[string][]domain.Grant{}
+	bySubject := map[string][]domain.HeldGrant{}
 	for _, g := range grants {
 		if g.Issuer == m.dir.Issuer() {
-			bySubject[g.Subject] = append(bySubject[g.Subject], g.Grant)
+			bySubject[g.Subject] = append(bySubject[g.Subject], g)
 		}
 	}
 
@@ -139,6 +164,11 @@ func (m *members) Invite(ctx context.Context, in Invite) (MemberView, error) {
 	in, err = validateInvite(in)
 	if err != nil {
 		return MemberView{}, err
+	}
+	for _, lg := range in.Ledgers {
+		if !isOneOf(lg.Role, ledger.LedgerRoles) {
+			return MemberView{}, invalid("ledger roles must be viewer, operator or admin")
+		}
 	}
 	if in.Role == ledger.RoleOwner {
 		if err := m.requireOwner(ctx); err != nil {
@@ -189,8 +219,16 @@ func (m *members) invite(ctx context.Context, org domain.Organization, in Invite
 			return MemberView{}, ledger.NewProblem(ledger.ErrAlreadyExists, "already-exists", in.Email+" is already a member")
 		}
 	}
-	if err := m.grants.PutGrant(ctx, domain.HeldGrant{Holder: holder, Grant: domain.Grant{Role: in.Role}}, by); err != nil {
-		return MemberView{}, fmt.Errorf("access: grant: %w", err)
+	granted := []domain.HeldGrant{{Holder: holder, Grant: domain.Grant{Role: in.Role}}}
+	for _, lg := range in.Ledgers {
+		granted = append(granted, domain.HeldGrant{Holder: holder, Grant: domain.Grant{Ledger: lg.Ledger, Role: lg.Role}})
+	}
+	now := m.clock.Now()
+	for i, g := range granted {
+		if err := m.grants.PutGrant(ctx, g, by); err != nil {
+			return MemberView{}, fmt.Errorf("access: grant: %w", err)
+		}
+		granted[i].GrantedAt, granted[i].GrantedByName = now, by.Name
 	}
 
 	status := MemberActive
@@ -211,7 +249,7 @@ func (m *members) invite(ctx context.Context, org domain.Organization, in Invite
 		}
 		status = MemberInvited
 	}
-	return memberView(person, status, []domain.Grant{{Role: in.Role}}), nil
+	return memberView(person, status, granted), nil
 }
 
 // SetRole changes a person's organization role. It needs org.members; granting or taking away
@@ -246,10 +284,21 @@ func (m *members) SetRole(ctx context.Context, subject string, role ledger.Role)
 }
 
 // Remove ends a person's membership and removes every role they hold in the organization; their
-// account and other memberships stay. Removing an owner needs the caller to be an owner, and the
-// last owner stays. A person still invited is removed by deleting the invitation.
+// account and other memberships stay. It needs org.members, except to leave: a person may always
+// remove themselves. Removing an owner needs the caller to be an owner, and the last owner stays.
+// A person still invited is removed by deleting the invitation.
 func (m *members) Remove(ctx context.Context, subject string) error {
-	org, err := m.current(ctx, ledger.PermOrgMembers, "")
+	p, _ := ledger.PrincipalFrom(ctx)
+	leaving := p.Issuer == m.dir.Issuer() && p.Subject == subject
+	var (
+		org domain.Organization
+		err error
+	)
+	if leaving {
+		org, err = m.organization(ctx)
+	} else {
+		org, err = m.current(ctx, ledger.PermOrgMembers, "")
+	}
 	if err != nil {
 		return err
 	}
@@ -492,14 +541,31 @@ func (m *members) keepAnOwner(ctx context.Context) error {
 	return nil
 }
 
-func memberView(p domain.Person, status MemberStatus, grants []domain.Grant) MemberView {
-	v := MemberView{Subject: p.Subject, Email: p.Email, Name: p.Name(), Status: status, Ledgers: map[string]ledger.Role{}}
+func memberView(p domain.Person, status MemberStatus, grants []domain.HeldGrant) MemberView {
+	v := MemberView{Subject: p.Subject, Email: p.Email, EmailVerified: p.EmailVerified, Name: p.Name(), Status: status, Ledgers: []LedgerRoleView{}}
 	for _, g := range grants {
 		if g.Ledger == "" {
-			v.Role = g.Role
+			v.Role, v.AddedAt, v.AddedBy = g.Role, g.GrantedAt, g.GrantedByName
 		} else {
-			v.Ledgers[g.Ledger] = g.Role
+			v.Ledgers = append(v.Ledgers, LedgerRoleView{Ledger: g.Ledger, Role: g.Role, GrantedAt: g.GrantedAt, GrantedBy: g.GrantedByName})
 		}
 	}
+	sort.Slice(v.Ledgers, func(i, j int) bool { return v.Ledgers[i].Ledger < v.Ledgers[j].Ledger })
 	return v
+}
+
+// statusOf says where a person is on the way into the organization.
+func (m *members) statusOf(ctx context.Context, keycloakID string, p domain.Person) (MemberStatus, error) {
+	if p.SetupPending {
+		return MemberSetupPending, nil
+	}
+	_, err := m.dir.Member(ctx, keycloakID, p.Subject)
+	switch {
+	case errors.Is(err, ledger.ErrNotFound):
+		return MemberInvited, nil
+	case err != nil:
+		return "", fmt.Errorf("access: membership: %w", err)
+	default:
+		return MemberActive, nil
+	}
 }

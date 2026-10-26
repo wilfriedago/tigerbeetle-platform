@@ -137,7 +137,7 @@ export const getListMembersUrl = () => {
 
 /**
  * The members of the organization and the people invited to it, in name order, with their
- * organization and ledger roles. Needs `org.members`.
+ * organization and ledger roles. Every member of the organization may read it.
  * @summary List members
  */
 export const listMembers = async ( options?: Parameters<typeof fetcher>[1]): Promise<MemberList> => {
@@ -204,7 +204,8 @@ export const getRemoveMemberUrl = (subject: string,) => {
 
 /**
  * Ends the membership and removes every role the person holds in the organization. Their
- * account and other organizations stay. Needs `org.members`; removing an owner needs an owner.
+ * account and other organizations stay. Needs `org.members`, except to leave: anyone may remove
+ * themselves. Removing an owner needs an owner, and the last owner stays.
  * @summary Remove a member
  */
 export const removeMember = async (subject: string, options?: Parameters<typeof fetcher>[1]): Promise<void> => {

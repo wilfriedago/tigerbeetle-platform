@@ -62,5 +62,7 @@ func organizationOf(row gen.OrganizationByAliasRow) domain.Organization {
 	if row.KeycloakID.Valid {
 		org.KeycloakID = row.KeycloakID.String()
 	}
+	org.CreatedByName = platformpg.StringOf(row.CreatedByName)
+	org.SuspensionReason = platformpg.StringOf(row.SuspensionReason)
 	return org
 }

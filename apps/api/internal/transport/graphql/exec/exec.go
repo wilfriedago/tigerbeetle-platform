@@ -247,8 +247,10 @@ type ComplexityRoot struct {
 	}
 
 	LedgerRole struct {
-		Ledger func(childComplexity int) int
-		Role   func(childComplexity int) int
+		GrantedAt func(childComplexity int) int
+		GrantedBy func(childComplexity int) int
+		Ledger    func(childComplexity int) int
+		Role      func(childComplexity int) int
 	}
 
 	LedgerStats struct {
@@ -260,13 +262,16 @@ type ComplexityRoot struct {
 	}
 
 	Member struct {
-		Email      func(childComplexity int) int
-		Invitation func(childComplexity int) int
-		Ledgers    func(childComplexity int) int
-		Name       func(childComplexity int) int
-		Role       func(childComplexity int) int
-		Status     func(childComplexity int) int
-		Subject    func(childComplexity int) int
+		AddedAt       func(childComplexity int) int
+		AddedBy       func(childComplexity int) int
+		Email         func(childComplexity int) int
+		EmailVerified func(childComplexity int) int
+		Invitation    func(childComplexity int) int
+		Ledgers       func(childComplexity int) int
+		Name          func(childComplexity int) int
+		Role          func(childComplexity int) int
+		Status        func(childComplexity int) int
+		Subject       func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -294,15 +299,30 @@ type ComplexityRoot struct {
 	}
 
 	Organization struct {
-		Alias     func(childComplexity int) int
-		CreatedAt func(childComplexity int) int
-		Name      func(childComplexity int) int
-		Status    func(childComplexity int) int
+		Alias            func(childComplexity int) int
+		CreatedAt        func(childComplexity int) int
+		CreatedBy        func(childComplexity int) int
+		ID               func(childComplexity int) int
+		KeycloakID       func(childComplexity int) int
+		Ledgers          func(childComplexity int) int
+		Members          func(childComplexity int) int
+		Name             func(childComplexity int) int
+		Owners           func(childComplexity int) int
+		Status           func(childComplexity int) int
+		SuspensionReason func(childComplexity int) int
 	}
 
 	OrganizationConnection struct {
 		Nodes    func(childComplexity int) int
 		PageInfo func(childComplexity int) int
+	}
+
+	Owner struct {
+		Email   func(childComplexity int) int
+		Name    func(childComplexity int) int
+		Since   func(childComplexity int) int
+		Status  func(childComplexity int) int
+		Subject func(childComplexity int) int
 	}
 
 	PageInfo struct {
@@ -1405,6 +1425,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.LedgerConnection.PageInfo(childComplexity), true
 
+	case "LedgerRole.grantedAt":
+		if e.ComplexityRoot.LedgerRole.GrantedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerRole.GrantedAt(childComplexity), true
+	case "LedgerRole.grantedBy":
+		if e.ComplexityRoot.LedgerRole.GrantedBy == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerRole.GrantedBy(childComplexity), true
 	case "LedgerRole.ledger":
 		if e.ComplexityRoot.LedgerRole.Ledger == nil {
 			break
@@ -1449,12 +1481,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.LedgerStats.Holds(childComplexity), true
 
+	case "Member.addedAt":
+		if e.ComplexityRoot.Member.AddedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Member.AddedAt(childComplexity), true
+	case "Member.addedBy":
+		if e.ComplexityRoot.Member.AddedBy == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Member.AddedBy(childComplexity), true
 	case "Member.email":
 		if e.ComplexityRoot.Member.Email == nil {
 			break
 		}
 
 		return e.ComplexityRoot.Member.Email(childComplexity), true
+	case "Member.emailVerified":
+		if e.ComplexityRoot.Member.EmailVerified == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Member.EmailVerified(childComplexity), true
 	case "Member.invitation":
 		if e.ComplexityRoot.Member.Invitation == nil {
 			break
@@ -1736,18 +1786,60 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Organization.CreatedAt(childComplexity), true
+	case "Organization.createdBy":
+		if e.ComplexityRoot.Organization.CreatedBy == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Organization.CreatedBy(childComplexity), true
+	case "Organization.id":
+		if e.ComplexityRoot.Organization.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Organization.ID(childComplexity), true
+	case "Organization.keycloakId":
+		if e.ComplexityRoot.Organization.KeycloakID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Organization.KeycloakID(childComplexity), true
+	case "Organization.ledgers":
+		if e.ComplexityRoot.Organization.Ledgers == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Organization.Ledgers(childComplexity), true
+	case "Organization.members":
+		if e.ComplexityRoot.Organization.Members == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Organization.Members(childComplexity), true
 	case "Organization.name":
 		if e.ComplexityRoot.Organization.Name == nil {
 			break
 		}
 
 		return e.ComplexityRoot.Organization.Name(childComplexity), true
+	case "Organization.owners":
+		if e.ComplexityRoot.Organization.Owners == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Organization.Owners(childComplexity), true
 	case "Organization.status":
 		if e.ComplexityRoot.Organization.Status == nil {
 			break
 		}
 
 		return e.ComplexityRoot.Organization.Status(childComplexity), true
+	case "Organization.suspensionReason":
+		if e.ComplexityRoot.Organization.SuspensionReason == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Organization.SuspensionReason(childComplexity), true
 
 	case "OrganizationConnection.nodes":
 		if e.ComplexityRoot.OrganizationConnection.Nodes == nil {
@@ -1761,6 +1853,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.OrganizationConnection.PageInfo(childComplexity), true
+
+	case "Owner.email":
+		if e.ComplexityRoot.Owner.Email == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Owner.Email(childComplexity), true
+	case "Owner.name":
+		if e.ComplexityRoot.Owner.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Owner.Name(childComplexity), true
+	case "Owner.since":
+		if e.ComplexityRoot.Owner.Since == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Owner.Since(childComplexity), true
+	case "Owner.status":
+		if e.ComplexityRoot.Owner.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Owner.Status(childComplexity), true
+	case "Owner.subject":
+		if e.ComplexityRoot.Owner.Subject == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Owner.Subject(childComplexity), true
 
 	case "PageInfo.endCursor":
 		if e.ComplexityRoot.PageInfo.EndCursor == nil {
@@ -2400,6 +2523,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			graphql.NewInputUnmarshaler("DeleteRuleInput", ec.unmarshalInputDeleteRuleInput),
 			graphql.NewInputUnmarshaler("InvitationInput", ec.unmarshalInputInvitationInput),
 			graphql.NewInputUnmarshaler("InviteMemberInput", ec.unmarshalInputInviteMemberInput),
+			graphql.NewInputUnmarshaler("LedgerRoleInput", ec.unmarshalInputLedgerRoleInput),
 			graphql.NewInputUnmarshaler("MemberInput", ec.unmarshalInputMemberInput),
 			graphql.NewInputUnmarshaler("NewMemberInput", ec.unmarshalInputNewMemberInput),
 			graphql.NewInputUnmarshaler("PostingInput", ec.unmarshalInputPostingInput),
@@ -2565,7 +2689,7 @@ type Query {
   ): OrganizationConnection!
   "An organization by alias, or null. Staff only."
   organization(alias: String!): Organization
-  "The members of the organization of the call and the people invited to it, in name order. Needs org.members."
+  "The members of the organization of the call and the people invited to it, in name order. Every member may read it."
   members: [Member!]!
   "A ledger by name, or null when no ledger has that name."
   ledger(name: String!): Ledger
@@ -2937,6 +3061,9 @@ type LedgerConnection {
 type LedgerRole {
   ledger: String!
   role: String!
+  grantedAt: DateTime!
+  "The name of who granted it, as it was then."
+  grantedBy: String
 }
 
 "The figures of the ledger overview."
@@ -2954,11 +3081,16 @@ type Member {
   "The identity provider's ID of the person: the subject of their tokens."
   subject: String!
   email: String!
+  emailVerified: Boolean!
   name: String!
   "setup-pending: the platform created the account and the person has not yet set a password. invited: the person has not yet accepted the invitation."
   status: String!
   "The organization role; absent when the person holds none."
   role: String
+  "When the organization role was granted."
+  addedAt: DateTime
+  "The name of who granted the organization role, as it was then."
+  addedBy: String
   ledgers: [LedgerRole!]!
   "Present while status is invited."
   invitation: Invitation
@@ -2966,17 +3098,41 @@ type Member {
 
 "A tenant of the platform, as staff see it (ADR-0027)."
 type Organization {
+  "The platform's ID of the organization."
+  id: String!
+  "Keycloak's ID of the organization."
+  keycloakId: String!
   "Unique and permanent: the value of X-Organization and the organization's URL segment."
   alias: String!
   name: String!
   "A suspended organization answers 403 organization-suspended to every call made in its name."
   status: String!
+  "Why staff suspended it, shown to its members."
+  suspensionReason: String
   createdAt: DateTime!
+  "The staff member who created it; absent for a seeded organization."
+  createdBy: String
+  "The owners, oldest first, and the first owner while on the way in."
+  owners: [Owner!]!
+  "The number of members in Keycloak."
+  members: Int!
+  "The number of ledgers."
+  ledgers: Int!
 }
 
 type OrganizationConnection {
   nodes: [Organization!]!
   pageInfo: PageInfo!
+}
+
+"An owner of an organization, or its first owner on the way in."
+type Owner {
+  subject: String!
+  email: String!
+  name: String!
+  status: String!
+  "When the owner role was granted."
+  since: DateTime!
 }
 
 type PageInfo {
@@ -3224,6 +3380,14 @@ input InviteMemberInput {
   person: NewMemberInput!
   "member, admin or owner; member when absent. Only an owner can invite an owner."
   role: String
+  "Roles on single ledgers, granted with the organization role."
+  ledgers: [LedgerRoleInput!]!
+}
+
+input LedgerRoleInput {
+  ledger: String!
+  "viewer, operator or admin."
+  role: String!
 }
 
 input MemberInput {
@@ -3305,6 +3469,8 @@ input UpdateOrganizationInput {
   name: String
   "active or suspended."
   status: String
+  "Why the organization is suspended, shown to its members."
+  reason: String
 }
 
 input VoidHoldInput {
@@ -3726,6 +3892,10 @@ func (ec *executionContext) childFields_LedgerRole(ctx context.Context, field gr
 		return ec.fieldContext_LedgerRole_ledger(ctx, field)
 	case "role":
 		return ec.fieldContext_LedgerRole_role(ctx, field)
+	case "grantedAt":
+		return ec.fieldContext_LedgerRole_grantedAt(ctx, field)
+	case "grantedBy":
+		return ec.fieldContext_LedgerRole_grantedBy(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type LedgerRole", field.Name)
 }
@@ -3752,12 +3922,18 @@ func (ec *executionContext) childFields_Member(ctx context.Context, field graphq
 		return ec.fieldContext_Member_subject(ctx, field)
 	case "email":
 		return ec.fieldContext_Member_email(ctx, field)
+	case "emailVerified":
+		return ec.fieldContext_Member_emailVerified(ctx, field)
 	case "name":
 		return ec.fieldContext_Member_name(ctx, field)
 	case "status":
 		return ec.fieldContext_Member_status(ctx, field)
 	case "role":
 		return ec.fieldContext_Member_role(ctx, field)
+	case "addedAt":
+		return ec.fieldContext_Member_addedAt(ctx, field)
+	case "addedBy":
+		return ec.fieldContext_Member_addedBy(ctx, field)
 	case "ledgers":
 		return ec.fieldContext_Member_ledgers(ctx, field)
 	case "invitation":
@@ -3768,14 +3944,28 @@ func (ec *executionContext) childFields_Member(ctx context.Context, field graphq
 
 func (ec *executionContext) childFields_Organization(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
+	case "id":
+		return ec.fieldContext_Organization_id(ctx, field)
+	case "keycloakId":
+		return ec.fieldContext_Organization_keycloakId(ctx, field)
 	case "alias":
 		return ec.fieldContext_Organization_alias(ctx, field)
 	case "name":
 		return ec.fieldContext_Organization_name(ctx, field)
 	case "status":
 		return ec.fieldContext_Organization_status(ctx, field)
+	case "suspensionReason":
+		return ec.fieldContext_Organization_suspensionReason(ctx, field)
 	case "createdAt":
 		return ec.fieldContext_Organization_createdAt(ctx, field)
+	case "createdBy":
+		return ec.fieldContext_Organization_createdBy(ctx, field)
+	case "owners":
+		return ec.fieldContext_Organization_owners(ctx, field)
+	case "members":
+		return ec.fieldContext_Organization_members(ctx, field)
+	case "ledgers":
+		return ec.fieldContext_Organization_ledgers(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Organization", field.Name)
 }
@@ -3788,6 +3978,22 @@ func (ec *executionContext) childFields_OrganizationConnection(ctx context.Conte
 		return ec.fieldContext_OrganizationConnection_pageInfo(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type OrganizationConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_Owner(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "subject":
+		return ec.fieldContext_Owner_subject(ctx, field)
+	case "email":
+		return ec.fieldContext_Owner_email(ctx, field)
+	case "name":
+		return ec.fieldContext_Owner_name(ctx, field)
+	case "status":
+		return ec.fieldContext_Owner_status(ctx, field)
+	case "since":
+		return ec.fieldContext_Owner_since(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 }
 
 func (ec *executionContext) childFields_PageInfo(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -8543,6 +8749,52 @@ func (ec *executionContext) fieldContext_LedgerRole_role(_ context.Context, fiel
 	return graphql.NewScalarFieldContext("LedgerRole", field, false, false, "String")
 }
 
+func (ec *executionContext) _LedgerRole_grantedAt(ctx context.Context, field graphql.CollectedField, obj *dto2.LedgerRole) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerRole_grantedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.GrantedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerRole_grantedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LedgerRole", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _LedgerRole_grantedBy(ctx context.Context, field graphql.CollectedField, obj *dto2.LedgerRole) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerRole_grantedBy(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.GrantedBy, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerRole_grantedBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LedgerRole", field, false, false, "String")
+}
+
 func (ec *executionContext) _LedgerStats_accounts(ctx context.Context, field graphql.CollectedField, obj *dto1.LedgerStats) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -8731,6 +8983,29 @@ func (ec *executionContext) fieldContext_Member_email(_ context.Context, field g
 	return graphql.NewScalarFieldContext("Member", field, false, false, "String")
 }
 
+func (ec *executionContext) _Member_emailVerified(ctx context.Context, field graphql.CollectedField, obj *dto2.Member) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Member_emailVerified(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.EmailVerified, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Member_emailVerified(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Member", field, false, false, "Boolean")
+}
+
 func (ec *executionContext) _Member_name(ctx context.Context, field graphql.CollectedField, obj *dto2.Member) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -8797,6 +9072,52 @@ func (ec *executionContext) _Member_role(ctx context.Context, field graphql.Coll
 	)
 }
 func (ec *executionContext) fieldContext_Member_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Member", field, false, false, "String")
+}
+
+func (ec *executionContext) _Member_addedAt(ctx context.Context, field graphql.CollectedField, obj *dto2.Member) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Member_addedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AddedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalODateTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Member_addedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Member", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _Member_addedBy(ctx context.Context, field graphql.CollectedField, obj *dto2.Member) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Member_addedBy(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AddedBy, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Member_addedBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Member", field, false, false, "String")
 }
 
@@ -9788,6 +10109,52 @@ func (ec *executionContext) fieldContext_Mutation_replaceAccountMetadata(ctx con
 	return fc, nil
 }
 
+func (ec *executionContext) _Organization_id(ctx context.Context, field graphql.CollectedField, obj *dto2.Organization) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Organization_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Organization", field, false, false, "String")
+}
+
+func (ec *executionContext) _Organization_keycloakId(ctx context.Context, field graphql.CollectedField, obj *dto2.Organization) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_keycloakId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.KeycloakID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Organization_keycloakId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Organization", field, false, false, "String")
+}
+
 func (ec *executionContext) _Organization_alias(ctx context.Context, field graphql.CollectedField, obj *dto2.Organization) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9857,6 +10224,29 @@ func (ec *executionContext) fieldContext_Organization_status(_ context.Context, 
 	return graphql.NewScalarFieldContext("Organization", field, false, false, "String")
 }
 
+func (ec *executionContext) _Organization_suspensionReason(ctx context.Context, field graphql.CollectedField, obj *dto2.Organization) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_suspensionReason(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SuspensionReason, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Organization_suspensionReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Organization", field, false, false, "String")
+}
+
 func (ec *executionContext) _Organization_createdAt(ctx context.Context, field graphql.CollectedField, obj *dto2.Organization) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9878,6 +10268,107 @@ func (ec *executionContext) _Organization_createdAt(ctx context.Context, field g
 }
 func (ec *executionContext) fieldContext_Organization_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Organization", field, false, false, "DateTime")
+}
+
+func (ec *executionContext) _Organization_createdBy(ctx context.Context, field graphql.CollectedField, obj *dto2.Organization) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_createdBy(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedBy, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Organization_createdBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Organization", field, false, false, "String")
+}
+
+func (ec *executionContext) _Organization_owners(ctx context.Context, field graphql.CollectedField, obj *dto2.Organization) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_owners(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Owners, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []dto2.Owner) graphql.Marshaler {
+			return ec.marshalNOwner2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐOwnerᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Organization_owners(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Organization",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Owner(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Organization_members(ctx context.Context, field graphql.CollectedField, obj *dto2.Organization) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_members(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Members, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Organization_members(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Organization", field, false, false, "Int")
+}
+
+func (ec *executionContext) _Organization_ledgers(ctx context.Context, field graphql.CollectedField, obj *dto2.Organization) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_ledgers(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Ledgers, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Organization_ledgers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Organization", field, false, false, "Int")
 }
 
 func (ec *executionContext) _OrganizationConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *graphql3.OrganizationConnection) (ret graphql.Marshaler) {
@@ -9942,6 +10433,121 @@ func (ec *executionContext) fieldContext_OrganizationConnection_pageInfo(_ conte
 		},
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _Owner_subject(ctx context.Context, field graphql.CollectedField, obj *dto2.Owner) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Owner_subject(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Subject, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Owner_subject(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Owner", field, false, false, "String")
+}
+
+func (ec *executionContext) _Owner_email(ctx context.Context, field graphql.CollectedField, obj *dto2.Owner) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Owner_email(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Email, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Owner_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Owner", field, false, false, "String")
+}
+
+func (ec *executionContext) _Owner_name(ctx context.Context, field graphql.CollectedField, obj *dto2.Owner) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Owner_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Owner_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Owner", field, false, false, "String")
+}
+
+func (ec *executionContext) _Owner_status(ctx context.Context, field graphql.CollectedField, obj *dto2.Owner) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Owner_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Owner_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Owner", field, false, false, "String")
+}
+
+func (ec *executionContext) _Owner_since(ctx context.Context, field graphql.CollectedField, obj *dto2.Owner) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Owner_since(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Since, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNDateTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Owner_since(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Owner", field, false, false, "DateTime")
 }
 
 func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graphql.CollectedField, obj *graphqlschema.PageInfo) (ret graphql.Marshaler) {
@@ -14058,7 +14664,7 @@ func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"person", "role"}
+	fieldsInOrder := [...]string{"person", "role", "ledgers"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14079,6 +14685,13 @@ func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context,
 				return it, err
 			}
 			it.Role = data
+		case "ledgers":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledgers"))
+			data, err := ec.unmarshalNLedgerRoleInput2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐLedgerRoleInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledgers = data
 		}
 	}
 	return it, nil
@@ -14093,6 +14706,55 @@ func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context,
 func UnmarshalInviteMemberInput(ctx context.Context, raw any) (graphql3.InviteMemberInput, error) {
 	var out graphql3.InviteMemberInput
 	err := graphql.UnmarshalNamedInputFromContext(ctx, "InviteMemberInput", raw, &out)
+	return out, err
+}
+
+func (ec *executionContext) unmarshalInputLedgerRoleInput(ctx context.Context, obj any) (graphql3.LedgerRoleInput, error) {
+	var it graphql3.LedgerRoleInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ledger", "role"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ledger":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ledger"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ledger = data
+		case "role":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Role = data
+		}
+	}
+	return it, nil
+}
+
+// UnmarshalLedgerRoleInput unmarshals raw into the LedgerRoleInput input type, using the
+// unmarshaler bound to ctx's request. Call it from a resolver to decode an input
+// object that was not passed as a field argument.
+//
+// ctx must come from a gqlgen request; outside one there is no unmarshaler to use
+// and the returned error says so.
+func UnmarshalLedgerRoleInput(ctx context.Context, raw any) (graphql3.LedgerRoleInput, error) {
+	var out graphql3.LedgerRoleInput
+	err := graphql.UnmarshalNamedInputFromContext(ctx, "LedgerRoleInput", raw, &out)
 	return out, err
 }
 
@@ -14727,7 +15389,7 @@ func (ec *executionContext) unmarshalInputUpdateOrganizationInput(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"alias", "name", "status"}
+	fieldsInOrder := [...]string{"alias", "name", "status", "reason"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14755,6 +15417,13 @@ func (ec *executionContext) unmarshalInputUpdateOrganizationInput(ctx context.Co
 				return it, err
 			}
 			it.Status = data
+		case "reason":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("reason"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Reason = data
 		}
 	}
 	return it, nil
@@ -16174,6 +16843,16 @@ func (ec *executionContext) _LedgerRole(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "grantedAt":
+			out.Values[i] = ec._LedgerRole_grantedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "grantedBy":
+			out.Values[i] = ec._LedgerRole_grantedBy(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -16265,6 +16944,11 @@ func (ec *executionContext) _Member(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "emailVerified":
+			out.Values[i] = ec._Member_emailVerified(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "name":
 			out.Values[i] = ec._Member_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16277,6 +16961,16 @@ func (ec *executionContext) _Member(ctx context.Context, sel ast.SelectionSet, o
 			}
 		case "role":
 			out.Values[i] = ec._Member_role(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "addedAt":
+			out.Values[i] = ec._Member_addedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "addedBy":
+			out.Values[i] = ec._Member_addedBy(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
@@ -16501,6 +17195,16 @@ func (ec *executionContext) _Organization(ctx context.Context, sel ast.Selection
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Organization")
+		case "id":
+			out.Values[i] = ec._Organization_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "keycloakId":
+			out.Values[i] = ec._Organization_keycloakId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "alias":
 			out.Values[i] = ec._Organization_alias(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16516,8 +17220,33 @@ func (ec *executionContext) _Organization(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "suspensionReason":
+			out.Values[i] = ec._Organization_suspensionReason(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "createdAt":
 			out.Values[i] = ec._Organization_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdBy":
+			out.Values[i] = ec._Organization_createdBy(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "owners":
+			out.Values[i] = ec._Organization_owners(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "members":
+			out.Values[i] = ec._Organization_members(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ledgers":
+			out.Values[i] = ec._Organization_ledgers(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -16556,6 +17285,59 @@ func (ec *executionContext) _OrganizationConnection(ctx context.Context, sel ast
 			}
 		case "pageInfo":
 			out.Values[i] = ec._OrganizationConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	if n := len(deferred.Defers); n > 0 {
+		atomic.AddInt32(&ec.Deferred, int32(min(n, math.MaxInt32)))
+		ec.ProcessDeferredGroup(deferred)
+	}
+
+	return out
+}
+
+var ownerImplementors = []string{"Owner"}
+
+func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, obj *dto2.Owner) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ownerImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := graphql.NewDeferredGroup(ctx)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Owner")
+		case "subject":
+			out.Values[i] = ec._Owner_subject(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "email":
+			out.Values[i] = ec._Owner_email(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._Owner_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._Owner_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "since":
+			out.Values[i] = ec._Owner_since(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -18438,6 +19220,25 @@ func (ec *executionContext) marshalNLedgerRole2ᚕgithubᚗcomᚋwilfriedagoᚋt
 	return ret
 }
 
+func (ec *executionContext) unmarshalNLedgerRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐLedgerRoleInput(ctx context.Context, v any) (graphql3.LedgerRoleInput, error) {
+	res, err := ec.unmarshalInputLedgerRoleInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNLedgerRoleInput2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐLedgerRoleInputᚄ(ctx context.Context, v any) ([]graphql3.LedgerRoleInput, error) {
+	vSlice := graphql.CoerceList(v)
+	var err error
+	res := make([]graphql3.LedgerRoleInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNLedgerRoleInput2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋgraphqlᚐLedgerRoleInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) marshalNLedgerStats2ᚖgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋbookkeepingᚋinterfacesᚋdtoᚐLedgerStats(ctx context.Context, sel ast.SelectionSet, v *dto1.LedgerStats) graphql.Marshaler {
 	if v == nil {
 		graphql.AddInvalidNullError(ctx, "LedgerStats!")
@@ -18542,6 +19343,26 @@ func (ec *executionContext) marshalNOrganizationConnection2ᚖgithubᚗcomᚋwil
 		return graphql.Null
 	}
 	return ec._OrganizationConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNOwner2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐOwner(ctx context.Context, sel ast.SelectionSet, v dto2.Owner) graphql.Marshaler {
+	return ec._Owner(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNOwner2ᚕgithubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐOwnerᚄ(ctx context.Context, sel ast.SelectionSet, v []dto2.Owner) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNOwner2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋmodulesᚋaccessᚋinterfacesᚋdtoᚐOwner(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋwilfriedagoᚋtigerbeetleᚑplatformᚋappsᚋapiᚋinternalᚋplatformᚋgraphqlschemaᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v graphqlschema.PageInfo) graphql.Marshaler {

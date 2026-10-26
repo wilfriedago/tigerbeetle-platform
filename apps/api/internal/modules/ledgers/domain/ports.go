@@ -23,6 +23,12 @@ type LedgerRepository interface {
 	ReplaceLedgerMetadata(ctx context.Context, name string, metadata map[string]string) error
 }
 
+// LedgerCounter counts the ledgers of organizations. It reads across organizations, for the
+// staff's organization pages, which show counts and never contents (ADR-0027).
+type LedgerCounter interface {
+	CountLedgers(ctx context.Context, organizations []ledger.ID) (map[ledger.ID]int, error)
+}
+
 // RuleRepository stores account rules. Built-in rules are not stored.
 type RuleRepository interface {
 	ListRules(ctx context.Context, ledgerName string) ([]ledger.Rule, error)

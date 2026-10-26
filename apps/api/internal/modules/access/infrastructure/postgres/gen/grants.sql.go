@@ -24,18 +24,61 @@ func (q *Queries) CountOwners(ctx context.Context, organizationID pgtype.UUID) (
 	return count, err
 }
 
+const grantsAcross = `-- name: GrantsAcross :many
+SELECT o.alias, g.ledger, g.role
+FROM grants g
+JOIN organizations o ON o.id = g.organization_id
+WHERE g.issuer = $1 AND g.subject = $2
+ORDER BY o.alias, g.ledger NULLS FIRST
+`
+
+type GrantsAcrossParams struct {
+	Issuer  string
+	Subject string
+}
+
+type GrantsAcrossRow struct {
+	Alias  string
+	Ledger *string
+	Role   string
+}
+
+// tenant-free: the caller's own roles in every organization, for their profile and the
+// organization chooser; a principal reads only its own grants.
+func (q *Queries) GrantsAcross(ctx context.Context, arg GrantsAcrossParams) ([]GrantsAcrossRow, error) {
+	rows, err := q.db.Query(ctx, grantsAcross, arg.Issuer, arg.Subject)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GrantsAcrossRow{}
+	for rows.Next() {
+		var i GrantsAcrossRow
+		if err := rows.Scan(&i.Alias, &i.Ledger, &i.Role); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const grantsIn = `-- name: GrantsIn :many
-SELECT issuer, subject, ledger, role
+SELECT issuer, subject, ledger, role, created_at, granted_by_name
 FROM grants
 WHERE organization_id = $1
 ORDER BY issuer, subject, ledger NULLS FIRST
 `
 
 type GrantsInRow struct {
-	Issuer  string
-	Subject string
-	Ledger  *string
-	Role    string
+	Issuer        string
+	Subject       string
+	Ledger        *string
+	Role          string
+	CreatedAt     pgtype.Timestamptz
+	GrantedByName *string
 }
 
 // Every grant in one organization, the organization role of each holder before its ledger roles.
@@ -53,6 +96,8 @@ func (q *Queries) GrantsIn(ctx context.Context, organizationID pgtype.UUID) ([]G
 			&i.Subject,
 			&i.Ledger,
 			&i.Role,
+			&i.CreatedAt,
+			&i.GrantedByName,
 		); err != nil {
 			return nil, err
 		}
@@ -103,12 +148,52 @@ func (q *Queries) GrantsOf(ctx context.Context, arg GrantsOfParams) ([]GrantsOfR
 	return items, nil
 }
 
+const ownersIn = `-- name: OwnersIn :many
+SELECT organization_id, issuer, subject, created_at
+FROM grants
+WHERE organization_id = ANY($1::uuid[]) AND ledger IS NULL AND role = 'owner'
+ORDER BY organization_id, created_at
+`
+
+type OwnersInRow struct {
+	OrganizationID pgtype.UUID
+	Issuer         string
+	Subject        string
+	CreatedAt      pgtype.Timestamptz
+}
+
+// The owners of several organizations, for the staff's list: names the organizations it reads.
+func (q *Queries) OwnersIn(ctx context.Context, organizationIds []pgtype.UUID) ([]OwnersInRow, error) {
+	rows, err := q.db.Query(ctx, ownersIn, organizationIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []OwnersInRow{}
+	for rows.Next() {
+		var i OwnersInRow
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.Issuer,
+			&i.Subject,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const putGrant = `-- name: PutGrant :exec
-INSERT INTO grants (organization_id, issuer, subject, ledger, role, granted_by_issuer, granted_by_subject)
-VALUES ($1, $2, $3, $5, $4, $6, $7)
+INSERT INTO grants (organization_id, issuer, subject, ledger, role, granted_by_issuer, granted_by_subject, granted_by_name)
+VALUES ($1, $2, $3, $5, $4, $6, $7, $8)
 ON CONFLICT (organization_id, issuer, subject, COALESCE(ledger, '')) DO UPDATE
 SET role = EXCLUDED.role, granted_by_issuer = EXCLUDED.granted_by_issuer,
-    granted_by_subject = EXCLUDED.granted_by_subject, created_at = now()
+    granted_by_subject = EXCLUDED.granted_by_subject, granted_by_name = EXCLUDED.granted_by_name, created_at = now()
 `
 
 type PutGrantParams struct {
@@ -119,6 +204,7 @@ type PutGrantParams struct {
 	Ledger           *string
 	GrantedByIssuer  *string
 	GrantedBySubject *string
+	GrantedByName    *string
 }
 
 // One role per holder in the organization and one per ledger: a new role replaces the old one.
@@ -131,6 +217,7 @@ func (q *Queries) PutGrant(ctx context.Context, arg PutGrantParams) error {
 		arg.Ledger,
 		arg.GrantedByIssuer,
 		arg.GrantedBySubject,
+		arg.GrantedByName,
 	)
 	return err
 }

@@ -45,6 +45,28 @@ func (g grantsBySubject) RevokeGrants(_ context.Context, h domain.Holder) error 
 	return nil
 }
 
+func (g grantsBySubject) OwnersIn(_ context.Context, orgs []ledger.ID) (map[ledger.ID][]domain.OwnerGrant, error) {
+	out := map[ledger.ID][]domain.OwnerGrant{}
+	for _, id := range orgs {
+		for subject, grants := range g {
+			for _, gr := range grants {
+				if gr.Ledger == "" && gr.Role == ledger.RoleOwner {
+					out[id] = append(out[id], domain.OwnerGrant{Holder: domain.Holder{Issuer: "kc", Subject: subject}})
+				}
+			}
+		}
+	}
+	return out, nil
+}
+
+func (g grantsBySubject) GrantsAcross(_ context.Context, _, subject string) ([]domain.AliasGrant, error) {
+	var out []domain.AliasGrant
+	for _, gr := range g[subject] {
+		out = append(out, domain.AliasGrant{Alias: "acme", Grant: gr})
+	}
+	return out, nil
+}
+
 func (g grantsBySubject) CountOwners(context.Context) (int, error) {
 	n := 0
 	for _, grants := range g {
@@ -80,9 +102,9 @@ func (f fakeOrgs) OrganizationsByAlias(_ context.Context, aliases []string) ([]d
 
 func (f fakeOrgs) ListOrganizations(_ context.Context, after string, limit int) ([]domain.Organization, error) {
 	var out []domain.Organization
-	for _, o := range f {
-		if o.Alias > after {
-			out = append(out, o)
+	for alias := range f {
+		if alias > after {
+			out = append(out, f[alias])
 		}
 	}
 	slices.SortFunc(out, func(a, b domain.Organization) int { return strings.Compare(a.Alias, b.Alias) })
@@ -119,12 +141,15 @@ func (f fakeOrgs) RenameOrganization(_ context.Context, alias, name string) (dom
 	return o, nil
 }
 
-func (f fakeOrgs) SetOrganizationStatus(_ context.Context, alias string, s domain.OrganizationStatus) (domain.Organization, error) {
+func (f fakeOrgs) SetOrganizationStatus(_ context.Context, alias string, s domain.OrganizationStatus, reason string) (domain.Organization, error) {
 	o, ok := f[alias]
 	if !ok {
 		return o, ledger.ErrNotFound
 	}
-	o.Status = s
+	o.Status, o.SuspensionReason = s, ""
+	if s == domain.OrganizationSuspended {
+		o.SuspensionReason = reason
+	}
 	f[alias] = o
 	return o, nil
 }

@@ -19,7 +19,9 @@ type Deps struct {
 	// Directory is Keycloak's admin API. Without it, organizations and members answer
 	// ledger.ErrUnavailable.
 	Directory domain.Directory
-	Clock     ledger.Clock
+	// Ledgers counts ledgers for the staff's pages; without it the counts are zero.
+	Ledgers LedgerCounter
+	Clock   ledger.Clock
 }
 
 // SessionDeps are what the console's sign-in needs; without them the module has no Sessions.
@@ -52,7 +54,7 @@ func New(d Deps) Application {
 		OrganizationQueries:   organizationQueries{orgs: d.Organizations},
 		ViewerQueries:         viewerQueries{orgs: d.Organizations, grants: d.Grants},
 		Authorizer:            authz,
-		PlatformOrganizations: platformOrganizations{authz: authz, orgs: d.Organizations, grants: d.Grants, members: m},
+		PlatformOrganizations: platformOrganizations{authz: authz, orgs: d.Organizations, grants: d.Grants, members: m, ledgers: d.Ledgers},
 		Members:               m,
 	}
 }
@@ -74,7 +76,11 @@ func (q organizationQueries) Tenant(ctx context.Context, alias string) (ledger.T
 		return ledger.Tenant{}, fmt.Errorf("access: organization %q: %w", alias, err)
 	}
 	if org.Status == domain.OrganizationSuspended {
-		return ledger.Tenant{}, ledger.NewProblem(ledger.ErrForbidden, "organization-suspended", "the organization "+alias+" is suspended")
+		detail := "the organization " + alias + " is suspended"
+		if org.SuspensionReason != "" {
+			detail += ": " + org.SuspensionReason
+		}
+		return ledger.Tenant{}, ledger.NewProblem(ledger.ErrForbidden, "organization-suspended", detail)
 	}
 	return org.Tenant(), nil
 }

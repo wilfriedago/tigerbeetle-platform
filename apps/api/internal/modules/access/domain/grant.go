@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"time"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 )
@@ -20,9 +21,24 @@ type Holder struct {
 	Subject string
 }
 
-// HeldGrant is a grant with its holder.
+// HeldGrant is a grant with its holder. GrantedAt and GrantedByName are read back, never written:
+// PutGrant records when and by whom itself.
 type HeldGrant struct {
 	Holder
+	Grant
+	GrantedAt     time.Time
+	GrantedByName string
+}
+
+// OwnerGrant is an owner of an organization.
+type OwnerGrant struct {
+	Holder
+	Since time.Time
+}
+
+// AliasGrant is a principal's role in the organization with the alias.
+type AliasGrant struct {
+	Alias string
 	Grant
 }
 
@@ -42,4 +58,9 @@ type GrantRepository interface {
 	RevokeGrants(ctx context.Context, h Holder) error
 	// CountOwners counts the owners of the organization.
 	CountOwners(ctx context.Context) (int, error)
+	// OwnersIn returns the owners of each organization, oldest first. It reads across
+	// organizations, for staff.
+	OwnersIn(ctx context.Context, organizations []ledger.ID) (map[ledger.ID][]OwnerGrant, error)
+	// GrantsAcross returns a principal's own roles in every organization.
+	GrantsAcross(ctx context.Context, issuer, subject string) ([]AliasGrant, error)
 }

@@ -11,6 +11,40 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countLedgers = `-- name: CountLedgers :many
+SELECT organization_id, count(*) AS ledgers
+FROM ledgers
+WHERE organization_id = ANY($1::uuid[])
+GROUP BY organization_id
+`
+
+type CountLedgersRow struct {
+	OrganizationID pgtype.UUID
+	Ledgers        int64
+}
+
+// How many ledgers each of several organizations has, for the staff's organization pages (counts
+// only, ADR-0027).
+func (q *Queries) CountLedgers(ctx context.Context, organizationIds []pgtype.UUID) ([]CountLedgersRow, error) {
+	rows, err := q.db.Query(ctx, countLedgers, organizationIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CountLedgersRow{}
+	for rows.Next() {
+		var i CountLedgersRow
+		if err := rows.Scan(&i.OrganizationID, &i.Ledgers); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createLedger = `-- name: CreateLedger :one
 INSERT INTO ledgers (organization_id, name, metadata, created_at)
 VALUES ($4, $1, $2, $3)

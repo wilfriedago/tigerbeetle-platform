@@ -58,6 +58,7 @@ type Grant struct {
 	GrantedByIssuer  *string
 	GrantedBySubject *string
 	CreatedAt        pgtype.Timestamptz
+	GrantedByName    *string
 }
 
 type Hold struct {
@@ -105,6 +106,8 @@ type Organization struct {
 	CreatedAt        pgtype.Timestamptz
 	CreatedByIssuer  *string
 	CreatedBySubject *string
+	CreatedByName    *string
+	SuspensionReason *string
 }
 
 type Session struct {

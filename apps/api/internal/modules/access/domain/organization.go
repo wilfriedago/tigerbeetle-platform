@@ -32,6 +32,11 @@ type Organization struct {
 	// KeycloakID is Keycloak's identifier of the organization, once known.
 	KeycloakID string
 	CreatedAt  time.Time
+	// CreatedByName is the name of the staff member who created it, as it was then; "" for a
+	// seeded organization.
+	CreatedByName string
+	// SuspensionReason is why staff suspended it, shown to its members.
+	SuspensionReason string
 }
 
 // NewOrganization is what staff give to create an organization.
@@ -63,6 +68,7 @@ type OrganizationRepository interface {
 	SetKeycloakID(ctx context.Context, alias, keycloakID string) error
 	// RenameOrganization changes the name of the organization with the alias.
 	RenameOrganization(ctx context.Context, alias, name string) (Organization, error)
-	// SetOrganizationStatus suspends or reactivates the organization with the alias.
-	SetOrganizationStatus(ctx context.Context, alias string, status OrganizationStatus) (Organization, error)
+	// SetOrganizationStatus suspends the organization with the alias for the reason, or
+	// reactivates it and drops the reason.
+	SetOrganizationStatus(ctx context.Context, alias string, status OrganizationStatus, reason string) (Organization, error)
 }

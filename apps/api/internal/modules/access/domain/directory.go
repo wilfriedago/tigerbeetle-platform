@@ -13,6 +13,8 @@ type Person struct {
 	Email     string
 	FirstName string
 	LastName  string
+	// EmailVerified is true once the person proved the email is theirs.
+	EmailVerified bool
 	// SetupPending is true while an account the platform created waits for its owner to verify
 	// the email and set a password (ADR-0027).
 	SetupPending bool
@@ -60,6 +62,8 @@ type Directory interface {
 
 	// PersonByEmail finds the person with the email.
 	PersonByEmail(ctx context.Context, email string) (Person, error)
+	// PersonBySubject finds the person with the ID.
+	PersonBySubject(ctx context.Context, subject string) (Person, error)
 	// CreatePerson creates an account with the email as username, its email not yet verified and
 	// the actions that verify it and set a password required.
 	CreatePerson(ctx context.Context, email, firstName, lastName string) (Person, error)
@@ -68,6 +72,8 @@ type Directory interface {
 
 	// Members lists the members of the organization.
 	Members(ctx context.Context, orgID string) ([]Person, error)
+	// MemberCount counts the members of the organization.
+	MemberCount(ctx context.Context, orgID string) (int, error)
 	// Member returns the person when they are a member of the organization.
 	Member(ctx context.Context, orgID, subject string) (Person, error)
 	// AddMember makes the person an unmanaged member, which removing never deletes.

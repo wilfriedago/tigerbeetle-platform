@@ -26,8 +26,10 @@ func (s *Store) GrantsIn(ctx context.Context) ([]domain.HeldGrant, error) {
 	out := make([]domain.HeldGrant, len(rows))
 	for i, r := range rows {
 		out[i] = domain.HeldGrant{
-			Holder: domain.Holder{Issuer: r.Issuer, Subject: r.Subject},
-			Grant:  domain.Grant{Ledger: platformpg.StringOf(r.Ledger), Role: ledger.Role(r.Role)},
+			Holder:        domain.Holder{Issuer: r.Issuer, Subject: r.Subject},
+			Grant:         domain.Grant{Ledger: platformpg.StringOf(r.Ledger), Role: ledger.Role(r.Role)},
+			GrantedAt:     platformpg.TimeOf(r.CreatedAt),
+			GrantedByName: platformpg.StringOf(r.GrantedByName),
 		}
 	}
 	return out, nil
@@ -48,6 +50,7 @@ func (s *Store) PutGrant(ctx context.Context, g domain.HeldGrant, by ledger.Prin
 		Ledger:           platformpg.OptionalString(g.Ledger),
 		GrantedByIssuer:  platformpg.OptionalString(by.Issuer),
 		GrantedBySubject: platformpg.OptionalString(by.Subject),
+		GrantedByName:    platformpg.OptionalString(by.Name),
 	})
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolation {
@@ -101,4 +104,33 @@ func (s *Store) CountOwners(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("postgres: count owners: %w", platformpg.MapError(err))
 	}
 	return int(n), nil
+}
+
+// OwnersIn returns the owners of each organization, oldest first.
+func (s *Store) OwnersIn(ctx context.Context, organizations []ledger.ID) (map[ledger.ID][]domain.OwnerGrant, error) {
+	rows, err := s.queries.OwnersIn(ctx, platformpg.UUIDsOf(organizations))
+	if err != nil {
+		return nil, fmt.Errorf("postgres: owners: %w", platformpg.MapError(err))
+	}
+	out := map[ledger.ID][]domain.OwnerGrant{}
+	for _, r := range rows {
+		id := platformpg.IDOf(r.OrganizationID)
+		out[id] = append(out[id], domain.OwnerGrant{
+			Holder: domain.Holder{Issuer: r.Issuer, Subject: r.Subject}, Since: platformpg.TimeOf(r.CreatedAt),
+		})
+	}
+	return out, nil
+}
+
+// GrantsAcross returns a principal's own roles in every organization.
+func (s *Store) GrantsAcross(ctx context.Context, issuer, subject string) ([]domain.AliasGrant, error) {
+	rows, err := s.queries.GrantsAcross(ctx, gen.GrantsAcrossParams{Issuer: issuer, Subject: subject})
+	if err != nil {
+		return nil, fmt.Errorf("postgres: grants across organizations: %w", platformpg.MapError(err))
+	}
+	out := make([]domain.AliasGrant, len(rows))
+	for i, r := range rows {
+		out[i] = domain.AliasGrant{Alias: r.Alias, Grant: domain.Grant{Ledger: platformpg.StringOf(r.Ledger), Role: ledger.Role(r.Role)}}
+	}
+	return out, nil
 }

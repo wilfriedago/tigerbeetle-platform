@@ -4,6 +4,9 @@
 import type { LedgerRoleRole } from './ledgerRoleRole';
 
 export interface LedgerRole {
+  grantedAt: string;
+  /** The name of who granted it, as it was then. */
+  grantedBy?: string;
   ledger: string;
   role: LedgerRoleRole;
 }

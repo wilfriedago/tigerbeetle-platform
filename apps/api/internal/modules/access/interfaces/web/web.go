@@ -128,6 +128,7 @@ func (h handlers) logout(w http.ResponseWriter, r *http.Request) {
 type sessionView struct {
 	Subject       string                 `json:"subject"`
 	Name          string                 `json:"name"`
+	Email         string                 `json:"email,omitempty"`
 	Staff         bool                   `json:"staff"`
 	Organizations []organizationView     `json:"organizations"`
 	Role          ledger.Role            `json:"role,omitempty"`
@@ -135,8 +136,10 @@ type sessionView struct {
 }
 
 type organizationView struct {
-	Alias string `json:"alias"`
-	Name  string `json:"name"`
+	Alias   string                 `json:"alias"`
+	Name    string                 `json:"name"`
+	Role    ledger.Role            `json:"role,omitempty"`
+	Ledgers map[string]ledger.Role `json:"ledgers"`
 }
 
 // session answers who is signed in. The middleware has already authenticated the request with
@@ -147,9 +150,9 @@ func (h handlers) session(w http.ResponseWriter, r *http.Request) {
 		restapi.WriteProblem(w, r, problem.From(err))
 		return
 	}
-	out := sessionView{Subject: v.Subject, Name: v.Name, Staff: v.Staff, Role: v.Role, Ledgers: v.Ledgers, Organizations: []organizationView{}}
+	out := sessionView{Subject: v.Subject, Name: v.Name, Email: v.Email, Staff: v.Staff, Role: v.Role, Ledgers: v.Ledgers, Organizations: []organizationView{}}
 	for _, o := range v.Organizations {
-		out.Organizations = append(out.Organizations, organizationView{Alias: o.Alias, Name: o.Name})
+		out.Organizations = append(out.Organizations, organizationView{Alias: o.Alias, Name: o.Name, Role: o.Role, Ledgers: o.Ledgers})
 	}
 	writeJSON(w, out)
 }

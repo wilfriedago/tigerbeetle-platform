@@ -21,3 +21,11 @@ LIMIT sqlc.arg(page_size);
 UPDATE ledgers
 SET metadata = $2
 WHERE organization_id = $3 AND name = $1;
+
+-- name: CountLedgers :many
+-- How many ledgers each of several organizations has, for the staff's organization pages (counts
+-- only, ADR-0027).
+SELECT organization_id, count(*) AS ledgers
+FROM ledgers
+WHERE organization_id = ANY(sqlc.arg(organization_ids)::uuid[])
+GROUP BY organization_id;

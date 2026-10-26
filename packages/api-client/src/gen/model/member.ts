@@ -7,7 +7,12 @@ import type { MemberRole } from './memberRole';
 import type { MemberStatus } from './memberStatus';
 
 export interface Member {
+  /** When the organization role was granted. */
+  addedAt?: string;
+  /** The name of who granted the organization role, as it was then. */
+  addedBy?: string;
   email: string;
+  emailVerified: boolean;
   /** Present while status is invited. */
   invitation?: Invitation;
   ledgers: LedgerRole[];

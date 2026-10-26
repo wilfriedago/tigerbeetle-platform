@@ -60,12 +60,13 @@ func TestOrganizationsAndMembersEndToEnd(t *testing.T) {
 	})
 
 	t.Run("the owner invites and sets roles", func(t *testing.T) {
-		code, raw := send(ivy, "initech", http.MethodPost, "/v1/members", `{"email":"bob@example.com","role":"admin"}`)
-		if code != http.StatusCreated || !strings.Contains(raw, `"status":"invited"`) {
-			t.Fatalf("invite bob: %d %s", code, raw)
-		}
 		if code, raw := send(ivy, "initech", http.MethodPost, "/v1/ledgers/payments", "{}"); code != http.StatusCreated {
 			t.Fatalf("create payments: %d %s", code, raw)
+		}
+		code, raw := send(ivy, "initech", http.MethodPost, "/v1/members",
+			`{"email":"bob@example.com","role":"admin","ledgers":[{"ledger":"payments","role":"viewer"}]}`)
+		if code != http.StatusCreated || !strings.Contains(raw, `"status":"invited"`) || !strings.Contains(raw, `"role":"viewer"`) {
+			t.Fatalf("invite bob: %d %s", code, raw)
 		}
 		if code, raw := send(ivy, "initech", http.MethodPut, "/v1/ledgers/payments/members/bob", `{"role":"operator"}`); code != http.StatusNoContent {
 			t.Fatalf("bob operates payments: %d %s", code, raw)
@@ -108,8 +109,12 @@ func TestOrganizationsAndMembersEndToEnd(t *testing.T) {
 		bob := "Bearer " + h.auth.iss.Person(t, "bob", "initech")
 		h.auth.grant(t, h.cfgPostgresURL, "dee", "initech", "", "member")
 		dee := "Bearer " + h.auth.iss.Person(t, "dee", "initech")
-		if code, raw := send(dee, "initech", http.MethodGet, "/v1/members", ""); code != http.StatusForbidden {
+		// Every member sees who is in the organization, but only org.members changes it.
+		if code, raw := send(dee, "initech", http.MethodGet, "/v1/members", ""); code != http.StatusOK {
 			t.Fatalf("a member lists members: %d %s", code, raw)
+		}
+		if code, raw := send(dee, "initech", http.MethodPost, "/v1/members", `{"email":"x@example.com"}`); code != http.StatusForbidden {
+			t.Fatalf("a member invites: %d %s", code, raw)
 		}
 		// An admin may not make an owner.
 		if code, raw := send(bob, "initech", http.MethodPut, "/v1/members/dee/role", `{"role":"owner"}`); code != http.StatusForbidden {
@@ -118,12 +123,12 @@ func TestOrganizationsAndMembersEndToEnd(t *testing.T) {
 	})
 
 	t.Run("a suspended organization answers 403", func(t *testing.T) {
-		code, raw := send(staff, "", http.MethodPatch, "/v1/organizations/initech", `{"status":"suspended"}`)
-		if code != http.StatusOK || !strings.Contains(raw, `"status":"suspended"`) {
+		code, raw := send(staff, "", http.MethodPatch, "/v1/organizations/initech", `{"status":"suspended","reason":"Contract ended"}`)
+		if code != http.StatusOK || !strings.Contains(raw, `"status":"suspended"`) || !strings.Contains(raw, `"ledgers":1`) {
 			t.Fatalf("suspend: %d %s", code, raw)
 		}
 		code, raw = send(ivy, "initech", http.MethodGet, "/v1/members", "")
-		if code != http.StatusForbidden || !strings.Contains(raw, problem.TypeOf("organization-suspended")) {
+		if code != http.StatusForbidden || !strings.Contains(raw, problem.TypeOf("organization-suspended")) || !strings.Contains(raw, "Contract ended") {
 			t.Fatalf("a call in a suspended organization: %d %s", code, raw)
 		}
 		code, raw = send(staff, "", http.MethodPost, "/graphql",

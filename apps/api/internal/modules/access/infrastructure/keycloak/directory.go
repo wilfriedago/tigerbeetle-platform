@@ -49,6 +49,17 @@ func (d *Directory) PersonByEmail(ctx context.Context, email string) (domain.Per
 	return person(u), err
 }
 
+// PersonBySubject finds the person with the ID.
+func (d *Directory) PersonBySubject(ctx context.Context, subject string) (domain.Person, error) {
+	u, err := d.admin.UserByID(ctx, subject)
+	return person(u), err
+}
+
+// MemberCount counts the members of the organization.
+func (d *Directory) MemberCount(ctx context.Context, orgID string) (int, error) {
+	return d.admin.MemberCount(ctx, orgID)
+}
+
 // CreatePerson creates an account that waits for its setup.
 func (d *Directory) CreatePerson(ctx context.Context, email, firstName, lastName string) (domain.Person, error) {
 	u, err := d.admin.CreateUser(ctx, email, firstName, lastName)
@@ -123,6 +134,6 @@ func (d *Directory) DeleteInvitation(ctx context.Context, orgID, invitationID st
 func person(u platformkc.User) domain.Person {
 	return domain.Person{
 		Subject: u.ID, Email: u.Email, FirstName: u.FirstName, LastName: u.LastName,
-		SetupPending: u.SetupPending(),
+		EmailVerified: u.EmailVerified, SetupPending: u.SetupPending(),
 	}
 }

@@ -32,7 +32,7 @@ func startStore(t *testing.T) (*Store, *platformpg.DB) {
 	return NewStore(db), db
 }
 
-var staff = ledger.Principal{Issuer: "kc", Subject: "sam", Kind: ledger.KindPerson, Staff: true}
+var staff = ledger.Principal{Issuer: "kc", Subject: "sam", Name: "Sam", Kind: ledger.KindPerson, Staff: true}
 
 func TestOrganizationsIntegration(t *testing.T) {
 	store, _ := startStore(t)
@@ -66,9 +66,16 @@ func TestOrganizationsIntegration(t *testing.T) {
 	if err != nil || renamed.Name != "Initech Corp" {
 		t.Fatalf("RenameOrganization = %+v, %v", renamed, err)
 	}
-	suspended, err := store.SetOrganizationStatus(ctx, "initech", domain.OrganizationSuspended)
-	if err != nil || suspended.Status != domain.OrganizationSuspended {
+	suspended, err := store.SetOrganizationStatus(ctx, "initech", domain.OrganizationSuspended, "unpaid")
+	if err != nil || suspended.Status != domain.OrganizationSuspended || suspended.SuspensionReason != "unpaid" {
 		t.Fatalf("SetOrganizationStatus = %+v, %v", suspended, err)
+	}
+	if first.CreatedByName != "Sam" {
+		t.Errorf("created by %q, want Sam", first.CreatedByName)
+	}
+	active, err := store.SetOrganizationStatus(ctx, "initech", domain.OrganizationActive, "ignored")
+	if err != nil || active.SuspensionReason != "" {
+		t.Fatalf("reactivate = %+v, %v; want no reason", active, err)
 	}
 	if _, err := store.RenameOrganization(ctx, "nope", "Nope"); !errors.Is(err, ledger.ErrNotFound) {
 		t.Fatalf("RenameOrganization(nope) = %v, want ErrNotFound", err)
@@ -131,12 +138,25 @@ func TestGrantsIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []domain.HeldGrant{
-		{Holder: ada, Grant: domain.Grant{Role: ledger.RoleOwner}},
-		{Holder: bob, Grant: domain.Grant{Role: ledger.RoleMember}},
-		{Holder: bob, Grant: domain.Grant{Ledger: "payments", Role: ledger.RoleOperator}},
+		{Holder: ada, Grant: domain.Grant{Role: ledger.RoleOwner}, GrantedByName: "Sam"},
+		{Holder: bob, Grant: domain.Grant{Role: ledger.RoleMember}, GrantedByName: "Sam"},
+		{Holder: bob, Grant: domain.Grant{Ledger: "payments", Role: ledger.RoleOperator}, GrantedByName: "Sam"},
 	}
-	if diff := cmp.Diff(want, got, cmpopts.EquateEmpty()); diff != "" {
+	if diff := cmp.Diff(want, got, cmpopts.EquateEmpty(), cmpopts.IgnoreFields(domain.HeldGrant{}, "GrantedAt")); diff != "" {
 		t.Errorf("GrantsIn (-want +got):\n%s", diff)
+	}
+	for _, g := range got {
+		if g.GrantedAt.IsZero() || g.GrantedByName != "Sam" {
+			t.Errorf("grant %+v: want when and by whom", g)
+		}
+	}
+	owners, err := store.OwnersIn(ctx, []ledger.ID{ledger.DefaultOrganizationID, {15: 2}})
+	if err != nil || len(owners[ledger.DefaultOrganizationID]) != 1 || len(owners[ledger.ID{15: 2}]) != 1 {
+		t.Errorf("OwnersIn = %+v, %v; want ada in default, bob in globex", owners, err)
+	}
+	across, err := store.GrantsAcross(ctx, "kc", "bob")
+	if err != nil || len(across) != 3 || across[0].Alias != "default" || across[len(across)-1].Alias != "globex" {
+		t.Errorf("GrantsAcross(bob) = %+v, %v", across, err)
 	}
 	if n, err := store.CountOwners(acme); err != nil || n != 1 {
 		t.Errorf("CountOwners = %d, %v; want 1", n, err)

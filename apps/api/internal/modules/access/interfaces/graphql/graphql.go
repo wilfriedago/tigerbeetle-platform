@@ -21,11 +21,12 @@ func Register(s *graphqlschema.Schema) {
 	graphqlschema.Describe[dto.Member](s, "A person of the organization with the roles the platform gives them (ADR-0028).")
 	graphqlschema.Describe[dto.LedgerRole](s, "A role on one ledger.")
 	graphqlschema.Describe[dto.Invitation](s, "An invitation the person has not yet accepted.")
+	graphqlschema.Describe[dto.Owner](s, "An owner of an organization, or its first owner on the way in.")
 
 	graphqlschema.Query[OrganizationsArgs, OrganizationConnection](s, "organizations", "Every organization in alias order. Staff only.")
 	graphqlschema.Query[OrganizationArgs, *dto.Organization](s, "organization", "An organization by alias, or null. Staff only.")
 	graphqlschema.Query[graphqlschema.NoArgs, []dto.Member](s, "members",
-		"The members of the organization of the call and the people invited to it, in name order. Needs org.members.")
+		"The members of the organization of the call and the people invited to it, in name order. Every member may read it.")
 
 	graphqlschema.Mutation[CreateOrganizationArgs, dto.Organization](s, "createOrganization",
 		"Creates an organization and invites its first owner. Retrying with the same alias finishes an interrupted creation. Staff only.")
@@ -88,6 +89,7 @@ type UpdateOrganizationInput struct {
 	Alias  string  `json:"alias"`
 	Name   *string `json:"name"`
 	Status *string `json:"status" doc:"active or suspended."`
+	Reason *string `json:"reason" doc:"Why the organization is suspended, shown to its members."`
 }
 
 // UpdateOrganizationArgs wraps the input.
@@ -97,8 +99,15 @@ type UpdateOrganizationArgs struct {
 
 // InviteMemberInput is the input of inviteMember.
 type InviteMemberInput struct {
-	Person NewMemberInput `json:"person"`
-	Role   *string        `json:"role" doc:"member, admin or owner; member when absent. Only an owner can invite an owner."`
+	Person  NewMemberInput    `json:"person"`
+	Role    *string           `json:"role" doc:"member, admin or owner; member when absent. Only an owner can invite an owner."`
+	Ledgers []LedgerRoleInput `json:"ledgers" doc:"Roles on single ledgers, granted with the organization role."`
+}
+
+// LedgerRoleInput names a role on one ledger.
+type LedgerRoleInput struct {
+	Ledger string `json:"ledger"`
+	Role   string `json:"role" doc:"viewer, operator or admin."`
 }
 
 // InviteMemberArgs wraps the input.
@@ -178,8 +187,8 @@ func (q *Queries) Organizations(ctx context.Context, first *int, after *string) 
 		return nil, err
 	}
 	out := &OrganizationConnection{Nodes: make([]dto.Organization, len(views)), PageInfo: graphqlschema.PageInfoOf(next)}
-	for i, v := range views {
-		out.Nodes[i] = dto.OrganizationFrom(v)
+	for i := range views {
+		out.Nodes[i] = dto.OrganizationFrom(views[i])
 	}
 	return out, nil
 }
@@ -204,8 +213,8 @@ func (q *Queries) Members(ctx context.Context) ([]dto.Member, error) {
 		return nil, err
 	}
 	out := make([]dto.Member, len(views))
-	for i, v := range views {
-		out[i] = dto.MemberFrom(v)
+	for i := range views {
+		out[i] = dto.MemberFrom(views[i])
 	}
 	return out, nil
 }
@@ -224,7 +233,7 @@ func NewMutations(app application.Application) *Mutations {
 // CreateOrganization resolves Mutation.createOrganization.
 func (m *Mutations) CreateOrganization(ctx context.Context, input CreateOrganizationInput) (*dto.Organization, error) {
 	v, err := m.orgs.Create(ctx, application.CreateOrganization{
-		Alias: input.Alias, Name: input.Name, Owner: dto.InviteFrom(input.Owner.dto(), ""),
+		Alias: input.Alias, Name: input.Name, Owner: dto.InviteFrom(input.Owner.dto(), "", nil),
 	})
 	if err != nil {
 		return nil, err
@@ -235,7 +244,7 @@ func (m *Mutations) CreateOrganization(ctx context.Context, input CreateOrganiza
 
 // UpdateOrganization resolves Mutation.updateOrganization.
 func (m *Mutations) UpdateOrganization(ctx context.Context, input UpdateOrganizationInput) (*dto.Organization, error) {
-	v, err := restv1.UpdateOrganization(ctx, m.orgs, input.Alias, dto.UpdateOrganizationRequest{Name: input.Name, Status: input.Status})
+	v, err := restv1.UpdateOrganization(ctx, m.orgs, input.Alias, dto.UpdateOrganizationRequest{Name: input.Name, Status: input.Status, Reason: input.Reason})
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +254,11 @@ func (m *Mutations) UpdateOrganization(ctx context.Context, input UpdateOrganiza
 
 // InviteMember resolves Mutation.inviteMember.
 func (m *Mutations) InviteMember(ctx context.Context, input InviteMemberInput) (*dto.Member, error) {
-	v, err := m.members.Invite(ctx, dto.InviteFrom(input.Person.dto(), deref(input.Role)))
+	ledgers := make([]dto.LedgerRoleSpec, len(input.Ledgers))
+	for i, l := range input.Ledgers {
+		ledgers[i] = dto.LedgerRoleSpec{Ledger: l.Ledger, Role: l.Role}
+	}
+	v, err := m.members.Invite(ctx, dto.InviteFrom(input.Person.dto(), deref(input.Role), ledgers))
 	if err != nil {
 		return nil, err
 	}

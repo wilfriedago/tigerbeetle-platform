@@ -220,6 +220,24 @@ func (d *Admin) Members(ctx context.Context, orgID string) ([]User, error) {
 	}
 }
 
+// MemberCount counts the members of the organization.
+func (d *Admin) MemberCount(ctx context.Context, orgID string) (int, error) {
+	var n int
+	if err := d.do(ctx, http.MethodGet, "/organizations/"+url.PathEscape(orgID)+"/members/count", nil, &n); err != nil {
+		return 0, fmt.Errorf("keycloak: member count: %w", err)
+	}
+	return n, nil
+}
+
+// UserByID returns the user with the ID.
+func (d *Admin) UserByID(ctx context.Context, id string) (User, error) {
+	var u User
+	if err := d.do(ctx, http.MethodGet, "/users/"+url.PathEscape(id), nil, &u); err != nil {
+		return User{}, fmt.Errorf("keycloak: user: %w", err)
+	}
+	return u, nil
+}
+
 // Member returns the user when they are a member of the organization, ErrNotFound otherwise.
 func (d *Admin) Member(ctx context.Context, orgID, userID string) (User, error) {
 	var u User

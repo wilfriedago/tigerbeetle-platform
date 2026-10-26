@@ -12,7 +12,7 @@ import (
 )
 
 const listOrganizations = `-- name: ListOrganizations :many
-SELECT id, alias, keycloak_id, name, status, created_at
+SELECT id, alias, keycloak_id, name, status, created_at, created_by_name, suspension_reason
 FROM organizations
 WHERE alias > $1
 ORDER BY alias
@@ -25,12 +25,14 @@ type ListOrganizationsParams struct {
 }
 
 type ListOrganizationsRow struct {
-	ID         pgtype.UUID
-	Alias      string
-	KeycloakID pgtype.UUID
-	Name       string
-	Status     string
-	CreatedAt  pgtype.Timestamptz
+	ID               pgtype.UUID
+	Alias            string
+	KeycloakID       pgtype.UUID
+	Name             string
+	Status           string
+	CreatedAt        pgtype.Timestamptz
+	CreatedByName    *string
+	SuspensionReason *string
 }
 
 func (q *Queries) ListOrganizations(ctx context.Context, arg ListOrganizationsParams) ([]ListOrganizationsRow, error) {
@@ -49,6 +51,8 @@ func (q *Queries) ListOrganizations(ctx context.Context, arg ListOrganizationsPa
 			&i.Name,
 			&i.Status,
 			&i.CreatedAt,
+			&i.CreatedByName,
+			&i.SuspensionReason,
 		); err != nil {
 			return nil, err
 		}
@@ -62,21 +66,24 @@ func (q *Queries) ListOrganizations(ctx context.Context, arg ListOrganizationsPa
 
 const organizationByAlias = `-- name: OrganizationByAlias :one
 
-SELECT id, alias, keycloak_id, name, status, created_at
+SELECT id, alias, keycloak_id, name, status, created_at, created_by_name, suspension_reason
 FROM organizations
 WHERE alias = $1
 `
 
 type OrganizationByAliasRow struct {
-	ID         pgtype.UUID
-	Alias      string
-	KeycloakID pgtype.UUID
-	Name       string
-	Status     string
-	CreatedAt  pgtype.Timestamptz
+	ID               pgtype.UUID
+	Alias            string
+	KeycloakID       pgtype.UUID
+	Name             string
+	Status           string
+	CreatedAt        pgtype.Timestamptz
+	CreatedByName    *string
+	SuspensionReason *string
 }
 
-// organizations is the access module's own table and the tenant itself, not a tenant table.
+// organizations is the access module's own table and the tenant itself, not a tenant table. Every
+// query selects the same columns, so sqlc's row types share one shape.
 func (q *Queries) OrganizationByAlias(ctx context.Context, alias string) (OrganizationByAliasRow, error) {
 	row := q.db.QueryRow(ctx, organizationByAlias, alias)
 	var i OrganizationByAliasRow
@@ -87,24 +94,28 @@ func (q *Queries) OrganizationByAlias(ctx context.Context, alias string) (Organi
 		&i.Name,
 		&i.Status,
 		&i.CreatedAt,
+		&i.CreatedByName,
+		&i.SuspensionReason,
 	)
 	return i, err
 }
 
 const organizationsByAlias = `-- name: OrganizationsByAlias :many
-SELECT id, alias, keycloak_id, name, status, created_at
+SELECT id, alias, keycloak_id, name, status, created_at, created_by_name, suspension_reason
 FROM organizations
 WHERE alias = ANY($1::text[])
 ORDER BY name
 `
 
 type OrganizationsByAliasRow struct {
-	ID         pgtype.UUID
-	Alias      string
-	KeycloakID pgtype.UUID
-	Name       string
-	Status     string
-	CreatedAt  pgtype.Timestamptz
+	ID               pgtype.UUID
+	Alias            string
+	KeycloakID       pgtype.UUID
+	Name             string
+	Status           string
+	CreatedAt        pgtype.Timestamptz
+	CreatedByName    *string
+	SuspensionReason *string
 }
 
 func (q *Queries) OrganizationsByAlias(ctx context.Context, aliases []string) ([]OrganizationsByAliasRow, error) {
@@ -123,6 +134,8 @@ func (q *Queries) OrganizationsByAlias(ctx context.Context, aliases []string) ([
 			&i.Name,
 			&i.Status,
 			&i.CreatedAt,
+			&i.CreatedByName,
+			&i.SuspensionReason,
 		); err != nil {
 			return nil, err
 		}
@@ -137,7 +150,7 @@ func (q *Queries) OrganizationsByAlias(ctx context.Context, aliases []string) ([
 const renameOrganization = `-- name: RenameOrganization :one
 UPDATE organizations SET name = $1
 WHERE alias = $2
-RETURNING id, alias, keycloak_id, name, status, created_at
+RETURNING id, alias, keycloak_id, name, status, created_at, created_by_name, suspension_reason
 `
 
 type RenameOrganizationParams struct {
@@ -146,12 +159,14 @@ type RenameOrganizationParams struct {
 }
 
 type RenameOrganizationRow struct {
-	ID         pgtype.UUID
-	Alias      string
-	KeycloakID pgtype.UUID
-	Name       string
-	Status     string
-	CreatedAt  pgtype.Timestamptz
+	ID               pgtype.UUID
+	Alias            string
+	KeycloakID       pgtype.UUID
+	Name             string
+	Status           string
+	CreatedAt        pgtype.Timestamptz
+	CreatedByName    *string
+	SuspensionReason *string
 }
 
 func (q *Queries) RenameOrganization(ctx context.Context, arg RenameOrganizationParams) (RenameOrganizationRow, error) {
@@ -164,15 +179,18 @@ func (q *Queries) RenameOrganization(ctx context.Context, arg RenameOrganization
 		&i.Name,
 		&i.Status,
 		&i.CreatedAt,
+		&i.CreatedByName,
+		&i.SuspensionReason,
 	)
 	return i, err
 }
 
 const saveOrganization = `-- name: SaveOrganization :one
-INSERT INTO organizations (id, alias, keycloak_id, name, created_by_issuer, created_by_subject)
-VALUES (uuidv7(), $1, $2, $3, $4, $5)
+INSERT INTO organizations (id, alias, keycloak_id, name, created_by_issuer, created_by_subject, created_by_name)
+VALUES (uuidv7(), $1, $2, $3,
+        $4, $5, $6)
 ON CONFLICT (alias) DO UPDATE SET keycloak_id = COALESCE(organizations.keycloak_id, EXCLUDED.keycloak_id)
-RETURNING id, alias, keycloak_id, name, status, created_at
+RETURNING id, alias, keycloak_id, name, status, created_at, created_by_name, suspension_reason
 `
 
 type SaveOrganizationParams struct {
@@ -181,15 +199,18 @@ type SaveOrganizationParams struct {
 	Name             string
 	CreatedByIssuer  *string
 	CreatedBySubject *string
+	CreatedByName    *string
 }
 
 type SaveOrganizationRow struct {
-	ID         pgtype.UUID
-	Alias      string
-	KeycloakID pgtype.UUID
-	Name       string
-	Status     string
-	CreatedAt  pgtype.Timestamptz
+	ID               pgtype.UUID
+	Alias            string
+	KeycloakID       pgtype.UUID
+	Name             string
+	Status           string
+	CreatedAt        pgtype.Timestamptz
+	CreatedByName    *string
+	SuspensionReason *string
 }
 
 // Creates the organization, or completes the one with the same alias: a retried creation fills in
@@ -201,6 +222,7 @@ func (q *Queries) SaveOrganization(ctx context.Context, arg SaveOrganizationPara
 		arg.Name,
 		arg.CreatedByIssuer,
 		arg.CreatedBySubject,
+		arg.CreatedByName,
 	)
 	var i SaveOrganizationRow
 	err := row.Scan(
@@ -210,6 +232,8 @@ func (q *Queries) SaveOrganization(ctx context.Context, arg SaveOrganizationPara
 		&i.Name,
 		&i.Status,
 		&i.CreatedAt,
+		&i.CreatedByName,
+		&i.SuspensionReason,
 	)
 	return i, err
 }
@@ -230,27 +254,33 @@ func (q *Queries) SetOrganizationKeycloakID(ctx context.Context, arg SetOrganiza
 }
 
 const setOrganizationStatus = `-- name: SetOrganizationStatus :one
-UPDATE organizations SET status = $1
-WHERE alias = $2
-RETURNING id, alias, keycloak_id, name, status, created_at
+UPDATE organizations
+SET status = $1,
+    suspension_reason = CASE WHEN $1 = 'suspended' THEN $2 END
+WHERE alias = $3
+RETURNING id, alias, keycloak_id, name, status, created_at, created_by_name, suspension_reason
 `
 
 type SetOrganizationStatusParams struct {
 	Status string
+	Reason *string
 	Alias  string
 }
 
 type SetOrganizationStatusRow struct {
-	ID         pgtype.UUID
-	Alias      string
-	KeycloakID pgtype.UUID
-	Name       string
-	Status     string
-	CreatedAt  pgtype.Timestamptz
+	ID               pgtype.UUID
+	Alias            string
+	KeycloakID       pgtype.UUID
+	Name             string
+	Status           string
+	CreatedAt        pgtype.Timestamptz
+	CreatedByName    *string
+	SuspensionReason *string
 }
 
+// A reactivated organization drops its suspension reason.
 func (q *Queries) SetOrganizationStatus(ctx context.Context, arg SetOrganizationStatusParams) (SetOrganizationStatusRow, error) {
-	row := q.db.QueryRow(ctx, setOrganizationStatus, arg.Status, arg.Alias)
+	row := q.db.QueryRow(ctx, setOrganizationStatus, arg.Status, arg.Reason, arg.Alias)
 	var i SetOrganizationStatusRow
 	err := row.Scan(
 		&i.ID,
@@ -259,6 +289,8 @@ func (q *Queries) SetOrganizationStatus(ctx context.Context, arg SetOrganization
 		&i.Name,
 		&i.Status,
 		&i.CreatedAt,
+		&i.CreatedByName,
+		&i.SuspensionReason,
 	)
 	return i, err
 }

@@ -9,5 +9,10 @@ export interface UpdateOrganizationRequest {
      * @maxLength 100
      */
   name?: string;
+  /**
+     * Why the organization is suspended, shown to its members. Used with status suspended.
+     * @maxLength 500
+     */
+  reason?: string;
   status?: UpdateOrganizationRequestStatus;
 }

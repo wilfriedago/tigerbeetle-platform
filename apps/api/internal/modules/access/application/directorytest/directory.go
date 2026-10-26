@@ -43,7 +43,7 @@ func New(issuer string) *Directory {
 func (d *Directory) AddPerson(subject, email string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.people[subject] = &domain.Person{Subject: subject, Email: email, FirstName: strings.ToUpper(subject[:1]) + subject[1:]}
+	d.people[subject] = &domain.Person{Subject: subject, Email: email, FirstName: strings.ToUpper(subject[:1]) + subject[1:], EmailVerified: true}
 }
 
 // AddOrganization adds an organization and returns its ID.
@@ -155,6 +155,24 @@ func (d *Directory) PersonByEmail(_ context.Context, email string) (domain.Perso
 		}
 	}
 	return domain.Person{}, ledger.ErrNotFound
+}
+
+// PersonBySubject implements domain.Directory.
+func (d *Directory) PersonBySubject(_ context.Context, subject string) (domain.Person, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	p, ok := d.people[subject]
+	if !ok {
+		return domain.Person{}, ledger.ErrNotFound
+	}
+	return *p, nil
+}
+
+// MemberCount implements domain.Directory.
+func (d *Directory) MemberCount(_ context.Context, orgID string) (int, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return len(d.members[orgID]), nil
 }
 
 // CreatePerson implements domain.Directory.

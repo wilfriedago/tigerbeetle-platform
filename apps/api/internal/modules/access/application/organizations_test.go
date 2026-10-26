@@ -64,7 +64,7 @@ func TestPlatformOrganizationsNeedStaff(t *testing.T) {
 		"get":    func(ctx context.Context) error { _, err := u.Get(ctx, "acme"); return err },
 		"rename": func(ctx context.Context) error { _, err := u.Rename(ctx, "acme", "Acme Corp"); return err },
 		"status": func(ctx context.Context) error {
-			_, err := u.SetStatus(ctx, "acme", domain.OrganizationSuspended)
+			_, err := u.SetStatus(ctx, "acme", domain.OrganizationSuspended, "")
 			return err
 		},
 		"create": func(ctx context.Context) error {
@@ -91,7 +91,7 @@ func TestOrganizationInput(t *testing.T) {
 			return err
 		}()},
 		{"empty name", func() error { _, err := u.Rename(staff(), "acme", "  "); return err }()},
-		{"bad status", func() error { _, err := u.SetStatus(staff(), "acme", "closed"); return err }()},
+		{"bad status", func() error { _, err := u.SetStatus(staff(), "acme", "closed", ""); return err }()},
 		{"bad owner email", func() error {
 			_, err := u.Create(staff(), CreateOrganization{Alias: "ok", Name: "Ok", Owner: Invite{Email: "nope"}})
 			return err
@@ -102,8 +102,8 @@ func TestOrganizationInput(t *testing.T) {
 			t.Errorf("%s = %v, want ErrInvalid", tt.name, tt.err)
 		}
 	}
-	v, err := u.SetStatus(staff(), "acme", domain.OrganizationSuspended)
-	if err != nil || v.Status != domain.OrganizationSuspended {
+	v, err := u.SetStatus(staff(), "acme", domain.OrganizationSuspended, "unpaid")
+	if err != nil || v.Status != domain.OrganizationSuspended || v.SuspensionReason != "unpaid" {
 		t.Errorf("SetStatus = %+v, %v", v, err)
 	}
 	v, err = u.Rename(staff(), "acme", "Acme Corp")
@@ -125,4 +125,33 @@ func TestListOrganizationsPages(t *testing.T) {
 	if err != nil || len(page) != 1 || page[0].Alias != "c" || next != "" {
 		t.Fatalf("second page = %v, %q, %v", page, next, err)
 	}
+}
+
+func TestOrganizationViewHasOwnersAndCounts(t *testing.T) {
+	u, _, _, _ := newPlatform()
+	u.ledgers = ledgerCounts{}
+	if _, err := u.Create(staff(), CreateOrganization{Alias: "initech", Name: "Initech", Owner: Invite{Email: "bob@example.com"}}); err != nil {
+		t.Fatal(err)
+	}
+	v, err := u.Get(staff(), "initech")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(v.Owners) != 1 || v.Owners[0].Email != "bob@example.com" || v.Owners[0].Status != MemberInvited {
+		t.Errorf("owners = %+v, want bob, invited", v.Owners)
+	}
+	if v.Ledgers != 2 || v.Members != 0 || v.KeycloakID == "" {
+		t.Errorf("counts = %d ledgers, %d members, Keycloak ID %q", v.Ledgers, v.Members, v.KeycloakID)
+	}
+}
+
+// ledgerCounts gives every organization two ledgers.
+type ledgerCounts struct{}
+
+func (ledgerCounts) CountLedgers(_ context.Context, orgs []ledger.ID) (map[ledger.ID]int, error) {
+	out := map[ledger.ID]int{}
+	for _, id := range orgs {
+		out[id] = 2
+	}
+	return out, nil
 }

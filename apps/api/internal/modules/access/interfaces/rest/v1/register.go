@@ -90,15 +90,15 @@ func (h *handlers) listOrganizations(ctx context.Context, in *struct{ restapi.Pa
 		return nil, err
 	}
 	out := dto.OrganizationList{Data: make([]dto.Organization, len(views)), Next: restapi.Optional(next)}
-	for i, v := range views {
-		out.Data[i] = dto.OrganizationFrom(v)
+	for i := range views {
+		out.Data[i] = dto.OrganizationFrom(views[i])
 	}
 	return &restapi.Body[dto.OrganizationList]{Body: out}, nil
 }
 
 func (h *handlers) createOrganization(ctx context.Context, in *restapi.Body[dto.CreateOrganizationRequest]) (*restapi.Body[dto.Organization], error) {
 	v, err := h.PlatformOrganizations.Create(ctx, application.CreateOrganization{
-		Alias: in.Body.Alias, Name: in.Body.Name, Owner: dto.InviteFrom(in.Body.Owner, ""),
+		Alias: in.Body.Alias, Name: in.Body.Name, Owner: dto.InviteFrom(in.Body.Owner, "", nil),
 	})
 	if err != nil {
 		return nil, err
@@ -138,7 +138,11 @@ func UpdateOrganization(ctx context.Context, u application.PlatformOrganizations
 		}
 	}
 	if in.Status != nil {
-		if v, err = u.SetStatus(ctx, alias, dto.StatusOf(*in.Status)); err != nil {
+		reason := ""
+		if in.Reason != nil {
+			reason = *in.Reason
+		}
+		if v, err = u.SetStatus(ctx, alias, dto.StatusOf(*in.Status), reason); err != nil {
 			return v, err
 		}
 	}
@@ -151,7 +155,7 @@ func registerMembers(api huma.API, h *handlers) {
 		OperationID: "listMembers", Method: http.MethodGet, Path: "/v1/members", Tags: tags,
 		Summary: "List members",
 		Description: "The members of the organization and the people invited to it, in name order, with their\n" +
-			"organization and ledger roles. Needs `org.members`.\n",
+			"organization and ledger roles. Every member of the organization may read it.\n",
 		Responses: restapi.Success(http.StatusOK, "The members."),
 	}, h.listMembers)
 
@@ -179,7 +183,8 @@ func registerMembers(api huma.API, h *handlers) {
 		OperationID: "removeMember", Method: http.MethodDelete, Path: "/v1/members/{subject}", Tags: tags,
 		Summary: "Remove a member",
 		Description: "Ends the membership and removes every role the person holds in the organization. Their\n" +
-			"account and other organizations stay. Needs `org.members`; removing an owner needs an owner.\n",
+			"account and other organizations stay. Needs `org.members`, except to leave: anyone may remove\n" +
+			"themselves. Removing an owner needs an owner, and the last owner stays.\n",
 		DefaultStatus: http.StatusNoContent,
 		Responses:     restapi.Success(http.StatusNoContent, "The member was removed."),
 	}, h.removeMember)
@@ -223,14 +228,14 @@ func (h *handlers) listMembers(ctx context.Context, _ *struct{}) (*restapi.Body[
 		return nil, err
 	}
 	out := dto.MemberList{Data: make([]dto.Member, len(views))}
-	for i, v := range views {
-		out.Data[i] = dto.MemberFrom(v)
+	for i := range views {
+		out.Data[i] = dto.MemberFrom(views[i])
 	}
 	return &restapi.Body[dto.MemberList]{Body: out}, nil
 }
 
 func (h *handlers) inviteMember(ctx context.Context, in *restapi.Body[dto.InviteMemberRequest]) (*restapi.Body[dto.Member], error) {
-	v, err := h.Members.Invite(ctx, dto.InviteFrom(in.Body.NewMember, in.Body.Role))
+	v, err := h.Members.Invite(ctx, dto.InviteFrom(in.Body.NewMember, in.Body.Role, in.Body.Ledgers))
 	if err != nil {
 		return nil, err
 	}

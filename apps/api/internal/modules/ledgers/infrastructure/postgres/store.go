@@ -233,3 +233,16 @@ func (s *Store) CreateEventType(ctx context.Context, ledgerName, name string, co
 		return ledger.EventType{Name: r.Name, Code: uint16(r.Code), CreatedAt: platformpg.TimeOf(r.CreatedAt)}, nil
 	}
 }
+
+// CountLedgers counts the ledgers of each organization, across organizations.
+func (s *Store) CountLedgers(ctx context.Context, organizations []ledger.ID) (map[ledger.ID]int, error) {
+	rows, err := s.queries.CountLedgers(ctx, platformpg.UUIDsOf(organizations))
+	if err != nil {
+		return nil, fmt.Errorf("postgres: count ledgers: %w", platformpg.MapError(err))
+	}
+	out := make(map[ledger.ID]int, len(rows))
+	for _, r := range rows {
+		out[platformpg.IDOf(r.OrganizationID)] = int(r.Ledgers)
+	}
+	return out, nil
+}

@@ -74,7 +74,7 @@ type Query {
   ): OrganizationConnection!
   "An organization by alias, or null. Staff only."
   organization(alias: String!): Organization
-  "The members of the organization of the call and the people invited to it, in name order. Needs org.members."
+  "The members of the organization of the call and the people invited to it, in name order. Every member may read it."
   members: [Member!]!
   "A ledger by name, or null when no ledger has that name."
   ledger(name: String!): Ledger
@@ -446,6 +446,9 @@ type LedgerConnection {
 type LedgerRole {
   ledger: String!
   role: String!
+  grantedAt: DateTime!
+  "The name of who granted it, as it was then."
+  grantedBy: String
 }
 
 "The figures of the ledger overview."
@@ -463,11 +466,16 @@ type Member {
   "The identity provider's ID of the person: the subject of their tokens."
   subject: String!
   email: String!
+  emailVerified: Boolean!
   name: String!
   "setup-pending: the platform created the account and the person has not yet set a password. invited: the person has not yet accepted the invitation."
   status: String!
   "The organization role; absent when the person holds none."
   role: String
+  "When the organization role was granted."
+  addedAt: DateTime
+  "The name of who granted the organization role, as it was then."
+  addedBy: String
   ledgers: [LedgerRole!]!
   "Present while status is invited."
   invitation: Invitation
@@ -475,17 +483,41 @@ type Member {
 
 "A tenant of the platform, as staff see it (ADR-0027)."
 type Organization {
+  "The platform's ID of the organization."
+  id: String!
+  "Keycloak's ID of the organization."
+  keycloakId: String!
   "Unique and permanent: the value of X-Organization and the organization's URL segment."
   alias: String!
   name: String!
   "A suspended organization answers 403 organization-suspended to every call made in its name."
   status: String!
+  "Why staff suspended it, shown to its members."
+  suspensionReason: String
   createdAt: DateTime!
+  "The staff member who created it; absent for a seeded organization."
+  createdBy: String
+  "The owners, oldest first, and the first owner while on the way in."
+  owners: [Owner!]!
+  "The number of members in Keycloak."
+  members: Int!
+  "The number of ledgers."
+  ledgers: Int!
 }
 
 type OrganizationConnection {
   nodes: [Organization!]!
   pageInfo: PageInfo!
+}
+
+"An owner of an organization, or its first owner on the way in."
+type Owner {
+  subject: String!
+  email: String!
+  name: String!
+  status: String!
+  "When the owner role was granted."
+  since: DateTime!
 }
 
 type PageInfo {
@@ -733,6 +765,14 @@ input InviteMemberInput {
   person: NewMemberInput!
   "member, admin or owner; member when absent. Only an owner can invite an owner."
   role: String
+  "Roles on single ledgers, granted with the organization role."
+  ledgers: [LedgerRoleInput!]!
+}
+
+input LedgerRoleInput {
+  ledger: String!
+  "viewer, operator or admin."
+  role: String!
 }
 
 input MemberInput {
@@ -814,6 +854,8 @@ input UpdateOrganizationInput {
   name: String
   "active or suspended."
   status: String
+  "Why the organization is suspended, shown to its members."
+  reason: String
 }
 
 input VoidHoldInput {

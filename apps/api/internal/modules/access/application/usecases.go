@@ -39,7 +39,7 @@ type PlatformOrganizations interface {
 	Get(ctx context.Context, alias string) (OrganizationView, error)
 	Create(ctx context.Context, in CreateOrganization) (OrganizationView, error)
 	Rename(ctx context.Context, alias, name string) (OrganizationView, error)
-	SetStatus(ctx context.Context, alias string, status domain.OrganizationStatus) (OrganizationView, error)
+	SetStatus(ctx context.Context, alias string, status domain.OrganizationStatus, reason string) (OrganizationView, error)
 }
 
 // Members are the people of the organization of the call and their roles (ADR-0027, ADR-0028).

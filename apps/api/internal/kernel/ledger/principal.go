@@ -25,8 +25,12 @@ type Principal struct {
 	Issuer  string
 	Subject string
 	Kind    PrincipalKind
-	// Name is for logs and the console, never for decisions.
+	// Name is for logs and the console, never for decisions: the full name when the identity
+	// provider gives one.
 	Name string
+	// Email is for display, never for decisions: emails change, and two issuers can vouch for the
+	// same one.
+	Email string
 	// Staff marks the people who run the platform (ADR-0028). Staff manage organizations; they
 	// have no permission inside one without a grant.
 	Staff bool

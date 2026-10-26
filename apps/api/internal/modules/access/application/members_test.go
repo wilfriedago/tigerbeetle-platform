@@ -136,7 +136,11 @@ func TestList(t *testing.T) {
 	}
 	rows := make([]row, len(got))
 	for i, v := range got {
-		rows[i] = row{v.Subject, v.Status, v.Role, v.Ledgers, v.Invitation != nil}
+		ledgers := map[string]ledger.Role{}
+		for _, l := range v.Ledgers {
+			ledgers[l.Ledger] = l.Role
+		}
+		rows[i] = row{v.Subject, v.Status, v.Role, ledgers, v.Invitation != nil}
 	}
 	want := []row{
 		{"ada", MemberActive, ledger.RoleOwner, map[string]ledger.Role{}, false},
@@ -148,8 +152,9 @@ func TestList(t *testing.T) {
 	if diff := cmp.Diff(want, rows); diff != "" {
 		t.Errorf("List (-want +got):\n%s", diff)
 	}
-	if _, err := a.m.List(call("dave")); !errors.Is(err, ledger.ErrForbidden) {
-		t.Errorf("List by a member = %v, want ErrForbidden", err)
+	// Every member may see who is in the organization.
+	if _, err := a.m.List(call("dave")); err != nil {
+		t.Errorf("List by a member = %v", err)
 	}
 }
 
@@ -269,4 +274,38 @@ func TestInvitations(t *testing.T) {
 func hasPerson(d *directorytest.Directory, subject string) bool {
 	_, ok := d.Person(subject)
 	return ok
+}
+
+func TestInviteWithLedgerRoles(t *testing.T) {
+	a := newAcme()
+	v, err := a.m.Invite(call("carol"), Invite{Email: "bob@example.com", Ledgers: []LedgerGrant{{Ledger: "payroll", Role: ledger.RoleViewer}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if roleOf(a.grants, "bob", "payroll") != ledger.RoleViewer || len(v.Ledgers) != 1 || v.Ledgers[0].Ledger != "payroll" {
+		t.Errorf("Invite = %+v, grants %v", v, a.grants["bob"])
+	}
+	if _, err := a.m.Invite(call("carol"), Invite{Email: "new@example.com", Ledgers: []LedgerGrant{{Ledger: "payroll", Role: ledger.RoleOwner}}}); !errors.Is(err, ledger.ErrInvalid) {
+		t.Errorf("an organization role on a ledger = %v, want ErrInvalid", err)
+	}
+	if _, err := a.m.Invite(call("carol"), Invite{Email: "new@example.com", Ledgers: []LedgerGrant{{Ledger: "nope", Role: ledger.RoleViewer}}}); !errors.Is(err, ledger.ErrNotFound) {
+		t.Errorf("a ledger that does not exist = %v, want ErrNotFound", err)
+	}
+}
+
+func TestLeave(t *testing.T) {
+	a := newAcme()
+	// dave holds no org.members, but may leave.
+	if err := a.m.Remove(call("dave"), "dave"); err != nil {
+		t.Fatalf("dave leaves: %v", err)
+	}
+	if a.dir.IsMember(a.orgID, "dave") || len(a.grants["dave"]) != 0 {
+		t.Errorf("dave is still in: member %v, grants %v", a.dir.IsMember(a.orgID, "dave"), a.grants["dave"])
+	}
+	if err := a.m.Remove(call("lea"), "carol"); !errors.Is(err, ledger.ErrForbidden) {
+		t.Errorf("lea removes carol = %v, want ErrForbidden", err)
+	}
+	if err := a.m.Remove(call("ada"), "ada"); !errors.Is(err, ledger.ErrConflict) {
+		t.Errorf("the last owner leaves = %v, want ErrConflict", err)
+	}
 }

@@ -36,6 +36,12 @@ func (noDirectory) PersonByEmail(context.Context, string) (domain.Person, error)
 	return domain.Person{}, unconfigured()
 }
 
+func (noDirectory) PersonBySubject(context.Context, string) (domain.Person, error) {
+	return domain.Person{}, unconfigured()
+}
+
+func (noDirectory) MemberCount(context.Context, string) (int, error) { return 0, unconfigured() }
+
 func (noDirectory) CreatePerson(context.Context, string, string, string) (domain.Person, error) {
 	return domain.Person{}, unconfigured()
 }

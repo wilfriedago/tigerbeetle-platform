@@ -45,10 +45,13 @@ func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options
 	if err != nil {
 		return modules{}, err
 	}
-	accessDeps := accessapp.Deps{Organizations: accessStore, Grants: accessStore, Sessions: accessStore, Directory: dir, Clock: clock}
+	ledgerStore := ledgerspg.NewStore(r.db)
+	accessDeps := accessapp.Deps{
+		Organizations: accessStore, Grants: accessStore, Sessions: accessStore, Directory: dir,
+		Ledgers: ledgersapp.NewLedgerCounts(ledgerStore), Clock: clock,
+	}
 	ac := accessapp.New(accessDeps)
 
-	ledgerStore := ledgerspg.NewStore(r.db)
 	ledgerDirectory := ledgersapp.NewDirectory(ledgerStore)
 	policies := ledgersapp.NewPolicyQueries(ledgerStore, ledgerStore)
 
