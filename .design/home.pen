@@ -166,6 +166,39 @@
               "fontWeight": "normal"
             }
           ]
+        },
+        {
+          "type": "frame",
+          "id": "OnRhB",
+          "name": "Row Access",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "text",
+              "id": "t0Eys",
+              "name": "Row Title",
+              "fill": "$W:text",
+              "content": "Access",
+              "fontFamily": "$W:font-sans",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "STlwF",
+              "name": "Routes",
+              "fill": "$W:text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "/auth/*  /  /me  /$org/members  /$org/api-keys  /$org/machine-clients  /$org/settings  /$org/settings/roles  /$org/ledgers/$ledger/settings/access  /staff/organizations  Keycloak theme",
+              "lineHeight": 1.6,
+              "fontFamily": "$W:font-mono",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            }
+          ]
         }
       ]
     },
@@ -5565,7 +5598,7 @@
       "type": "frame",
       "id": "fnqiG",
       "x": 0,
-      "y": 7642,
+      "y": 8113,
       "name": "Accounts, tree  /accounts?view=tree",
       "theme": {
         "W:mode": "light",
@@ -7703,8 +7736,8 @@
     {
       "type": "frame",
       "id": "N2RSTd",
-      "x": 0,
-      "y": 3200,
+      "x": 1555,
+      "y": 8091,
       "name": "Account  /accounts/users:1234:wallet",
       "theme": {
         "W:mode": "light",
@@ -7712,7 +7745,7 @@
       },
       "clip": true,
       "width": 1440,
-      "height": 1180,
+      "height": 1046,
       "fill": "$W:bg",
       "children": [
         {
@@ -27358,8 +27391,8 @@
     {
       "type": "frame",
       "id": "S5gAqm",
-      "x": 1600,
-      "y": 8800,
+      "x": 1555,
+      "y": 9312,
       "name": "Import chart of accounts 2 of 3, preview  /accounts/import",
       "theme": {
         "W:mode": "light",
@@ -30406,7 +30439,7 @@
       "type": "frame",
       "id": "uvwmB",
       "x": 0,
-      "y": 8800,
+      "y": 9312,
       "name": "Import chart of accounts 1 of 3, source  /accounts/import",
       "theme": {
         "W:mode": "light",
@@ -31669,8 +31702,8 @@
     {
       "type": "frame",
       "id": "LsRb3",
-      "x": 3200,
-      "y": 8800,
+      "x": 3111,
+      "y": 9312,
       "name": "Import chart of accounts 3 of 3, done  /accounts/import",
       "theme": {
         "W:mode": "light",
