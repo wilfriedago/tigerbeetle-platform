@@ -1,6 +1,6 @@
 # 17. Bounded-context modules, shared kernel, platform and their dependency rules
 
-Status: Accepted
+Status: Accepted, amended by [ADR-0027](0027-authorization-through-platform-grants.md)
 Date: 2026-10-25
 
 ## Context and Problem Statement

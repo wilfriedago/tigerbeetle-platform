@@ -1,6 +1,6 @@
 # 18. REST spec generated from Go with Huma v2
 
-Status: Accepted, amended by [ADR-0025](0025-problem-details-per-rfc-9457.md)
+Status: Accepted, amended by [ADR-0025](0025-problem-details-per-rfc-9457.md), [ADR-0031](0031-authenticated-transports-and-strict-request-bodies.md)
 Date: 2026-10-25
 
 ## Context and Problem Statement

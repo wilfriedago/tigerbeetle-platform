@@ -1,6 +1,6 @@
 # 7. Transactions as linked batches; ID scheme and idempotency
 
-Status: Accepted, amended by [ADR-0013](0013-ledger-api-implementation.md), [ADR-0024](0024-transport-neutral-write-protocol.md)
+Status: Accepted, amended by [ADR-0013](0013-ledger-api-implementation.md), [ADR-0024](0024-transport-neutral-write-protocol.md), [ADR-0030](0030-idempotency-keys-belong-to-their-principal.md)
 Date: 2026-10-24
 
 ## Context and Problem Statement

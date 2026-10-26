@@ -8,6 +8,10 @@ The migration to bounded-context modules and new transports (docs/plans/ddd-tran
 ADR-0015 to ADR-0024) has landed, all seven phases; the layout, commands and workflow below
 describe the result. The plan stays as the record of why.
 
+Authentication, authorization and multi-tenancy are being added on docs/plans/auth/plan.md
+(ADR-0025 to ADR-0031), in phases. This file changes in the commit that makes each statement
+true; until then it describes the code as it is.
+
 ## Project
 
 - tigerbeetle-platform: a Go API in front of TigerBeetle with Postgres for metadata, a React
