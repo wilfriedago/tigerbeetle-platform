@@ -106,6 +106,27 @@ func TestCredentialsEndToEnd(t *testing.T) {
 		}
 	})
 
+	t.Run("the writes of a credential are listed by its subject", func(t *testing.T) {
+		posting := `{"postings":[{"source":"world","destination":"a:1","asset":"EUR/2","amount":"1"}]}`
+		for authorization, key := range map[string]string{machine: "machine-write-1", owner: "owner-write-1"} {
+			headers := map[string]string{"Authorization": authorization, "Content-Type": "application/json", "Idempotency-Key": key}
+			if authorization == owner {
+				headers["X-Organization"] = "default"
+			}
+			if code, _, raw := h.rawDo(http.MethodPost, "/v1/ledgers/payroll/transactions", posting, headers); code >= 500 {
+				t.Fatalf("write %s: %d %s", key, code, raw)
+			}
+		}
+		code, raw := send(owner, "default", http.MethodGet, "/v1/ledgers/payroll/requests?actor="+client.Client.Subject, "")
+		var list struct{ Data []struct{ Key string } }
+		if err := json.Unmarshal([]byte(raw), &list); code != http.StatusOK || err != nil {
+			t.Fatalf("list by actor: %d %s", code, raw)
+		}
+		if len(list.Data) != 1 || list.Data[0].Key != "machine-write-1" {
+			t.Fatalf("the machine client's writes = %+v, want machine-write-1 only", list.Data)
+		}
+	})
+
 	t.Run("revoked and deleted credentials stop at once", func(t *testing.T) {
 		if code, raw := send(owner, "default", http.MethodDelete, "/v1/api-keys/"+created.Key.ID, ""); code != http.StatusNoContent {
 			t.Fatalf("revoke key: %d %s", code, raw)

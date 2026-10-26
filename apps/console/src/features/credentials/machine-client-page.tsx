@@ -21,6 +21,7 @@ import { useOrganization } from '~/lib/organization'
 
 import { credentialQueries, useDeleteMachineClient, useRegenerateSecret } from './api'
 import { ConfirmByName, CredentialRoles, CredentialStatus, SecretOnceDialog } from './components'
+import { RecentWrites } from './recent-writes'
 
 // .design/auth.pen, Machine client: one client's roles and details, its secret, and deleting it.
 
@@ -104,7 +105,10 @@ export function MachineClientPage() {
         </Alert>
       ) : null}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <CredentialRoles kind="machine-client" id={client.clientId} roles={client.ledgers} editable={active} />
+        <div className="flex min-w-0 flex-col gap-6">
+          <CredentialRoles kind="machine-client" id={client.clientId} roles={client.ledgers} editable={active} />
+          <RecentWrites actor={client.subject} ledgers={client.ledgers.map((l) => l.ledger)} what="client" />
+        </div>
         <aside className="flex flex-col gap-4">
           <Card>
             <CardHeader>

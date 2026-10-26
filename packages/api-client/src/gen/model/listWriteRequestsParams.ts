@@ -18,6 +18,11 @@ operation?: Operation;
  */
 search?: string;
 /**
+ * Only the writes of this principal: a person's or a machine client's subject, or an API key's ID.
+ * @maxLength 255
+ */
+actor?: string;
+/**
  * Page size.
  * @minimum 1
  * @maximum 100

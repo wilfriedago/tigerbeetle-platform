@@ -73,9 +73,9 @@ func (r *ledgerResolver) Hold(ctx context.Context, obj *ledgersgql.Ledger, id sc
 }
 
 func (r *ledgerResolver) Requests(ctx context.Context, obj *ledgersgql.Ledger, first *int, after *string, status *scalar.RequestStatus,
-	operation *scalar.Operation, search *string,
+	operation *scalar.Operation, search, actor *string,
 ) (*bookkeepinggql.WriteRequestConnection, error) {
-	return r.bookkeeping.Requests(ctx, string(obj.Name), first, after, status, operation, search)
+	return r.bookkeeping.Requests(ctx, string(obj.Name), first, after, status, operation, search, actor)
 }
 
 func (r *ledgerResolver) Request(ctx context.Context, obj *ledgersgql.Ledger, key string) (*bookkeepingdto.WriteRequestDetail, error) {

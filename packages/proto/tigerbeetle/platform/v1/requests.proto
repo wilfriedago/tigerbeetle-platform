@@ -62,6 +62,9 @@ message ListWriteRequestsRequest {
   Operation operation = 5;
   // An Idempotency-Key, or the start of one, or a request ID.
   optional string search = 6;
+  // Only the writes of this principal: a person's or a machine client's subject, or an API key's
+  // ID.
+  optional string actor = 7;
 }
 
 message ListWriteRequestsResponse {

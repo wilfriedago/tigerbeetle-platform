@@ -532,6 +532,7 @@ export type WriteRequestsQueryVariables = Exact<{
   status?: RequestStatus | null | undefined;
   operation?: Operation | null | undefined;
   search?: string | null | undefined;
+  actor?: string | null | undefined;
 }>;
 
 
@@ -1639,7 +1640,7 @@ export const DeleteInvitationDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<DeleteInvitationMutation, DeleteInvitationMutationVariables>;
 export const WriteRequestsDocument = new TypedDocumentString(`
-    query WriteRequests($name: String!, $first: Int, $after: String, $status: RequestStatus, $operation: Operation, $search: String) {
+    query WriteRequests($name: String!, $first: Int, $after: String, $status: RequestStatus, $operation: Operation, $search: String, $actor: String) {
   ledger(name: $name) {
     requests(
       first: $first
@@ -1647,6 +1648,7 @@ export const WriteRequestsDocument = new TypedDocumentString(`
       status: $status
       operation: $operation
       search: $search
+      actor: $actor
     ) {
       nodes {
         ...WriteRequestFields

@@ -110,6 +110,7 @@ func (s *Store) ListWrites(ctx context.Context, ledgerName string, filter domain
 		Status:         platformpg.OptionalString(string(filter.Status)),
 		Operation:      platformpg.OptionalString(string(filter.Operation)),
 		Search:         platformpg.OptionalString(filter.Search),
+		Actor:          platformpg.OptionalString(filter.Actor),
 		PageSize:       int32(limit),
 	}
 	if !cursor.CreatedAt.IsZero() {

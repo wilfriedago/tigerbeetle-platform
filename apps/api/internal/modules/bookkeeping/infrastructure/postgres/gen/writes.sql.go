@@ -182,17 +182,18 @@ FROM write_requests
 WHERE organization_id = $1 AND ledger = $2
     AND ($3::text IS NULL OR status = $3::text)
     AND ($4::text IS NULL OR operation = $4::text)
+    AND ($5::text IS NULL OR actor_subject = $5::text)
     AND (
-        $5::text IS NULL
-        OR starts_with(idempotency_key, $5::text)
-        OR request_id = $5::text
+        $6::text IS NULL
+        OR starts_with(idempotency_key, $6::text)
+        OR request_id = $6::text
     )
     AND (
-        $6::timestamptz IS NULL
-        OR (created_at, idempotency_key) < ($6::timestamptz, $7::text)
+        $7::timestamptz IS NULL
+        OR (created_at, idempotency_key) < ($7::timestamptz, $8::text)
     )
 ORDER BY created_at DESC, idempotency_key DESC
-LIMIT $8
+LIMIT $9
 `
 
 type ListWritesParams struct {
@@ -200,6 +201,7 @@ type ListWritesParams struct {
 	Ledger         string
 	Status         *string
 	Operation      *string
+	Actor          *string
 	Search         *string
 	CursorAt       pgtype.Timestamptz
 	CursorKey      *string
@@ -212,6 +214,7 @@ func (q *Queries) ListWrites(ctx context.Context, arg ListWritesParams) ([]Write
 		arg.Ledger,
 		arg.Status,
 		arg.Operation,
+		arg.Actor,
 		arg.Search,
 		arg.CursorAt,
 		arg.CursorKey,

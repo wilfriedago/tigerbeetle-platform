@@ -194,11 +194,13 @@ func (h *handlers) listWriteRequests(ctx context.Context, in *struct {
 	Status    scalar.RequestStatus `query:"status"`
 	Operation scalar.Operation     `query:"operation"`
 	Search    string               `query:"search" maxLength:"255" doc:"An Idempotency-Key, or the start of one, or a request ID."`
+	Actor     string               `query:"actor" maxLength:"255" doc:"Only the writes of this principal: a person's or a machine client's subject, or an API key's ID."`
 	restapi.Page
 },
 ) (*restapi.Body[dto.WriteRequestList], error) {
 	rows, next, err := h.RequestQueries.List(ctx, application.ListRequestsInput{
-		Ledger: string(in.Ledger), Status: string(in.Status), Operation: string(in.Operation), Search: in.Search, Cursor: in.Cursor, Limit: in.Limit,
+		Ledger: string(in.Ledger), Status: string(in.Status), Operation: string(in.Operation), Search: in.Search, Actor: in.Actor,
+		Cursor: in.Cursor, Limit: in.Limit,
 	})
 	if err != nil {
 		return nil, err

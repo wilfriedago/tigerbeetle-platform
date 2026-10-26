@@ -179,8 +179,11 @@ type ListRequestsInput struct {
 	Status    string
 	Operation string
 	Search    string
-	Cursor    string
-	Limit     int
+	// Actor keeps the writes of one principal, named by its subject: a person's or a machine
+	// client's subject, or an API key's ID. The two issuers' subjects never look alike.
+	Actor  string
+	Cursor string
+	Limit  int
 }
 
 // PostingView is a posting of a committed transaction with the amount read from TigerBeetle.

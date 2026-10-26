@@ -17,7 +17,7 @@ func (u *requestQueries) List(ctx context.Context, in ListRequestsInput) ([]doma
 	if err := u.ledgers.Require(ctx, in.Ledger); err != nil {
 		return nil, "", err
 	}
-	filter := domain.WriteFilter{Status: domain.RequestStatus(in.Status), Operation: domain.Operation(in.Operation), Search: in.Search}
+	filter := domain.WriteFilter{Status: domain.RequestStatus(in.Status), Operation: domain.Operation(in.Operation), Search: in.Search, Actor: in.Actor}
 	after, err := decodeWriteCursor(in.Cursor)
 	if err != nil {
 		return nil, "", err

@@ -194,6 +194,8 @@ type WriteFilter struct {
 	Status    RequestStatus
 	Operation Operation
 	Search    string
+	// Actor is the subject of the principal that made the write.
+	Actor string
 }
 
 // WriteCursor is the position after which the next page of write requests starts.

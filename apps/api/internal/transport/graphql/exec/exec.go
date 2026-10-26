@@ -259,7 +259,7 @@ type ComplexityRoot struct {
 		Metadata          func(childComplexity int) int
 		Name              func(childComplexity int) int
 		Request           func(childComplexity int, key string) int
-		Requests          func(childComplexity int, first *int, after *string, status *scalar.RequestStatus, operation *scalar.Operation, search *string) int
+		Requests          func(childComplexity int, first *int, after *string, status *scalar.RequestStatus, operation *scalar.Operation, search *string, actor *string) int
 		RuleMatch         func(childComplexity int, address string) int
 		Rules             func(childComplexity int) int
 		Search            func(childComplexity int, q string) int
@@ -549,7 +549,7 @@ type LedgerResolver interface {
 	Holds(ctx context.Context, obj *graphql3.Ledger, first *int, after *string, status *scalar.HoldStatus, address *string) (*graphql1.HoldConnection, error)
 	HoldCounts(ctx context.Context, obj *graphql3.Ledger) (*dto1.HoldStats, error)
 	Hold(ctx context.Context, obj *graphql3.Ledger, id scalar.ID) (*dto1.Hold, error)
-	Requests(ctx context.Context, obj *graphql3.Ledger, first *int, after *string, status *scalar.RequestStatus, operation *scalar.Operation, search *string) (*graphql1.WriteRequestConnection, error)
+	Requests(ctx context.Context, obj *graphql3.Ledger, first *int, after *string, status *scalar.RequestStatus, operation *scalar.Operation, search *string, actor *string) (*graphql1.WriteRequestConnection, error)
 	Request(ctx context.Context, obj *graphql3.Ledger, key string) (*dto1.WriteRequestDetail, error)
 	Search(ctx context.Context, obj *graphql3.Ledger, q string) (*dto1.SearchResults, error)
 }
@@ -1506,7 +1506,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Ledger.Requests(childComplexity, args["first"].(*int), args["after"].(*string), args["status"].(*scalar.RequestStatus), args["operation"].(*scalar.Operation), args["search"].(*string)), true
+		return e.ComplexityRoot.Ledger.Requests(childComplexity, args["first"].(*int), args["after"].(*string), args["status"].(*scalar.RequestStatus), args["operation"].(*scalar.Operation), args["search"].(*string), args["actor"].(*string)), true
 	case "Ledger.ruleMatch":
 		if e.ComplexityRoot.Ledger.RuleMatch == nil {
 			break
@@ -3442,6 +3442,8 @@ type Ledger {
     operation: Operation
     "An Idempotency-Key, or the start of one, or a request ID."
     search: String
+    "Only the writes of this principal: a person's or a machine client's subject, or an API key's ID."
+    actor: String
   ): WriteRequestConnection!
   "A write request by Idempotency-Key, or null."
   request(
@@ -5153,6 +5155,14 @@ func (ec *executionContext) field_Ledger_requests_args(ctx context.Context, rawA
 		return nil, err
 	}
 	args["search"] = arg4
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "actor",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["actor"] = arg5
 	return args, nil
 }
 
@@ -9591,7 +9601,7 @@ func (ec *executionContext) _Ledger_requests(ctx context.Context, field graphql.
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Ledger().Requests(ctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string), fc.Args["status"].(*scalar.RequestStatus), fc.Args["operation"].(*scalar.Operation), fc.Args["search"].(*string))
+			return ec.Resolvers.Ledger().Requests(ctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string), fc.Args["status"].(*scalar.RequestStatus), fc.Args["operation"].(*scalar.Operation), fc.Args["search"].(*string), fc.Args["actor"].(*string))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v *graphql1.WriteRequestConnection) graphql.Marshaler {

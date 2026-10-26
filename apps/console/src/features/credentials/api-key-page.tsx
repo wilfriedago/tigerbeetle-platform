@@ -20,6 +20,7 @@ import { useOrganization } from '~/lib/organization'
 
 import { credentialQueries, useRevokeApiKey } from './api'
 import { ConfirmByName, CredentialRoles, CredentialStatus } from './components'
+import { RecentWrites } from './recent-writes'
 
 // .design/auth.pen, API key: one key's roles and details, and revoking it.
 
@@ -72,7 +73,10 @@ export function ApiKeyPage() {
         ) : null}
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <CredentialRoles kind="api-key" id={key.id} roles={key.ledgers} editable={active} />
+        <div className="flex min-w-0 flex-col gap-6">
+          <CredentialRoles kind="api-key" id={key.id} roles={key.ledgers} editable={active} />
+          <RecentWrites actor={key.id} ledgers={key.ledgers.map((l) => l.ledger)} what="key" />
+        </div>
         <aside className="flex flex-col gap-4">
           <Card>
             <CardHeader>

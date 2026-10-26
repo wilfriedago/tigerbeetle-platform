@@ -12,6 +12,8 @@ export interface RequestListParams {
   status?: RequestStatus | undefined
   operation?: Operation | undefined
   search?: string | undefined
+  /** Only the writes of this principal: its subject, or an API key's ID. */
+  actor?: string | undefined
   cursor?: string | undefined
   limit?: number | undefined
 }
@@ -33,9 +35,9 @@ export const WriteRequestFields = graphql(`
 `)
 
 const WriteRequestsQuery = graphql(`
-  query WriteRequests($name: String!, $first: Int, $after: String, $status: RequestStatus, $operation: Operation, $search: String) {
+  query WriteRequests($name: String!, $first: Int, $after: String, $status: RequestStatus, $operation: Operation, $search: String, $actor: String) {
     ledger(name: $name) {
-      requests(first: $first, after: $after, status: $status, operation: $operation, search: $search) {
+      requests(first: $first, after: $after, status: $status, operation: $operation, search: $search, actor: $actor) {
         nodes {
           ...WriteRequestFields
         }
@@ -75,6 +77,7 @@ export const requestQueries = {
     queryOptions({
       queryFn: async ({ signal }): Promise<WriteRequestList> => {
         const variables = queryParams({
+          actor: params.actor,
           after: params.cursor,
           first: params.limit,
           operation: params.operation,

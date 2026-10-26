@@ -485,6 +485,8 @@ type Ledger {
     operation: Operation
     "An Idempotency-Key, or the start of one, or a request ID."
     search: String
+    "Only the writes of this principal: a person's or a machine client's subject, or an API key's ID."
+    actor: String
   ): WriteRequestConnection!
   "A write request by Idempotency-Key, or null."
   request(

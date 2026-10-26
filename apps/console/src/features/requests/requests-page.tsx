@@ -4,7 +4,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { getRouteApi, Link } from '@tanstack/react-router'
 
 import { type Operation, problemReason, type RequestStatus, type WriteRequest, type WriteRequestDetail } from '@tigerbeetle-platform/api-client'
-import { InfoIcon } from 'lucide-react'
+import { InfoIcon, XIcon } from 'lucide-react'
 
 import { columnHelper, DataTable } from '~/components/data-table/data-table'
 import { FilterBar, SearchFilter, SelectFilter } from '~/components/data-table/filters'
@@ -126,7 +126,14 @@ export function RequestsPage() {
   const reconciler = useQuery(systemQueries.reconciler())
   const grace = (reconciler.data?.gracePeriodSeconds ?? 30) * 1000
   const list = useQuery({
-    ...requestQueries.list(ledger, { cursor: search.cursor, limit: 25, operation: search.operation, search: search.search, status: search.status }),
+    ...requestQueries.list(ledger, {
+      actor: search.actor,
+      cursor: search.cursor,
+      limit: 25,
+      operation: search.operation,
+      search: search.search,
+      status: search.status
+    }),
     placeholderData: keepPreviousData
   })
   const columns = useMemo(() => requestColumns(ledger), [ledger])
@@ -134,7 +141,7 @@ export function RequestsPage() {
     cursor: search.cursor,
     next: list.data?.next,
     onChange: (cursor) => void navigate({ search: (prev) => ({ ...prev, cursor }) }),
-    scope: `${search.status ?? ''}|${search.operation ?? ''}|${search.search ?? ''}`
+    scope: `${search.status ?? ''}|${search.operation ?? ''}|${search.search ?? ''}|${search.actor ?? ''}`
   })
   const setFilter = (patch: Partial<typeof search>) => void navigate({ replace: true, search: (prev) => ({ ...prev, ...patch, cursor: undefined }) })
 
@@ -163,6 +170,12 @@ export function RequestsPage() {
           options={OPERATIONS.map((operation) => ({ label: operation, value: operation }))}
           onChange={(value) => setFilter({ operation: OPERATIONS.find((operation) => operation === value) })}
         />
+        {search.actor ? (
+          <Button variant="secondary" size="sm" onClick={() => setFilter({ actor: undefined })} aria-label="Show the writes of every actor">
+            Actor <span className="font-mono">{search.actor}</span>
+            <XIcon />
+          </Button>
+        ) : null}
       </FilterBar>
       {list.error ? <ProblemPanel error={list.error} onRetry={() => void list.refetch()} /> : null}
       <DataTable

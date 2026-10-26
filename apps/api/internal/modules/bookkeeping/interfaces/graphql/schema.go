@@ -151,6 +151,7 @@ type RequestsArgs struct {
 	Status    *scalar.RequestStatus `json:"status"`
 	Operation *scalar.Operation     `json:"operation"`
 	Search    *string               `json:"search" doc:"An Idempotency-Key, or the start of one, or a request ID."`
+	Actor     *string               `json:"actor" doc:"Only the writes of this principal: a person's or a machine client's subject, or an API key's ID."`
 }
 
 // RequestArgs names a write request.

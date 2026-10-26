@@ -7,6 +7,8 @@ import { RequestsPage } from '~/features/requests/requests-page'
 
 export const Route = createFileRoute('/_console/$org/ledgers/$ledger/requests')({
   validateSearch: z.object({
+    /** Only the writes of one principal, from an API key or machine client page. */
+    actor: z.string().optional(),
     cursor: z.string().optional(),
     /** The Idempotency-Key whose drawer is open. */
     key: z.string().optional(),

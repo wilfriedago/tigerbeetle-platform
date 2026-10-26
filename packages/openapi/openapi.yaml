@@ -3361,6 +3361,12 @@ paths:
           schema:
             maxLength: 255
             type: string
+        - description: "Only the writes of this principal: a person's or a machine client's subject, or an API key's ID."
+          in: query
+          name: actor
+          schema:
+            maxLength: 255
+            type: string
         - description: Page size.
           in: query
           name: limit

@@ -18,6 +18,7 @@ FROM write_requests
 WHERE organization_id = sqlc.arg(organization_id) AND ledger = sqlc.arg(ledger)
     AND (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status)::text)
     AND (sqlc.narg(operation)::text IS NULL OR operation = sqlc.narg(operation)::text)
+    AND (sqlc.narg(actor)::text IS NULL OR actor_subject = sqlc.narg(actor)::text)
     AND (
         sqlc.narg(search)::text IS NULL
         OR starts_with(idempotency_key, sqlc.narg(search)::text)
