@@ -144,20 +144,28 @@ func (s *Server) accept(ctx context.Context, method string, req micro.Request) {
 	_ = s.pool.Go(ctx, func() { s.answer(ctx, call, req) })
 }
 
+// answer runs on the pool, after micro's handler has returned. It publishes the reply itself
+// rather than through req.Respond or req.Error: those record the outcome on the request, which
+// micro reads for its statistics once the handler returns, a data race once the answer comes from
+// another goroutine. micro's error count therefore leaves these replies out.
 func (s *Server) answer(ctx context.Context, call rpc.Call, req micro.Request) {
 	answer := s.opts.Dispatcher.Answer(ctx, call)
-	headers := micro.WithHeaders(micro.Headers{HeaderRequestID: []string{answer.RequestID}})
-	var err error
-	if answer.Error == nil {
-		err = req.Respond(answer.Body, headers)
-	} else {
+	reply := &nats.Msg{Subject: req.Reply(), Data: answer.Body, Header: nats.Header{HeaderRequestID: []string{answer.RequestID}}}
+	if answer.Error != nil {
 		// micro's error headers carry the REST status and the reason, so `nats micro` tooling
 		// shows them; the body is still the envelope.
 		description := answer.Error.Reason
 		if description == "" {
 			description = answer.Error.Title
 		}
-		err = req.Error(strconv.Itoa(answer.Error.Status), description, answer.Body, headers)
+		reply.Header.Set(micro.ErrorCodeHeader, strconv.Itoa(answer.Error.Status))
+		reply.Header.Set(micro.ErrorHeader, description)
+	}
+	var err error
+	if reply.Subject == "" {
+		err = errors.New("no reply subject")
+	} else {
+		err = s.nc.PublishMsg(reply)
 	}
 	if err != nil {
 		s.opts.Logger.WarnContext(ctx, "nats rpc reply not sent", slog.String("request_id", answer.RequestID), slog.Any("error", err))
