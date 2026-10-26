@@ -17,12 +17,18 @@ import { Route as ConsoleMeRouteImport } from './routes/_console/me'
 import { Route as ConsolePreferencesRouteImport } from './routes/_console/preferences'
 import { Route as ConsoleStaffRouteRouteImport } from './routes/_console/staff/route'
 import { Route as ConsoleWelcomeRouteImport } from './routes/_console/welcome'
+import { Route as ConsoleOrgApiKeysRouteRouteImport } from './routes/_console/$org/api-keys/route'
+import { Route as ConsoleOrgMachineClientsRouteRouteImport } from './routes/_console/$org/machine-clients/route'
 import { Route as ConsoleOrgMembersRouteRouteImport } from './routes/_console/$org/members/route'
 import { Route as ConsoleOrgSettingsRouteRouteImport } from './routes/_console/$org/settings/route'
 import { Route as ConsoleOrgSystemRouteRouteImport } from './routes/_console/$org/system/route'
 import { Route as ConsoleStaffOrganizationsRouteRouteImport } from './routes/_console/staff/organizations/route'
+import { Route as ConsoleOrgApiKeysIndexRouteImport } from './routes/_console/$org/api-keys/index'
+import { Route as ConsoleOrgApiKeysKeyRouteImport } from './routes/_console/$org/api-keys/$key'
 import { Route as ConsoleOrgLedgersIndexRouteImport } from './routes/_console/$org/ledgers/index'
 import { Route as ConsoleOrgLedgersLedgerRouteImport } from './routes/_console/$org/ledgers/$ledger'
+import { Route as ConsoleOrgMachineClientsIndexRouteImport } from './routes/_console/$org/machine-clients/index'
+import { Route as ConsoleOrgMachineClientsClientRouteImport } from './routes/_console/$org/machine-clients/$client'
 import { Route as ConsoleOrgMembersIndexRouteImport } from './routes/_console/$org/members/index'
 import { Route as ConsoleOrgMembersMemberRouteImport } from './routes/_console/$org/members/$member'
 import { Route as ConsoleOrgSettingsIndexRouteImport } from './routes/_console/$org/settings/index'
@@ -91,6 +97,17 @@ const ConsoleWelcomeRoute = ConsoleWelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => ConsoleRoute,
 } as any)
+const ConsoleOrgApiKeysRouteRoute = ConsoleOrgApiKeysRouteRouteImport.update({
+  id: '/api-keys',
+  path: '/api-keys',
+  getParentRoute: () => ConsoleOrgRoute,
+} as any)
+const ConsoleOrgMachineClientsRouteRoute =
+  ConsoleOrgMachineClientsRouteRouteImport.update({
+    id: '/machine-clients',
+    path: '/machine-clients',
+    getParentRoute: () => ConsoleOrgRoute,
+  } as any)
 const ConsoleOrgMembersRouteRoute = ConsoleOrgMembersRouteRouteImport.update({
   id: '/members',
   path: '/members',
@@ -112,6 +129,16 @@ const ConsoleStaffOrganizationsRouteRoute =
     path: '/organizations',
     getParentRoute: () => ConsoleStaffRouteRoute,
   } as any)
+const ConsoleOrgApiKeysIndexRoute = ConsoleOrgApiKeysIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ConsoleOrgApiKeysRouteRoute,
+} as any)
+const ConsoleOrgApiKeysKeyRoute = ConsoleOrgApiKeysKeyRouteImport.update({
+  id: '/$key',
+  path: '/$key',
+  getParentRoute: () => ConsoleOrgApiKeysRouteRoute,
+} as any)
 const ConsoleOrgLedgersIndexRoute = ConsoleOrgLedgersIndexRouteImport.update({
   id: '/ledgers/',
   path: '/ledgers/',
@@ -122,6 +149,18 @@ const ConsoleOrgLedgersLedgerRoute = ConsoleOrgLedgersLedgerRouteImport.update({
   path: '/ledgers/$ledger',
   getParentRoute: () => ConsoleOrgRoute,
 } as any)
+const ConsoleOrgMachineClientsIndexRoute =
+  ConsoleOrgMachineClientsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ConsoleOrgMachineClientsRouteRoute,
+  } as any)
+const ConsoleOrgMachineClientsClientRoute =
+  ConsoleOrgMachineClientsClientRouteImport.update({
+    id: '/$client',
+    path: '/$client',
+    getParentRoute: () => ConsoleOrgMachineClientsRouteRoute,
+  } as any)
 const ConsoleOrgMembersIndexRoute = ConsoleOrgMembersIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -294,16 +333,22 @@ export interface FileRoutesByFullPath {
   '/me': typeof ConsoleMeRoute
   '/preferences': typeof ConsolePreferencesRoute
   '/welcome': typeof ConsoleWelcomeRoute
+  '/$org/api-keys': typeof ConsoleOrgApiKeysRouteRouteWithChildren
+  '/$org/machine-clients': typeof ConsoleOrgMachineClientsRouteRouteWithChildren
   '/$org/members': typeof ConsoleOrgMembersRouteRouteWithChildren
   '/$org/settings': typeof ConsoleOrgSettingsRouteRouteWithChildren
   '/$org/system': typeof ConsoleOrgSystemRouteRouteWithChildren
   '/staff/organizations': typeof ConsoleStaffOrganizationsRouteRouteWithChildren
+  '/$org/api-keys/$key': typeof ConsoleOrgApiKeysKeyRoute
   '/$org/ledgers/$ledger': typeof ConsoleOrgLedgersLedgerRouteWithChildren
+  '/$org/machine-clients/$client': typeof ConsoleOrgMachineClientsClientRoute
   '/$org/members/$member': typeof ConsoleOrgMembersMemberRoute
   '/$org/settings/roles': typeof ConsoleOrgSettingsRolesRoute
   '/$org/system/reconciler': typeof ConsoleOrgSystemReconcilerRoute
   '/staff/organizations/$alias': typeof ConsoleStaffOrganizationsAliasRoute
+  '/$org/api-keys/': typeof ConsoleOrgApiKeysIndexRoute
   '/$org/ledgers/': typeof ConsoleOrgLedgersIndexRoute
+  '/$org/machine-clients/': typeof ConsoleOrgMachineClientsIndexRoute
   '/$org/members/': typeof ConsoleOrgMembersIndexRoute
   '/$org/settings/': typeof ConsoleOrgSettingsIndexRoute
   '/$org/system/': typeof ConsoleOrgSystemIndexRoute
@@ -337,11 +382,15 @@ export interface FileRoutesByTo {
   '/me': typeof ConsoleMeRoute
   '/preferences': typeof ConsolePreferencesRoute
   '/welcome': typeof ConsoleWelcomeRoute
+  '/$org/api-keys/$key': typeof ConsoleOrgApiKeysKeyRoute
+  '/$org/machine-clients/$client': typeof ConsoleOrgMachineClientsClientRoute
   '/$org/members/$member': typeof ConsoleOrgMembersMemberRoute
   '/$org/settings/roles': typeof ConsoleOrgSettingsRolesRoute
   '/$org/system/reconciler': typeof ConsoleOrgSystemReconcilerRoute
   '/staff/organizations/$alias': typeof ConsoleStaffOrganizationsAliasRoute
+  '/$org/api-keys': typeof ConsoleOrgApiKeysIndexRoute
   '/$org/ledgers': typeof ConsoleOrgLedgersIndexRoute
+  '/$org/machine-clients': typeof ConsoleOrgMachineClientsIndexRoute
   '/$org/members': typeof ConsoleOrgMembersIndexRoute
   '/$org/settings': typeof ConsoleOrgSettingsIndexRoute
   '/$org/system': typeof ConsoleOrgSystemIndexRoute
@@ -373,16 +422,22 @@ export interface FileRoutesById {
   '/_console/me': typeof ConsoleMeRoute
   '/_console/preferences': typeof ConsolePreferencesRoute
   '/_console/welcome': typeof ConsoleWelcomeRoute
+  '/_console/$org/api-keys': typeof ConsoleOrgApiKeysRouteRouteWithChildren
+  '/_console/$org/machine-clients': typeof ConsoleOrgMachineClientsRouteRouteWithChildren
   '/_console/$org/members': typeof ConsoleOrgMembersRouteRouteWithChildren
   '/_console/$org/settings': typeof ConsoleOrgSettingsRouteRouteWithChildren
   '/_console/$org/system': typeof ConsoleOrgSystemRouteRouteWithChildren
   '/_console/staff/organizations': typeof ConsoleStaffOrganizationsRouteRouteWithChildren
+  '/_console/$org/api-keys/$key': typeof ConsoleOrgApiKeysKeyRoute
   '/_console/$org/ledgers/$ledger': typeof ConsoleOrgLedgersLedgerRouteWithChildren
+  '/_console/$org/machine-clients/$client': typeof ConsoleOrgMachineClientsClientRoute
   '/_console/$org/members/$member': typeof ConsoleOrgMembersMemberRoute
   '/_console/$org/settings/roles': typeof ConsoleOrgSettingsRolesRoute
   '/_console/$org/system/reconciler': typeof ConsoleOrgSystemReconcilerRoute
   '/_console/staff/organizations/$alias': typeof ConsoleStaffOrganizationsAliasRoute
+  '/_console/$org/api-keys/': typeof ConsoleOrgApiKeysIndexRoute
   '/_console/$org/ledgers/': typeof ConsoleOrgLedgersIndexRoute
+  '/_console/$org/machine-clients/': typeof ConsoleOrgMachineClientsIndexRoute
   '/_console/$org/members/': typeof ConsoleOrgMembersIndexRoute
   '/_console/$org/settings/': typeof ConsoleOrgSettingsIndexRoute
   '/_console/$org/system/': typeof ConsoleOrgSystemIndexRoute
@@ -418,16 +473,22 @@ export interface FileRouteTypes {
     | '/me'
     | '/preferences'
     | '/welcome'
+    | '/$org/api-keys'
+    | '/$org/machine-clients'
     | '/$org/members'
     | '/$org/settings'
     | '/$org/system'
     | '/staff/organizations'
+    | '/$org/api-keys/$key'
     | '/$org/ledgers/$ledger'
+    | '/$org/machine-clients/$client'
     | '/$org/members/$member'
     | '/$org/settings/roles'
     | '/$org/system/reconciler'
     | '/staff/organizations/$alias'
+    | '/$org/api-keys/'
     | '/$org/ledgers/'
+    | '/$org/machine-clients/'
     | '/$org/members/'
     | '/$org/settings/'
     | '/$org/system/'
@@ -461,11 +522,15 @@ export interface FileRouteTypes {
     | '/me'
     | '/preferences'
     | '/welcome'
+    | '/$org/api-keys/$key'
+    | '/$org/machine-clients/$client'
     | '/$org/members/$member'
     | '/$org/settings/roles'
     | '/$org/system/reconciler'
     | '/staff/organizations/$alias'
+    | '/$org/api-keys'
     | '/$org/ledgers'
+    | '/$org/machine-clients'
     | '/$org/members'
     | '/$org/settings'
     | '/$org/system'
@@ -496,16 +561,22 @@ export interface FileRouteTypes {
     | '/_console/me'
     | '/_console/preferences'
     | '/_console/welcome'
+    | '/_console/$org/api-keys'
+    | '/_console/$org/machine-clients'
     | '/_console/$org/members'
     | '/_console/$org/settings'
     | '/_console/$org/system'
     | '/_console/staff/organizations'
+    | '/_console/$org/api-keys/$key'
     | '/_console/$org/ledgers/$ledger'
+    | '/_console/$org/machine-clients/$client'
     | '/_console/$org/members/$member'
     | '/_console/$org/settings/roles'
     | '/_console/$org/system/reconciler'
     | '/_console/staff/organizations/$alias'
+    | '/_console/$org/api-keys/'
     | '/_console/$org/ledgers/'
+    | '/_console/$org/machine-clients/'
     | '/_console/$org/members/'
     | '/_console/$org/settings/'
     | '/_console/$org/system/'
@@ -595,6 +666,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConsoleWelcomeRouteImport
       parentRoute: typeof ConsoleRoute
     }
+    '/_console/$org/api-keys': {
+      id: '/_console/$org/api-keys'
+      path: '/api-keys'
+      fullPath: '/$org/api-keys'
+      preLoaderRoute: typeof ConsoleOrgApiKeysRouteRouteImport
+      parentRoute: typeof ConsoleOrgRoute
+    }
+    '/_console/$org/machine-clients': {
+      id: '/_console/$org/machine-clients'
+      path: '/machine-clients'
+      fullPath: '/$org/machine-clients'
+      preLoaderRoute: typeof ConsoleOrgMachineClientsRouteRouteImport
+      parentRoute: typeof ConsoleOrgRoute
+    }
     '/_console/$org/members': {
       id: '/_console/$org/members'
       path: '/members'
@@ -623,6 +708,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConsoleStaffOrganizationsRouteRouteImport
       parentRoute: typeof ConsoleStaffRouteRoute
     }
+    '/_console/$org/api-keys/': {
+      id: '/_console/$org/api-keys/'
+      path: '/'
+      fullPath: '/$org/api-keys/'
+      preLoaderRoute: typeof ConsoleOrgApiKeysIndexRouteImport
+      parentRoute: typeof ConsoleOrgApiKeysRouteRoute
+    }
+    '/_console/$org/api-keys/$key': {
+      id: '/_console/$org/api-keys/$key'
+      path: '/$key'
+      fullPath: '/$org/api-keys/$key'
+      preLoaderRoute: typeof ConsoleOrgApiKeysKeyRouteImport
+      parentRoute: typeof ConsoleOrgApiKeysRouteRoute
+    }
     '/_console/$org/ledgers/': {
       id: '/_console/$org/ledgers/'
       path: '/ledgers'
@@ -636,6 +735,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/$org/ledgers/$ledger'
       preLoaderRoute: typeof ConsoleOrgLedgersLedgerRouteImport
       parentRoute: typeof ConsoleOrgRoute
+    }
+    '/_console/$org/machine-clients/': {
+      id: '/_console/$org/machine-clients/'
+      path: '/'
+      fullPath: '/$org/machine-clients/'
+      preLoaderRoute: typeof ConsoleOrgMachineClientsIndexRouteImport
+      parentRoute: typeof ConsoleOrgMachineClientsRouteRoute
+    }
+    '/_console/$org/machine-clients/$client': {
+      id: '/_console/$org/machine-clients/$client'
+      path: '/$client'
+      fullPath: '/$org/machine-clients/$client'
+      preLoaderRoute: typeof ConsoleOrgMachineClientsClientRouteImport
+      parentRoute: typeof ConsoleOrgMachineClientsRouteRoute
     }
     '/_console/$org/members/': {
       id: '/_console/$org/members/'
@@ -864,6 +977,38 @@ const ConsoleStaffRouteRouteChildren: ConsoleStaffRouteRouteChildren = {
 const ConsoleStaffRouteRouteWithChildren =
   ConsoleStaffRouteRoute._addFileChildren(ConsoleStaffRouteRouteChildren)
 
+interface ConsoleOrgApiKeysRouteRouteChildren {
+  ConsoleOrgApiKeysKeyRoute: typeof ConsoleOrgApiKeysKeyRoute
+  ConsoleOrgApiKeysIndexRoute: typeof ConsoleOrgApiKeysIndexRoute
+}
+
+const ConsoleOrgApiKeysRouteRouteChildren: ConsoleOrgApiKeysRouteRouteChildren =
+  {
+    ConsoleOrgApiKeysKeyRoute: ConsoleOrgApiKeysKeyRoute,
+    ConsoleOrgApiKeysIndexRoute: ConsoleOrgApiKeysIndexRoute,
+  }
+
+const ConsoleOrgApiKeysRouteRouteWithChildren =
+  ConsoleOrgApiKeysRouteRoute._addFileChildren(
+    ConsoleOrgApiKeysRouteRouteChildren,
+  )
+
+interface ConsoleOrgMachineClientsRouteRouteChildren {
+  ConsoleOrgMachineClientsClientRoute: typeof ConsoleOrgMachineClientsClientRoute
+  ConsoleOrgMachineClientsIndexRoute: typeof ConsoleOrgMachineClientsIndexRoute
+}
+
+const ConsoleOrgMachineClientsRouteRouteChildren: ConsoleOrgMachineClientsRouteRouteChildren =
+  {
+    ConsoleOrgMachineClientsClientRoute: ConsoleOrgMachineClientsClientRoute,
+    ConsoleOrgMachineClientsIndexRoute: ConsoleOrgMachineClientsIndexRoute,
+  }
+
+const ConsoleOrgMachineClientsRouteRouteWithChildren =
+  ConsoleOrgMachineClientsRouteRoute._addFileChildren(
+    ConsoleOrgMachineClientsRouteRouteChildren,
+  )
+
 interface ConsoleOrgMembersRouteRouteChildren {
   ConsoleOrgMembersMemberRoute: typeof ConsoleOrgMembersMemberRoute
   ConsoleOrgMembersIndexRoute: typeof ConsoleOrgMembersIndexRoute
@@ -1027,6 +1172,8 @@ const ConsoleOrgLedgersLedgerRouteWithChildren =
   )
 
 interface ConsoleOrgRouteChildren {
+  ConsoleOrgApiKeysRouteRoute: typeof ConsoleOrgApiKeysRouteRouteWithChildren
+  ConsoleOrgMachineClientsRouteRoute: typeof ConsoleOrgMachineClientsRouteRouteWithChildren
   ConsoleOrgMembersRouteRoute: typeof ConsoleOrgMembersRouteRouteWithChildren
   ConsoleOrgSettingsRouteRoute: typeof ConsoleOrgSettingsRouteRouteWithChildren
   ConsoleOrgSystemRouteRoute: typeof ConsoleOrgSystemRouteRouteWithChildren
@@ -1035,6 +1182,9 @@ interface ConsoleOrgRouteChildren {
 }
 
 const ConsoleOrgRouteChildren: ConsoleOrgRouteChildren = {
+  ConsoleOrgApiKeysRouteRoute: ConsoleOrgApiKeysRouteRouteWithChildren,
+  ConsoleOrgMachineClientsRouteRoute:
+    ConsoleOrgMachineClientsRouteRouteWithChildren,
   ConsoleOrgMembersRouteRoute: ConsoleOrgMembersRouteRouteWithChildren,
   ConsoleOrgSettingsRouteRoute: ConsoleOrgSettingsRouteRouteWithChildren,
   ConsoleOrgSystemRouteRoute: ConsoleOrgSystemRouteRouteWithChildren,

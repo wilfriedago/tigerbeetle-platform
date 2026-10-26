@@ -6,6 +6,11 @@ import { activeOrganization } from './organization'
  */
 const PUBLIC_API_URL = (import.meta.env.VITE_API_PUBLIC_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
+/** The API's public address, for the commands the console shows. */
+export function publicApiUrl(): string {
+  return PUBLIC_API_URL
+}
+
 function shellQuote(value: string): string {
   return `'${value.replaceAll("'", String.raw`'\''`)}'`
 }

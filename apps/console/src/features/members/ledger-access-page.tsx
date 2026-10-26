@@ -13,7 +13,9 @@ import { Timestamp } from '~/components/ledger/timestamp'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 
-import { canManageLedgerAccess } from '~/lib/auth/session'
+import { credentialQueries } from '~/features/credentials/api'
+
+import { canManageLedgerAccess, canManageMembers } from '~/lib/auth/session'
 import { useSession } from '~/lib/auth/use-session'
 import { useOrganization } from '~/lib/organization'
 
@@ -35,6 +37,8 @@ interface AccessRow {
   role: string
   grantedAt?: string | undefined
   grantedBy?: string | undefined
+  /** Set for an API key or a machine client, which are revoked from their own pages. */
+  credential?: string
 }
 
 const column = columnHelper<AccessRow>()
@@ -47,6 +51,10 @@ export function LedgerAccessPage() {
   const revoke = useRevokeLedgerRole()
   const [granting, setGranting] = useState(false)
   const manage = canManageLedgerAccess(session, ledger)
+  // API keys and machine clients hold ledger roles too; listing them needs org.credentials.
+  const credentialsVisible = canManageMembers(session)
+  const keys = useQuery({ ...credentialQueries.apiKeys(), enabled: credentialsVisible })
+  const clients = useQuery({ ...credentialQueries.machineClients(), enabled: credentialsVisible })
 
   const granted: AccessRow[] = []
   const throughOrganization: AccessRow[] = []
@@ -61,12 +69,49 @@ export function LedgerAccessPage() {
     }
   }
 
+  for (const k of keys.data ?? []) {
+    const role = k.status === 'active' ? k.ledgers.find((l) => l.ledger === ledger) : undefined
+    if (role) {
+      granted.push({
+        credential: 'API key',
+        email: `tbp_${k.id}`,
+        grantedAt: role.grantedAt,
+        grantedBy: role.grantedBy,
+        name: k.name,
+        role: role.role,
+        subject: `key:${k.id}`
+      })
+    }
+  }
+  for (const c of clients.data ?? []) {
+    const role = c.status === 'active' ? c.ledgers.find((l) => l.ledger === ledger) : undefined
+    if (role) {
+      granted.push({
+        credential: 'Machine client',
+        email: c.clientId,
+        grantedAt: role.grantedAt,
+        grantedBy: role.grantedBy,
+        name: c.name,
+        role: role.role,
+        subject: `client:${c.clientId}`
+      })
+    }
+  }
+
   const who = column.accessor('name', {
-    cell: ({ row }) => (
-      <Link to="/$org/members/$member" params={{ member: row.original.subject, org }}>
-        <PersonCell name={row.original.name} email={row.original.email} you={row.original.subject === session?.subject} />
-      </Link>
-    ),
+    cell: ({ row }) =>
+      row.original.credential ? (
+        <span className="flex flex-col">
+          <span className="font-mono text-body text-foreground">{row.original.name}</span>
+          <span className="text-caption text-muted-foreground">
+            {row.original.credential} <span className="font-mono">{row.original.email}</span>
+          </span>
+        </span>
+      ) : (
+        <Link to="/$org/members/$member" params={{ member: row.original.subject, org }}>
+          <PersonCell name={row.original.name} email={row.original.email} you={row.original.subject === session?.subject} />
+        </Link>
+      ),
     header: 'Who',
     meta: { className: 'w-full' }
   })
@@ -85,7 +130,7 @@ export function LedgerAccessPage() {
     }),
     column.display({
       cell: ({ row }) =>
-        manage ? (
+        manage && !row.original.credential ? (
           <Button
             size="sm"
             variant="ghost"
@@ -141,7 +186,10 @@ export function LedgerAccessPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex flex-col gap-6">
           <section className="flex flex-col gap-3">
-            <SectionTitle title={`Ledger roles · ${granted.length}`} description={`Granted on ${ledger} only.`} />
+            <SectionTitle
+              title={`Ledger roles · ${granted.length}`}
+              description={`Granted on ${ledger} only. People, API keys and machine clients get roles the same way.`}
+            />
             <DataTable
               label="Ledger roles"
               columns={grantedColumns}

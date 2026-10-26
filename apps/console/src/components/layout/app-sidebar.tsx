@@ -3,9 +3,11 @@ import { Link, type LinkComponentProps, useLocation } from '@tanstack/react-rout
 import {
   ActivityIcon,
   ArrowLeftRightIcon,
+  BotIcon,
   BuildingIcon,
   CoinsIcon,
   InboxIcon,
+  KeyRoundIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
   LockIcon,
@@ -18,6 +20,7 @@ import {
   WalletIcon
 } from 'lucide-react'
 
+import { canManageMembers } from '~/lib/auth/session'
 import { useSession } from '~/lib/auth/use-session'
 import { useOrganization } from '~/lib/organization'
 import { cn } from '~/lib/utils'
@@ -107,6 +110,12 @@ export function AppSidebar({ ledger, switcher, versions, className, onNavigate }
         {org && !staffPage ? (
           <NavSection label="Organization">
             <NavItem icon={UsersIcon} label="Members" to="/$org/members" params={{ org }} />
+            {canManageMembers(session) ? (
+              <>
+                <NavItem icon={KeyRoundIcon} label="API keys" to="/$org/api-keys" params={{ org }} />
+                <NavItem icon={BotIcon} label="Machine clients" to="/$org/machine-clients" params={{ org }} />
+              </>
+            ) : null}
             <NavItem icon={SettingsIcon} label="Settings" to="/$org/settings" params={{ org }} />
           </NavSection>
         ) : null}

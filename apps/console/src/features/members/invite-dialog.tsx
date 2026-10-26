@@ -1,8 +1,6 @@
 import { useState } from 'react'
 
-import { useQuery } from '@tanstack/react-query'
-
-import { InfoIcon, PlusIcon, XIcon } from 'lucide-react'
+import { InfoIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { ProblemPanel } from '~/components/ledger/problem-panel'
@@ -10,15 +8,13 @@ import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
 import { Dialog, DialogBody, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { Field, FieldDescription, FieldLabel } from '~/components/ui/field'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { Textarea } from '~/components/ui/textarea'
-
-import { ledgerQueries } from '~/features/ledgers/api'
 
 import { useSession } from '~/lib/auth/use-session'
 
 import { useInviteMember } from './api'
-import { LEDGER_ROLES, ORGANIZATION_ROLES, organizationRoleText } from './roles'
+import { chosenLedgerRoles, type LedgerRoleRow, LedgerRoleRows } from './ledger-role-rows'
+import { ORGANIZATION_ROLES, organizationRoleText } from './roles'
 
 // .design/auth.pen, Members, invite dialog: several people at once, one organization role for all
 // of them, and optional ledger roles. Each person gets one email from Keycloak: an invitation when
@@ -41,13 +37,6 @@ export function parseEmails(text: string): string[] {
 /** A plain address such as ada@example.com; the API checks it again. */
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-interface LedgerRow {
-  /** Keys the row in the list; rows have no other identity until a ledger is chosen. */
-  id: number
-  ledger: string
-  role: string
-}
-
 export function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -58,18 +47,17 @@ export function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 
 function InviteForm({ onDone }: { onDone: () => void }) {
   const session = useSession()
-  const ledgers = useQuery(ledgerQueries.list())
   const invite = useInviteMember()
   const [text, setText] = useState('')
   const [role, setRole] = useState('member')
-  const [rows, setRows] = useState<LedgerRow[]>([])
+  const [rows, setRows] = useState<LedgerRoleRow[]>([])
   const [failures, setFailures] = useState<{ email: string; error: unknown }[]>([])
   const [sending, setSending] = useState(false)
 
   const emails = parseEmails(text)
   const invalid = emails.filter((e) => !EMAIL_PATTERN.test(e))
   const tooMany = emails.length > MAX_EMAILS
-  const ledgerRows = rows.filter((r) => r.ledger && r.role).map(({ ledger, role: ledgerRole }) => ({ ledger, role: ledgerRole }))
+  const ledgerRows = chosenLedgerRoles(rows)
   const canSubmit = emails.length > 0 && invalid.length === 0 && !tooMany && !sending
 
   const submit = async () => {
@@ -163,62 +151,7 @@ function InviteForm({ onDone }: { onDone: () => void }) {
             <FieldLabel>
               Ledger roles <span className="font-normal text-subtle-foreground">optional</span>
             </FieldLabel>
-            <div className="flex flex-col gap-2">
-              {rows.map((row, i) => (
-                <div key={row.id} className="flex items-center gap-2">
-                  <Select
-                    items={(ledgers.data?.data ?? []).map((l) => ({ label: l.name, value: l.name }))}
-                    value={row.ledger}
-                    onValueChange={(ledger) => setRows(rows.map((r, j) => (j === i ? { ...r, ledger: ledger ?? '' } : r)))}
-                  >
-                    <SelectTrigger className="flex-1 font-mono" aria-label="Ledger">
-                      <SelectValue placeholder="Ledger" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(ledgers.data?.data ?? []).map((l) => (
-                        <SelectItem key={l.name} value={l.name} className="font-mono">
-                          {l.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    items={LEDGER_ROLES.map((r) => ({ label: r, value: r }))}
-                    value={row.role}
-                    onValueChange={(value) => setRows(rows.map((r, j) => (j === i ? { ...r, role: value ?? '' } : r)))}
-                  >
-                    <SelectTrigger className="w-36" aria-label="Role">
-                      <SelectValue placeholder="Role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LEDGER_ROLES.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          {r}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Remove this ledger role"
-                    onClick={() => setRows(rows.filter((_, j) => j !== i))}
-                  >
-                    <XIcon />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="link"
-                className="self-start"
-                onClick={() => setRows([...rows, { id: (rows.at(-1)?.id ?? 0) + 1, ledger: '', role: 'viewer' }])}
-              >
-                <PlusIcon />
-                Add a ledger role
-              </Button>
-            </div>
+            <LedgerRoleRows rows={rows} onChange={setRows} />
           </Field>
         ) : null}
         <Alert>

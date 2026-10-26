@@ -24,6 +24,17 @@ type Documents = {
     "\n  query AggregateBalances($name: String!, $address: String!) {\n    ledger(name: $name) {\n      aggregateBalances(address: $address) {\n        prefix\n        asOf\n        accounts\n        chunks\n        assets {\n          asset\n          accounts\n          balance\n          available\n          reserved\n          incoming\n        }\n      }\n    }\n  }\n": typeof types.AggregateBalancesDocument,
     "\n  query WriteTarget($name: String!, $address: String!) {\n    ledger(name: $name) {\n      account(address: $address) {\n        ...AccountFields\n      }\n      ruleMatch(address: $address) {\n        rule {\n          ...RuleFields\n        }\n      }\n    }\n  }\n": typeof types.WriteTargetDocument,
     "\n  mutation ReplaceAccountMetadata($input: ReplaceAccountMetadataInput!) {\n    replaceAccountMetadata(input: $input) {\n      ...AccountFields\n    }\n  }\n": typeof types.ReplaceAccountMetadataDocument,
+    "\n  fragment ApiKeyFields on APIKey {\n    id\n    name\n    status\n    expiresAt\n    lastUsedAt\n    revokedAt\n    createdAt\n    createdBy\n    ledgers {\n      ledger\n      role\n      grantedAt\n      grantedBy\n    }\n  }\n": typeof types.ApiKeyFieldsFragmentDoc,
+    "\n  fragment MachineClientFields on MachineClient {\n    clientId\n    name\n    subject\n    status\n    secretSetAt\n    lastTokenAt\n    deletedAt\n    createdAt\n    createdBy\n    ledgers {\n      ledger\n      role\n      grantedAt\n      grantedBy\n    }\n  }\n": typeof types.MachineClientFieldsFragmentDoc,
+    "\n  query ApiKeys {\n    apiKeys {\n      ...ApiKeyFields\n    }\n  }\n": typeof types.ApiKeysDocument,
+    "\n  query MachineClients {\n    machineClients {\n      ...MachineClientFields\n    }\n  }\n": typeof types.MachineClientsDocument,
+    "\n  mutation CreateApiKey($input: CreateAPIKeyInput!) {\n    createApiKey(input: $input) {\n      key {\n        ...ApiKeyFields\n      }\n      secret\n    }\n  }\n": typeof types.CreateApiKeyDocument,
+    "\n  mutation RevokeApiKey($input: APIKeyInput!) {\n    revokeApiKey(input: $input)\n  }\n": typeof types.RevokeApiKeyDocument,
+    "\n  mutation CreateMachineClient($input: CreateMachineClientInput!) {\n    createMachineClient(input: $input) {\n      client {\n        ...MachineClientFields\n      }\n      secret\n      tokenUrl\n    }\n  }\n": typeof types.CreateMachineClientDocument,
+    "\n  mutation RegenerateMachineClientSecret($input: MachineClientInput!) {\n    regenerateMachineClientSecret(input: $input) {\n      secret\n    }\n  }\n": typeof types.RegenerateMachineClientSecretDocument,
+    "\n  mutation DeleteMachineClient($input: MachineClientInput!) {\n    deleteMachineClient(input: $input)\n  }\n": typeof types.DeleteMachineClientDocument,
+    "\n  mutation SetCredentialRole($input: SetCredentialRoleInput!) {\n    setCredentialRole(input: $input)\n  }\n": typeof types.SetCredentialRoleDocument,
+    "\n  mutation RevokeCredentialRole($input: RevokeCredentialRoleInput!) {\n    revokeCredentialRole(input: $input)\n  }\n": typeof types.RevokeCredentialRoleDocument,
     "\n  fragment HoldFields on Hold {\n    id\n    ledger\n    source\n    destination\n    asset\n    amount\n    capturedAmount\n    status\n    timeoutSeconds\n    createdAt\n    timestamp\n    expiresAt\n    resolvedAt\n    reference\n    eventType {\n      name\n      code\n    }\n    metadata\n    idempotencyKey\n    pendingTransferId\n    resolutionTransferId\n    tbLedger\n  }\n": typeof types.HoldFieldsFragmentDoc,
     "\n  query Holds($name: String!, $first: Int, $after: String, $status: HoldStatus, $address: String) {\n    ledger(name: $name) {\n      holds(first: $first, after: $after, status: $status, address: $address) {\n        nodes {\n          ...HoldFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n      holdCounts {\n        open\n        captured\n        voided\n        expired\n        reserved {\n          asset\n          amount\n        }\n      }\n    }\n  }\n": typeof types.HoldsDocument,
     "\n  query Hold($name: String!, $id: U128!) {\n    ledger(name: $name) {\n      hold(id: $id) {\n        ...HoldFields\n      }\n    }\n  }\n": typeof types.HoldDocument,
@@ -81,6 +92,17 @@ const documents: Documents = {
     "\n  query AggregateBalances($name: String!, $address: String!) {\n    ledger(name: $name) {\n      aggregateBalances(address: $address) {\n        prefix\n        asOf\n        accounts\n        chunks\n        assets {\n          asset\n          accounts\n          balance\n          available\n          reserved\n          incoming\n        }\n      }\n    }\n  }\n": types.AggregateBalancesDocument,
     "\n  query WriteTarget($name: String!, $address: String!) {\n    ledger(name: $name) {\n      account(address: $address) {\n        ...AccountFields\n      }\n      ruleMatch(address: $address) {\n        rule {\n          ...RuleFields\n        }\n      }\n    }\n  }\n": types.WriteTargetDocument,
     "\n  mutation ReplaceAccountMetadata($input: ReplaceAccountMetadataInput!) {\n    replaceAccountMetadata(input: $input) {\n      ...AccountFields\n    }\n  }\n": types.ReplaceAccountMetadataDocument,
+    "\n  fragment ApiKeyFields on APIKey {\n    id\n    name\n    status\n    expiresAt\n    lastUsedAt\n    revokedAt\n    createdAt\n    createdBy\n    ledgers {\n      ledger\n      role\n      grantedAt\n      grantedBy\n    }\n  }\n": types.ApiKeyFieldsFragmentDoc,
+    "\n  fragment MachineClientFields on MachineClient {\n    clientId\n    name\n    subject\n    status\n    secretSetAt\n    lastTokenAt\n    deletedAt\n    createdAt\n    createdBy\n    ledgers {\n      ledger\n      role\n      grantedAt\n      grantedBy\n    }\n  }\n": types.MachineClientFieldsFragmentDoc,
+    "\n  query ApiKeys {\n    apiKeys {\n      ...ApiKeyFields\n    }\n  }\n": types.ApiKeysDocument,
+    "\n  query MachineClients {\n    machineClients {\n      ...MachineClientFields\n    }\n  }\n": types.MachineClientsDocument,
+    "\n  mutation CreateApiKey($input: CreateAPIKeyInput!) {\n    createApiKey(input: $input) {\n      key {\n        ...ApiKeyFields\n      }\n      secret\n    }\n  }\n": types.CreateApiKeyDocument,
+    "\n  mutation RevokeApiKey($input: APIKeyInput!) {\n    revokeApiKey(input: $input)\n  }\n": types.RevokeApiKeyDocument,
+    "\n  mutation CreateMachineClient($input: CreateMachineClientInput!) {\n    createMachineClient(input: $input) {\n      client {\n        ...MachineClientFields\n      }\n      secret\n      tokenUrl\n    }\n  }\n": types.CreateMachineClientDocument,
+    "\n  mutation RegenerateMachineClientSecret($input: MachineClientInput!) {\n    regenerateMachineClientSecret(input: $input) {\n      secret\n    }\n  }\n": types.RegenerateMachineClientSecretDocument,
+    "\n  mutation DeleteMachineClient($input: MachineClientInput!) {\n    deleteMachineClient(input: $input)\n  }\n": types.DeleteMachineClientDocument,
+    "\n  mutation SetCredentialRole($input: SetCredentialRoleInput!) {\n    setCredentialRole(input: $input)\n  }\n": types.SetCredentialRoleDocument,
+    "\n  mutation RevokeCredentialRole($input: RevokeCredentialRoleInput!) {\n    revokeCredentialRole(input: $input)\n  }\n": types.RevokeCredentialRoleDocument,
     "\n  fragment HoldFields on Hold {\n    id\n    ledger\n    source\n    destination\n    asset\n    amount\n    capturedAmount\n    status\n    timeoutSeconds\n    createdAt\n    timestamp\n    expiresAt\n    resolvedAt\n    reference\n    eventType {\n      name\n      code\n    }\n    metadata\n    idempotencyKey\n    pendingTransferId\n    resolutionTransferId\n    tbLedger\n  }\n": types.HoldFieldsFragmentDoc,
     "\n  query Holds($name: String!, $first: Int, $after: String, $status: HoldStatus, $address: String) {\n    ledger(name: $name) {\n      holds(first: $first, after: $after, status: $status, address: $address) {\n        nodes {\n          ...HoldFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n      holdCounts {\n        open\n        captured\n        voided\n        expired\n        reserved {\n          asset\n          amount\n        }\n      }\n    }\n  }\n": types.HoldsDocument,
     "\n  query Hold($name: String!, $id: U128!) {\n    ledger(name: $name) {\n      hold(id: $id) {\n        ...HoldFields\n      }\n    }\n  }\n": types.HoldDocument,
@@ -165,6 +187,50 @@ export function graphql(source: "\n  query WriteTarget($name: String!, $address:
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  mutation ReplaceAccountMetadata($input: ReplaceAccountMetadataInput!) {\n    replaceAccountMetadata(input: $input) {\n      ...AccountFields\n    }\n  }\n"): typeof import('./graphql').ReplaceAccountMetadataDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  fragment ApiKeyFields on APIKey {\n    id\n    name\n    status\n    expiresAt\n    lastUsedAt\n    revokedAt\n    createdAt\n    createdBy\n    ledgers {\n      ledger\n      role\n      grantedAt\n      grantedBy\n    }\n  }\n"): typeof import('./graphql').ApiKeyFieldsFragmentDoc;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  fragment MachineClientFields on MachineClient {\n    clientId\n    name\n    subject\n    status\n    secretSetAt\n    lastTokenAt\n    deletedAt\n    createdAt\n    createdBy\n    ledgers {\n      ledger\n      role\n      grantedAt\n      grantedBy\n    }\n  }\n"): typeof import('./graphql').MachineClientFieldsFragmentDoc;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query ApiKeys {\n    apiKeys {\n      ...ApiKeyFields\n    }\n  }\n"): typeof import('./graphql').ApiKeysDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query MachineClients {\n    machineClients {\n      ...MachineClientFields\n    }\n  }\n"): typeof import('./graphql').MachineClientsDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation CreateApiKey($input: CreateAPIKeyInput!) {\n    createApiKey(input: $input) {\n      key {\n        ...ApiKeyFields\n      }\n      secret\n    }\n  }\n"): typeof import('./graphql').CreateApiKeyDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation RevokeApiKey($input: APIKeyInput!) {\n    revokeApiKey(input: $input)\n  }\n"): typeof import('./graphql').RevokeApiKeyDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation CreateMachineClient($input: CreateMachineClientInput!) {\n    createMachineClient(input: $input) {\n      client {\n        ...MachineClientFields\n      }\n      secret\n      tokenUrl\n    }\n  }\n"): typeof import('./graphql').CreateMachineClientDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation RegenerateMachineClientSecret($input: MachineClientInput!) {\n    regenerateMachineClientSecret(input: $input) {\n      secret\n    }\n  }\n"): typeof import('./graphql').RegenerateMachineClientSecretDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation DeleteMachineClient($input: MachineClientInput!) {\n    deleteMachineClient(input: $input)\n  }\n"): typeof import('./graphql').DeleteMachineClientDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation SetCredentialRole($input: SetCredentialRoleInput!) {\n    setCredentialRole(input: $input)\n  }\n"): typeof import('./graphql').SetCredentialRoleDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation RevokeCredentialRole($input: RevokeCredentialRoleInput!) {\n    revokeCredentialRole(input: $input)\n  }\n"): typeof import('./graphql').RevokeCredentialRoleDocument;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

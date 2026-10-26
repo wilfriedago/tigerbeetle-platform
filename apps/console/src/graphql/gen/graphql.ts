@@ -4,6 +4,10 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
+export type ApiKeyInput = {
+  id: string;
+};
+
 /** The balance limit flag of the TigerBeetle accounts a rule creates. */
 export type BalanceLimit =
   | 'credits_must_not_exceed_debits'
@@ -16,6 +20,15 @@ export type CaptureHoldInput = {
   id: string;
   idempotencyKey: string;
   ledger: string;
+};
+
+export type CreateApiKeyInput = {
+  /** Absent for a key that does not expire. */
+  expiresAt?: string | null | undefined;
+  /** The ledger roles the key acts with; at least one. */
+  ledgers: Array<LedgerRoleInput>;
+  /** Lowercase letters, digits and dashes. */
+  name: string;
 };
 
 export type CreateEventTypeInput = {
@@ -43,6 +56,13 @@ export type CreateHoldInput = {
 export type CreateLedgerInput = {
   metadata?: Record<string, string> | null | undefined;
   /** Lowercase letters, digits, dash and underscore, 1 to 63 characters. */
+  name: string;
+};
+
+export type CreateMachineClientInput = {
+  /** The ledger roles its tokens act with; at least one. */
+  ledgers: Array<LedgerRoleInput>;
+  /** The client ID becomes <organization>-<name>. */
   name: string;
 };
 
@@ -95,6 +115,10 @@ export type LedgerRoleInput = {
   ledger: string;
   /** viewer, operator or admin. */
   role: string;
+};
+
+export type MachineClientInput = {
+  clientId: string;
 };
 
 export type MemberInput = {
@@ -168,9 +192,26 @@ export type RevertTransactionInput = {
   reference?: string | null | undefined;
 };
 
+export type RevokeCredentialRoleInput = {
+  id: string;
+  /** api-key or machine-client. */
+  kind: string;
+  ledger: string;
+};
+
 export type RevokeLedgerRoleInput = {
   ledger: string;
   subject: string;
+};
+
+export type SetCredentialRoleInput = {
+  /** The key ID or the client ID. */
+  id: string;
+  /** api-key or machine-client. */
+  kind: string;
+  ledger: string;
+  /** viewer, operator or admin. */
+  role: string;
 };
 
 export type SetLedgerRoleInput = {
@@ -265,6 +306,69 @@ export type ReplaceAccountMetadataMutationVariables = Exact<{
 
 
 export type ReplaceAccountMetadataMutation = { replaceAccountMetadata: { address: string, createdAt: string, metadata: Record<string, string>, openHolds: number, balances: Array<{ asset: string, accountId: string, tbLedger: number, balance: string, available: string, reserved: string, incoming: string, credits: string, debits: string, limit: BalanceLimit, history: boolean, code: number, rule: string, createdAt: string }> } };
+
+export type ApiKeyFieldsFragment = { id: string, name: string, status: string, expiresAt: string | null, lastUsedAt: string | null, revokedAt: string | null, createdAt: string, createdBy: string | null, ledgers: Array<{ ledger: string, role: string, grantedAt: string, grantedBy: string | null }> };
+
+export type MachineClientFieldsFragment = { clientId: string, name: string, subject: string, status: string, secretSetAt: string, lastTokenAt: string | null, deletedAt: string | null, createdAt: string, createdBy: string | null, ledgers: Array<{ ledger: string, role: string, grantedAt: string, grantedBy: string | null }> };
+
+export type ApiKeysQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ApiKeysQuery = { apiKeys: Array<{ id: string, name: string, status: string, expiresAt: string | null, lastUsedAt: string | null, revokedAt: string | null, createdAt: string, createdBy: string | null, ledgers: Array<{ ledger: string, role: string, grantedAt: string, grantedBy: string | null }> }> };
+
+export type MachineClientsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MachineClientsQuery = { machineClients: Array<{ clientId: string, name: string, subject: string, status: string, secretSetAt: string, lastTokenAt: string | null, deletedAt: string | null, createdAt: string, createdBy: string | null, ledgers: Array<{ ledger: string, role: string, grantedAt: string, grantedBy: string | null }> }> };
+
+export type CreateApiKeyMutationVariables = Exact<{
+  input: CreateApiKeyInput;
+}>;
+
+
+export type CreateApiKeyMutation = { createApiKey: { secret: string, key: { id: string, name: string, status: string, expiresAt: string | null, lastUsedAt: string | null, revokedAt: string | null, createdAt: string, createdBy: string | null, ledgers: Array<{ ledger: string, role: string, grantedAt: string, grantedBy: string | null }> } } };
+
+export type RevokeApiKeyMutationVariables = Exact<{
+  input: ApiKeyInput;
+}>;
+
+
+export type RevokeApiKeyMutation = { revokeApiKey: boolean };
+
+export type CreateMachineClientMutationVariables = Exact<{
+  input: CreateMachineClientInput;
+}>;
+
+
+export type CreateMachineClientMutation = { createMachineClient: { secret: string, tokenUrl: string, client: { clientId: string, name: string, subject: string, status: string, secretSetAt: string, lastTokenAt: string | null, deletedAt: string | null, createdAt: string, createdBy: string | null, ledgers: Array<{ ledger: string, role: string, grantedAt: string, grantedBy: string | null }> } } };
+
+export type RegenerateMachineClientSecretMutationVariables = Exact<{
+  input: MachineClientInput;
+}>;
+
+
+export type RegenerateMachineClientSecretMutation = { regenerateMachineClientSecret: { secret: string } };
+
+export type DeleteMachineClientMutationVariables = Exact<{
+  input: MachineClientInput;
+}>;
+
+
+export type DeleteMachineClientMutation = { deleteMachineClient: boolean };
+
+export type SetCredentialRoleMutationVariables = Exact<{
+  input: SetCredentialRoleInput;
+}>;
+
+
+export type SetCredentialRoleMutation = { setCredentialRole: boolean };
+
+export type RevokeCredentialRoleMutationVariables = Exact<{
+  input: RevokeCredentialRoleInput;
+}>;
+
+
+export type RevokeCredentialRoleMutation = { revokeCredentialRole: boolean };
 
 export type HoldFieldsFragment = { id: string, ledger: string, source: string, destination: string, asset: string, amount: string, capturedAmount: string | null, status: HoldStatus, timeoutSeconds: number, createdAt: string, timestamp: string, expiresAt: string | null, resolvedAt: string | null, reference: string | null, metadata: Record<string, string>, idempotencyKey: string, pendingTransferId: string, resolutionTransferId: string | null, tbLedger: number, eventType: { name: string, code: number } };
 
@@ -630,6 +734,43 @@ export const AccountFieldsFragmentDoc = new TypedDocumentString(`
   openHolds
 }
     `, {"fragmentName":"AccountFields"}) as unknown as TypedDocumentString<AccountFieldsFragment, unknown>;
+export const ApiKeyFieldsFragmentDoc = new TypedDocumentString(`
+    fragment ApiKeyFields on APIKey {
+  id
+  name
+  status
+  expiresAt
+  lastUsedAt
+  revokedAt
+  createdAt
+  createdBy
+  ledgers {
+    ledger
+    role
+    grantedAt
+    grantedBy
+  }
+}
+    `, {"fragmentName":"ApiKeyFields"}) as unknown as TypedDocumentString<ApiKeyFieldsFragment, unknown>;
+export const MachineClientFieldsFragmentDoc = new TypedDocumentString(`
+    fragment MachineClientFields on MachineClient {
+  clientId
+  name
+  subject
+  status
+  secretSetAt
+  lastTokenAt
+  deletedAt
+  createdAt
+  createdBy
+  ledgers {
+    ledger
+    role
+    grantedAt
+    grantedBy
+  }
+}
+    `, {"fragmentName":"MachineClientFields"}) as unknown as TypedDocumentString<MachineClientFieldsFragment, unknown>;
 export const HoldFieldsFragmentDoc = new TypedDocumentString(`
     fragment HoldFields on Hold {
   id
@@ -978,6 +1119,130 @@ export const ReplaceAccountMetadataDocument = new TypedDocumentString(`
   }
   openHolds
 }`) as unknown as TypedDocumentString<ReplaceAccountMetadataMutation, ReplaceAccountMetadataMutationVariables>;
+export const ApiKeysDocument = new TypedDocumentString(`
+    query ApiKeys {
+  apiKeys {
+    ...ApiKeyFields
+  }
+}
+    fragment ApiKeyFields on APIKey {
+  id
+  name
+  status
+  expiresAt
+  lastUsedAt
+  revokedAt
+  createdAt
+  createdBy
+  ledgers {
+    ledger
+    role
+    grantedAt
+    grantedBy
+  }
+}`) as unknown as TypedDocumentString<ApiKeysQuery, ApiKeysQueryVariables>;
+export const MachineClientsDocument = new TypedDocumentString(`
+    query MachineClients {
+  machineClients {
+    ...MachineClientFields
+  }
+}
+    fragment MachineClientFields on MachineClient {
+  clientId
+  name
+  subject
+  status
+  secretSetAt
+  lastTokenAt
+  deletedAt
+  createdAt
+  createdBy
+  ledgers {
+    ledger
+    role
+    grantedAt
+    grantedBy
+  }
+}`) as unknown as TypedDocumentString<MachineClientsQuery, MachineClientsQueryVariables>;
+export const CreateApiKeyDocument = new TypedDocumentString(`
+    mutation CreateApiKey($input: CreateAPIKeyInput!) {
+  createApiKey(input: $input) {
+    key {
+      ...ApiKeyFields
+    }
+    secret
+  }
+}
+    fragment ApiKeyFields on APIKey {
+  id
+  name
+  status
+  expiresAt
+  lastUsedAt
+  revokedAt
+  createdAt
+  createdBy
+  ledgers {
+    ledger
+    role
+    grantedAt
+    grantedBy
+  }
+}`) as unknown as TypedDocumentString<CreateApiKeyMutation, CreateApiKeyMutationVariables>;
+export const RevokeApiKeyDocument = new TypedDocumentString(`
+    mutation RevokeApiKey($input: APIKeyInput!) {
+  revokeApiKey(input: $input)
+}
+    `) as unknown as TypedDocumentString<RevokeApiKeyMutation, RevokeApiKeyMutationVariables>;
+export const CreateMachineClientDocument = new TypedDocumentString(`
+    mutation CreateMachineClient($input: CreateMachineClientInput!) {
+  createMachineClient(input: $input) {
+    client {
+      ...MachineClientFields
+    }
+    secret
+    tokenUrl
+  }
+}
+    fragment MachineClientFields on MachineClient {
+  clientId
+  name
+  subject
+  status
+  secretSetAt
+  lastTokenAt
+  deletedAt
+  createdAt
+  createdBy
+  ledgers {
+    ledger
+    role
+    grantedAt
+    grantedBy
+  }
+}`) as unknown as TypedDocumentString<CreateMachineClientMutation, CreateMachineClientMutationVariables>;
+export const RegenerateMachineClientSecretDocument = new TypedDocumentString(`
+    mutation RegenerateMachineClientSecret($input: MachineClientInput!) {
+  regenerateMachineClientSecret(input: $input) {
+    secret
+  }
+}
+    `) as unknown as TypedDocumentString<RegenerateMachineClientSecretMutation, RegenerateMachineClientSecretMutationVariables>;
+export const DeleteMachineClientDocument = new TypedDocumentString(`
+    mutation DeleteMachineClient($input: MachineClientInput!) {
+  deleteMachineClient(input: $input)
+}
+    `) as unknown as TypedDocumentString<DeleteMachineClientMutation, DeleteMachineClientMutationVariables>;
+export const SetCredentialRoleDocument = new TypedDocumentString(`
+    mutation SetCredentialRole($input: SetCredentialRoleInput!) {
+  setCredentialRole(input: $input)
+}
+    `) as unknown as TypedDocumentString<SetCredentialRoleMutation, SetCredentialRoleMutationVariables>;
+export const RevokeCredentialRoleDocument = new TypedDocumentString(`
+    mutation RevokeCredentialRole($input: RevokeCredentialRoleInput!) {
+  revokeCredentialRole(input: $input)
+}
+    `) as unknown as TypedDocumentString<RevokeCredentialRoleMutation, RevokeCredentialRoleMutationVariables>;
 export const HoldsDocument = new TypedDocumentString(`
     query Holds($name: String!, $first: Int, $after: String, $status: HoldStatus, $address: String) {
   ledger(name: $name) {
