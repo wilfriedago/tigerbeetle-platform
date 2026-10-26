@@ -28,6 +28,8 @@ const (
 	HeaderRequestID      = "X-Request-Id"
 	HeaderIdempotencyKey = "Idempotency-Key"
 	HeaderDeadline       = "X-Deadline"
+	HeaderAuthorization  = "Authorization"
+	HeaderOrganization   = "Organization"
 )
 
 // Options configures a Server.
@@ -128,6 +130,8 @@ func (s *Server) accept(ctx context.Context, method string, req micro.Request) {
 		RequestID:      headerOf(req.Headers(), HeaderRequestID),
 		IdempotencyKey: headerOf(req.Headers(), HeaderIdempotencyKey),
 		Deadline:       headerOf(req.Headers(), HeaderDeadline),
+		Authorization:  headerOf(req.Headers(), HeaderAuthorization),
+		Organization:   headerOf(req.Headers(), HeaderOrganization),
 	}
 	_ = s.pool.Go(ctx, func() { s.answer(ctx, call, req) })
 }

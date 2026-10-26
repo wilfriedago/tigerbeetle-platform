@@ -15,6 +15,7 @@ import (
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
 	ledgersv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/rest/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/amqprpc"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcserver"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/httpserver"
@@ -47,7 +48,7 @@ func healthSource(r resources, cfg config.Config, svc Service) healthdto.Source 
 // httpHandler builds the HTTP handler: the health operations always, the module operations when
 // REST is enabled, and POST /graphql when GraphQL is, on one ServeMux behind the standard
 // middleware of platform/restapi (request ID, access log, panic recovery).
-func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger) http.Handler {
+func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger, auth *authn.Authenticator) http.Handler {
 	mux := http.NewServeMux()
 	api := restapi.NewAPI(mux)
 	rest.RegisterHealth(api, health)
@@ -79,13 +80,14 @@ func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *
 			Bookkeeping: m.bookkeeping,
 		})))
 	}
-	return restapi.Handler(mux, logger)
+	// Liveness and readiness are for orchestrators and load balancers: no credential.
+	return restapi.Handler(mux, logger, auth, "/healthz", "/readyz")
 }
 
 // grpcServer builds the gRPC server with every module's services and server reflection.
-func grpcServer(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger) *grpcserver.Server {
+func grpcServer(health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger, auth *authn.Authenticator) *grpcserver.Server {
 	srv := grpcserver.New(grpcserver.Options{
-		Addr: cfg.GRPCAddr, ShutdownTimeout: cfg.ShutdownTimeout, Logger: logger, Reflection: true,
+		Addr: cfg.GRPCAddr, ShutdownTimeout: cfg.ShutdownTimeout, Logger: logger, Reflection: true, Auth: auth,
 	})
 	grpctransport.RegisterAll(srv, grpctransport.Modules{Health: health, Ledgers: m.ledgers, Bookkeeping: m.bookkeeping})
 	return srv
@@ -96,7 +98,7 @@ func grpcServer(health healthdto.Source, m modules, cfg config.Config, logger *s
 // probes are optional: a broker outage degrades the service without making it unready (plan
 // section 13.2). RabbitMQ is one dependency, reported once, even when both AMQP RPC and the relay
 // connect to it.
-func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger) error {
+func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg config.Config, logger *slog.Logger, auth *authn.Authenticator) error {
 	var rabbit []readiness.Probe
 	defer func() {
 		if len(rabbit) > 0 {
@@ -114,7 +116,7 @@ func (a *App) brokerServers(r resources, health healthdto.Source, m modules, cfg
 		return nil
 	}
 	router := rpctransport.Router(rpctransport.Modules{Health: health, Ledgers: m.ledgers, Bookkeeping: m.bookkeeping})
-	dispatcher := rpc.NewDispatcher(router, cfg.RPCTimeoutMax, logger)
+	dispatcher := rpc.NewDispatcher(router, cfg.RPCTimeoutMax, logger, auth, "v1.getLiveness", "v1.getReadiness")
 	if cfg.AMQPRPCEnabled {
 		a.amqp = amqprpc.New(amqprpc.Options{
 			URL: cfg.AMQPURL, Queue: cfg.AMQPRPCQueue, Concurrency: cfg.RPCConcurrency,

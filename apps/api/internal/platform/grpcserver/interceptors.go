@@ -12,7 +12,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/logging"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 )
@@ -33,9 +32,6 @@ func incomingRequestID(ctx context.Context, base *slog.Logger) (out context.Cont
 		id = requestid.New()
 	}
 	ctx = requestid.With(ctx, id)
-	// Every call acts for the default organization until authentication resolves the tenant from
-	// the credential (docs/plans/auth/plan.md, phase 2; ADR-0026).
-	ctx = ledger.WithTenant(ctx, ledger.DefaultTenant)
 	return logging.With(ctx, base.With(slog.String("request_id", id))), id
 }
 

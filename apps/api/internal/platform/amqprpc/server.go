@@ -129,6 +129,8 @@ func (s *Server) handle(ctx context.Context, ch *amqp091.Channel, d amqp091.Deli
 		RequestID:      header(d.Headers, rpc.HeaderRequestID),
 		IdempotencyKey: header(d.Headers, rpc.HeaderIdempotencyKey),
 		Deadline:       header(d.Headers, rpc.HeaderDeadline),
+		Authorization:  header(d.Headers, rpc.HeaderAuthorization),
+		Organization:   header(d.Headers, rpc.HeaderOrganization),
 	})
 	if d.ReplyTo != "" {
 		publish, cancel := context.WithTimeout(ctx, 5*time.Second)

@@ -11,22 +11,55 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/logging"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 )
 
+// Authenticator checks the credential of a call and resolves the organization it names
+// (internal/platform/authn).
+type Authenticator interface {
+	Authenticate(ctx context.Context, authorization, organization string) (context.Context, error)
+}
+
 // Handler wraps mux, on which NewAPI registered the operations, with the standard-library
-// middleware every request goes through: request ID, access log, panic recovery, JSON bodies and
-// problem+json answers for unknown routes. Huma does no routing of its own; the ServeMux does.
-func Handler(mux *http.ServeMux, logger *slog.Logger) http.Handler {
+// middleware every request goes through: request ID, access log, panic recovery, authentication,
+// JSON bodies and problem+json answers for unknown routes. Huma does no routing of its own; the
+// ServeMux does. The public paths, such as the health probes, need no credential.
+func Handler(mux *http.ServeMux, logger *slog.Logger, auth Authenticator, public ...string) http.Handler {
 	h := unknownRoutes(mux)
 	h = jsonBodies(h)
+	h = authenticate(auth, public)(h)
 	h = recoverPanic(h)
 	h = accessLog(h)
 	h = requestID(logger)(h)
 	return h
+}
+
+// OrganizationHeader names the organization a person acts for (ADR-0026).
+const OrganizationHeader = "X-Organization"
+
+// authenticate puts the principal and the tenant in the context of every request outside the
+// public paths, or answers the problem of a missing or bad credential (ADR-0025).
+func authenticate(auth Authenticator, public []string) func(http.Handler) http.Handler {
+	open := make(map[string]bool, len(public))
+	for _, p := range public {
+		open[p] = true
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if open[r.URL.Path] {
+				next.ServeHTTP(w, r)
+				return
+			}
+			ctx, err := auth.Authenticate(r.Context(), r.Header.Get("Authorization"), r.Header.Get(OrganizationHeader))
+			if err != nil {
+				writeProblem(w, r.WithContext(ctx), problem.From(err))
+				return
+			}
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }
 
 // pathKey carries the request path, the instance of a problem, to errors built from a context. The
@@ -52,9 +85,6 @@ func requestID(base *slog.Logger) func(http.Handler) http.Handler {
 			ctx = logging.With(ctx, base.With(slog.String("request_id", id)))
 			// The escaped form, so instance stays a valid URI reference for a path such as /a%20b.
 			ctx = context.WithValue(ctx, pathKey{}, r.URL.EscapedPath())
-			// Every call acts for the default organization until authentication resolves the tenant
-			// from the credential (docs/plans/auth/plan.md, phase 2; ADR-0026).
-			ctx = ledger.WithTenant(ctx, ledger.DefaultTenant)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

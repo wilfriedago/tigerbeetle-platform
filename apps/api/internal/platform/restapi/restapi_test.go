@@ -18,6 +18,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/scalar"
 )
@@ -76,7 +77,7 @@ func newTestHandler(t *testing.T) (http.Handler, huma.API) {
 		}
 		return &struct{ Body thing }{Body: thing{Name: "made", Limit: in.Body.Code, Amount: "1", Tags: in.Body.Items}}, nil
 	})
-	return Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil))), api
+	return Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), authntest.Default()), api
 }
 
 func do(t *testing.T, h http.Handler, method, path, body string, headers map[string]string) *httptest.ResponseRecorder {

@@ -78,6 +78,21 @@ type Config struct {
 	CDCAMQPURL string `env:"CDC_AMQP_URL"`
 	// CDCQueue is the relay queue, bound to the CDC exchange tbp.cdc.
 	CDCQueue string `env:"CDC_QUEUE" envDefault:"tbp.ledger-events.relay"`
+
+	// Authentication is always on (ADR-0025): there is no switch to turn it off.
+
+	// AuthIssuerURL is the identity provider's issuer, as access tokens name it.
+	AuthIssuerURL string `env:"AUTH_ISSUER_URL,required,notEmpty"`
+	// AuthDiscoveryURL is where the API reads the provider's discovery document and keys, when it
+	// reaches the provider at another address than browsers do. Empty means AUTH_ISSUER_URL.
+	AuthDiscoveryURL string `env:"AUTH_DISCOVERY_URL"`
+	// AuthAudience is the audience access tokens must carry: the API's identifier.
+	AuthAudience string `env:"AUTH_AUDIENCE,required,notEmpty"`
+	// AuthStaffClaim and AuthStaffValue mark the platform's staff in a token.
+	AuthStaffClaim string `env:"AUTH_STAFF_CLAIM" envDefault:"roles"`
+	AuthStaffValue string `env:"AUTH_STAFF_VALUE" envDefault:"tbp-staff"`
+	// AuthOrganizationClaim lists the aliases of a person's organizations (ADR-0026).
+	AuthOrganizationClaim string `env:"AUTH_ORGANIZATION_CLAIM" envDefault:"organization"`
 }
 
 // Load reads the process environment.

@@ -126,6 +126,7 @@ func TestLedgerEventsToKafka(t *testing.T) {
 		CDCAMQPURL:            amqpURL,
 		CDCQueue:              "tbp.ledger-events.relay",
 	}
+	auth := trustTestIssuer(t, &cfg)
 	// Writes go through their own process, with the relay off, so stopping a relay process does
 	// not stop the writes, as with two replicas.
 	writerCfg := cfg
@@ -136,8 +137,8 @@ func TestLedgerEventsToKafka(t *testing.T) {
 		t.Fatalf("build writer: %v", err)
 	}
 	t.Cleanup(writer.Close)
-	h := &harness{t: t, app: writer}
-	h.server = httptest.NewServer(writer.Handler())
+	h := &harness{t: t, app: writer, auth: auth}
+	h.server = httptest.NewServer(auth.withCredentials(writer.Handler()))
 	t.Cleanup(h.server.Close)
 
 	first := startRelayApp(t, cfg)

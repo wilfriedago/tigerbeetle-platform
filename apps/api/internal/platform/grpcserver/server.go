@@ -22,6 +22,8 @@ type Options struct {
 	Logger          *slog.Logger
 	// Reflection lets grpcurl and similar tools list and describe the services.
 	Reflection bool
+	// Auth authenticates every call except health and reflection (ADR-0031).
+	Auth Authenticator
 }
 
 // Server is a grpc.Server with the platform's interceptors. Services register on it before Run.
@@ -31,15 +33,15 @@ type Server struct {
 }
 
 // New builds a server. Interceptors run in this order, outermost first: request ID, access log,
-// error mapping, panic recovery; so a panic becomes an error, the error becomes a status with
-// details, and the log line sees the final code.
+// error mapping, panic recovery, authentication; so a panic becomes an error, a refused credential
+// and any other error become a status with details, and the log line sees the final code.
 func New(opts Options) *Server {
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			unaryRequestID(opts.Logger), unaryAccessLog, unaryErrors, unaryRecover,
+			unaryRequestID(opts.Logger), unaryAccessLog, unaryErrors, unaryRecover, unaryAuth(opts.Auth),
 		),
 		grpc.ChainStreamInterceptor(
-			streamRequestID(opts.Logger), streamAccessLog, streamErrors, streamRecover,
+			streamRequestID(opts.Logger), streamAccessLog, streamErrors, streamRecover, streamAuth(opts.Auth),
 		),
 	)
 	return &Server{srv: srv, opts: opts}

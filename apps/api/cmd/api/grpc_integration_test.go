@@ -27,6 +27,12 @@ import (
 // grpcConn serves the app's gRPC server on an in-memory listener and dials it.
 func (h *harness) grpcConn() *grpc.ClientConn {
 	h.t.Helper()
+	return h.grpcConnWith(h.auth.grpcCredentials())
+}
+
+// grpcConnWith dials the harness's gRPC server with the given options and no default credential.
+func (h *harness) grpcConnWith(opts ...grpc.DialOption) *grpc.ClientConn {
+	h.t.Helper()
 	srv := h.app.GRPC()
 	if srv == nil {
 		h.t.Fatal("gRPC is not enabled in the harness")
@@ -34,9 +40,10 @@ func (h *harness) grpcConn() *grpc.ClientConn {
 	lis := bufconn.Listen(1 << 20)
 	go func() { _ = srv.Serve(lis) }()
 	h.t.Cleanup(srv.Stop)
-	conn, err := grpc.NewClient("passthrough:///bufconn",
+	opts = append(opts,
 		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return lis.DialContext(ctx) }),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("passthrough:///bufconn", opts...)
 	if err != nil {
 		h.t.Fatal(err)
 	}

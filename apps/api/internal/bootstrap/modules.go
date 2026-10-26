@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	accessapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/application"
+	accesspg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/infrastructure/postgres"
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
 	bookkeepingdomain "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
 	bookkeepingpg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure/postgres"
@@ -16,6 +18,7 @@ import (
 
 // modules holds the use cases of every module.
 type modules struct {
+	access      accessapp.Application
 	ledgers     ledgersapp.Application
 	bookkeeping bookkeepingapp.Application
 	// bookkeepingAccounts is what the ledger event relay enriches events from (ADR-0022).
@@ -63,5 +66,6 @@ func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options
 		Addresses:  bk.Footprints,
 		Clock:      clock,
 	})
-	return modules{ledgers: lg, bookkeeping: bk, bookkeepingAccounts: bookStore}
+	ac := accessapp.New(accessapp.Deps{Organizations: accesspg.NewStore(r.db)})
+	return modules{access: ac, ledgers: lg, bookkeeping: bk, bookkeepingAccounts: bookStore}
 }

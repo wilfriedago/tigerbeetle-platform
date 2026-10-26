@@ -19,6 +19,7 @@ import (
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	healthdto "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/dto"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/readiness"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
@@ -40,7 +41,7 @@ func serve(t *testing.T, m Modules, body string) map[string]any {
 func post(m Modules, body string) *httptest.ResponseRecorder {
 	mux := http.NewServeMux()
 	mux.Handle("POST /graphql", NewHandler(NewResolver(m)))
-	h := restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	h := restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), authntest.Default())
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/graphql", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

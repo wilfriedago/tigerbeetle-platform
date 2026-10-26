@@ -13,6 +13,7 @@ import (
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/restapi"
 )
@@ -23,7 +24,7 @@ func newTestServer(t *testing.T, deps Deps) http.Handler {
 	mux := http.NewServeMux()
 	api := restapi.NewAPI(mux)
 	Register(api, deps)
-	return restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	return restapi.Handler(mux, slog.New(slog.NewTextHandler(io.Discard, nil)), authntest.Default())
 }
 
 func decode[T any](t *testing.T, rec *httptest.ResponseRecorder) T {

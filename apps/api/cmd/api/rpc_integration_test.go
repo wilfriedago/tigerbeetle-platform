@@ -26,7 +26,7 @@ import (
 
 // caller is what the AMQP and NATS clients have in common.
 type caller interface {
-	Call(ctx context.Context, method string, env rpc.Envelope, key, requestID string) (rpc.Answer, error)
+	Call(ctx context.Context, method string, env rpc.Envelope, h rpc.Headers) (rpc.Answer, error)
 }
 
 type rpcStack struct {
@@ -36,6 +36,7 @@ type rpcStack struct {
 	rest  *httptest.Server
 	apps  []*bootstrap.App
 	queue string
+	auth  testAuth
 }
 
 // newRPCStack starts the stores and both brokers, then two API replicas with AMQP and NATS RPC
@@ -63,6 +64,7 @@ func newRPCStack(t *testing.T) *rpcStack {
 		RPCTimeoutMax:         30 * time.Second,
 	}
 	s := &rpcStack{t: t, queue: cfg.AMQPRPCQueue}
+	s.auth = trustTestIssuer(t, &cfg)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	for range 2 {
 		app, err := bootstrap.Build(context.Background(), cfg, bootstrap.Service{Name: serviceName, Version: version}, logger)
@@ -80,7 +82,7 @@ func newRPCStack(t *testing.T) *rpcStack {
 		})
 		s.apps = append(s.apps, app)
 	}
-	s.rest = httptest.NewServer(s.apps[0].Handler())
+	s.rest = httptest.NewServer(s.auth.withCredentials(s.apps[0].Handler()))
 	t.Cleanup(s.rest.Close)
 
 	var err error
@@ -113,7 +115,7 @@ func newRPCStack(t *testing.T) *rpcStack {
 func (s *rpcStack) call(c caller, method string, env rpc.Envelope, key string, out any) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	answer, err := c.Call(ctx, method, env, key, "")
+	answer, err := c.Call(ctx, method, env, s.auth.rpcHeaders(key))
 	if err != nil {
 		return err
 	}
@@ -218,6 +220,30 @@ func TestBrokerRPCEndToEnd(t *testing.T) {
 		var rpcErr *rpc.Error
 		if !errors.As(err, &rpcErr) || rpcErr.Reason != "missing-idempotency-key" {
 			t.Fatalf("no key = %v", err)
+		}
+	})
+
+	t.Run("a call without a credential is refused; liveness is open", func(t *testing.T) {
+		for name, c := range map[string]caller{"AMQP": s.amqp, "NATS": s.nats} {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			answer, err := c.Call(ctx, "v1.listLedgers", rpc.Envelope{}, rpc.Headers{})
+			cancel()
+			var rpcErr *rpc.Error
+			if err == nil {
+				err = rpc.DecodeReply(answer.Body, nil)
+			}
+			if !errors.As(err, &rpcErr) || rpcErr.Code != "UNAUTHENTICATED" {
+				t.Fatalf("%s without a credential = %v", name, err)
+			}
+			ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
+			answer, err = c.Call(ctx, "v1.getLiveness", rpc.Envelope{}, rpc.Headers{})
+			cancel()
+			if err == nil {
+				err = rpc.DecodeReply(answer.Body, nil)
+			}
+			if err != nil {
+				t.Fatalf("%s liveness without a credential = %v", name, err)
+			}
 		}
 	})
 

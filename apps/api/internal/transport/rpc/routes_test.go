@@ -16,6 +16,7 @@ import (
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
 	ledgersapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/application"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
 	platformrpc "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/rpc"
 )
 
@@ -61,7 +62,7 @@ func newFixture(t *testing.T) *fixture {
 		Ledgers:     ledgersapp.Application{LedgerQueries: fakeLedgerQueries{}},
 		Bookkeeping: bookkeepingapp.Application{TransactionCommands: f.transactions, HoldQueries: f.holds},
 	})
-	f.dispatcher = platformrpc.NewDispatcher(router, 30*time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	f.dispatcher = platformrpc.NewDispatcher(router, 30*time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)), authntest.Default())
 	return f
 }
 

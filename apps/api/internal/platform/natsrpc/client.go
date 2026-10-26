@@ -33,18 +33,20 @@ func (c *Client) Close() { c.nc.Close() }
 
 // Call sends one request and waits for its reply until ctx ends; the deadline of ctx travels as
 // X-Deadline. A timeout returns rpc.ErrTimeout, a subject nobody serves rpc.ErrNoResponders.
-func (c *Client) Call(ctx context.Context, method string, env rpc.Envelope, key, requestID string) (rpc.Answer, error) {
+func (c *Client) Call(ctx context.Context, method string, env rpc.Envelope, h rpc.Headers) (rpc.Answer, error) {
 	body, err := json.Marshal(env)
 	if err != nil {
 		return rpc.Answer{}, err
 	}
 	msg := nats.NewMsg(SubjectPrefix + "." + strings.TrimPrefix(method, "v1."))
 	msg.Data = body
-	if requestID != "" {
-		msg.Header.Set(HeaderRequestID, requestID)
-	}
-	if key != "" {
-		msg.Header.Set(HeaderIdempotencyKey, key)
+	for name, value := range map[string]string{
+		HeaderRequestID: h.RequestID, HeaderIdempotencyKey: h.IdempotencyKey,
+		HeaderAuthorization: h.Authorization, HeaderOrganization: h.Organization,
+	} {
+		if value != "" {
+			msg.Header.Set(name, value)
+		}
 	}
 	if dl, ok := ctx.Deadline(); ok {
 		msg.Header.Set(HeaderDeadline, rpc.DeadlineHeader(dl))

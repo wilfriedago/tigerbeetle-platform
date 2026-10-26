@@ -48,6 +48,7 @@ type harness struct {
 	server *httptest.Server
 	app    *bootstrap.App
 	faults *faultyLedger
+	auth   testAuth
 }
 
 func newHarness(t *testing.T) *harness {
@@ -65,6 +66,7 @@ func newHarness(t *testing.T) *harness {
 		ReconcilerInterval:    time.Hour,
 	}
 	h := &harness{t: t}
+	h.auth = trustTestIssuer(t, &cfg)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	built, err := bootstrap.Build(context.Background(), cfg, bootstrap.Service{Name: serviceName, Version: version}, logger,
 		bootstrap.WithLedgerStore(func(s domain.LedgerStore) domain.LedgerStore {
@@ -76,7 +78,7 @@ func newHarness(t *testing.T) *harness {
 	}
 	t.Cleanup(built.Close)
 	h.app = built
-	h.server = httptest.NewServer(built.Handler())
+	h.server = httptest.NewServer(h.auth.withCredentials(built.Handler()))
 	t.Cleanup(h.server.Close)
 	return h
 }

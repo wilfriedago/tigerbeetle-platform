@@ -72,7 +72,7 @@ func (c *Client) route(replies <-chan amqp091.Delivery) {
 // Call sends one request and waits for its reply until ctx ends. The deadline of ctx travels as
 // x-deadline and as the message expiration, so a request nobody took in time is dropped. It
 // returns the reply body and the request ID the server used.
-func (c *Client) Call(ctx context.Context, method string, env rpc.Envelope, key, requestID string) (rpc.Answer, error) {
+func (c *Client) Call(ctx context.Context, method string, env rpc.Envelope, h rpc.Headers) (rpc.Answer, error) {
 	body, err := json.Marshal(env)
 	if err != nil {
 		return rpc.Answer{}, err
@@ -89,11 +89,13 @@ func (c *Client) Call(ctx context.Context, method string, env rpc.Envelope, key,
 	}()
 
 	headers := amqp091.Table{}
-	if requestID != "" {
-		headers[rpc.HeaderRequestID] = requestID
-	}
-	if key != "" {
-		headers[rpc.HeaderIdempotencyKey] = key
+	for name, value := range map[string]string{
+		rpc.HeaderRequestID: h.RequestID, rpc.HeaderIdempotencyKey: h.IdempotencyKey,
+		rpc.HeaderAuthorization: h.Authorization, rpc.HeaderOrganization: h.Organization,
+	} {
+		if value != "" {
+			headers[name] = value
+		}
 	}
 	msg := amqp091.Publishing{
 		ContentType: "application/json", Type: method, CorrelationId: correlation, ReplyTo: directReplyTo,

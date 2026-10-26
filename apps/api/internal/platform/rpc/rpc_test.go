@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 )
@@ -58,7 +59,7 @@ func newDispatcher(t *testing.T, ran *atomic.Int32) *Dispatcher {
 		ran.Add(1)
 		panic("secret panic text")
 	})
-	d := NewDispatcher(r, 30*time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	d := NewDispatcher(r, 30*time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)), authntest.Default())
 	d.now = func() time.Time { return time.UnixMilli(1_000_000) }
 	return d
 }

@@ -18,6 +18,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/authn/authntest"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
 )
 
@@ -64,7 +65,7 @@ func (p *probeService) desc() *grpc.ServiceDesc {
 
 func newTestServer(t *testing.T, timeout time.Duration) (*Server, *bufconn.Listener, *probeService) {
 	t.Helper()
-	srv := New(Options{ShutdownTimeout: timeout, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	srv := New(Options{ShutdownTimeout: timeout, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Auth: authntest.Default()})
 	probe := &probeService{release: make(chan struct{})}
 	srv.RegisterService(probe.desc(), probe)
 	return srv, bufconn.Listen(1 << 20), probe
