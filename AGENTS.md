@@ -35,7 +35,8 @@ true; until then it describes the code as it is.
     TigerBeetle change events). `ledgers`: ledgers, account rules, event types. `bookkeeping`: accounts,
     transactions, holds, write requests, the overview, the reconciler. `health`: liveness,
     readiness and service information, an interfaces layer only. `access`: organizations (the
-    platform's copies of Keycloak organizations), and later grants and credentials. Generated
+    platform's copies of Keycloak organizations), grants and the authorizer, and later
+    credentials. Generated
     code (sqlc) is in
     `gen` subpackages, committed, excluded from lint, never edited.
   - `internal/transport/rest` is the one list of REST operations, served by bootstrap.
@@ -104,6 +105,10 @@ true; until then it describes the code as it is.
   organization with `X-Organization` (`x-organization` gRPC metadata, the `organization` broker
   header). Ledger names are unique per organization; every tenant query filters by
   `organization_id`, and `apps/api/migrations/tenancy_test.go` fails when one does not.
+- Authorization (ADR-0027): roles and permissions are in `kernel/ledger/permission.go`, grants in
+  the access module. Each module wraps every use case in `application/authorize.go`, and
+  `TestEveryUseCaseIsChecked` fails when a method has no check. No role on a ledger answers 404,
+  a role without the permission 403. Request bodies must be `application/json` (415 otherwise).
 - Tests: `internal/platform/oidc/oidctest` is an in-process issuer that mints tokens;
   `internal/platform/authn/authntest` authenticates every call as one person in the default
   organization, for tests of what a call does once authenticated.
@@ -149,7 +154,8 @@ true; until then it describes the code as it is.
 
 - Every task is a `just` recipe at the root (ADR-0016); `just --list` shows them.
   `scripts/install-tools.sh` installs just and the Go tools at their pinned versions.
-- Adding an endpoint: implement the use case in the owning module, register the operation with
+- Adding an endpoint: implement the use case in the owning module, wrap it with its permission in
+  the module's `application/authorize.go`, register the operation with
   its input and output structs in the module's `interfaces/rest/v1`, and the query, mutation or
   `Ledger` field in its `interfaces/graphql` when the console needs it, the RPC in
   `packages/proto` with its method in the module's `interfaces/grpc/v1`, and the broker method

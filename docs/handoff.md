@@ -54,6 +54,28 @@ in the main checkout stay untouched). ADR-0025 to ADR-0031 record the decisions.
   - The console cannot sign in until phase 4: its calls now answer 401.
   - Deferred to phase 7: `/readyz` reporting Keycloak (it changes the readiness payload of
     REST, GraphQL and gRPC).
+- Phase 3 (authorization) is done, from a8e75bd:
+  - Roles and permissions in `kernel/ledger/permission.go`; `grants` (migration 00010) in the
+    access module, whose authorizer reads the caller's grants on every call. Organization roles
+    member, admin, owner; ledger roles viewer, operator, admin; staff hold only
+    `platform.organizations`.
+  - `application/authorize.go` in ledgers and bookkeeping wraps every use case;
+    `TestEveryUseCaseIsChecked` calls each method behind a refusing authorizer and fails when one
+    reaches the real use case. The ledger list is filtered in SQL. The reconciler status shows
+    only the organization's own backlog.
+  - Idempotency keys replay only for their actor (migration 00011, ADR-0030).
+  - The spec (SpecVersion 0.2.0) declares `bearerAuth` and `X-Organization`; 33 accepted
+    breaking lines are in `packages/openapi/oasdiff-ignore.txt`. `jsonBodies` is gone: a non-JSON
+    body answers 415 (`unsupported-media-type`) from the `jsonOnly` middleware, because Huma maps
+    an unknown content type to 400 when body validation is skipped. The REST client takes
+    `accessToken` and `organization` options; orval strips `X-Organization` like `X-Request-Id`.
+  - Dev users keep fixed Keycloak IDs; `deploy/compose/dev-seed.sql` grants their organization
+    roles (ada owns default and acme, carol is acme admin, bob owns globex).
+  - Deviation: the plan's "creator becomes the ledger's admin" is not built. Only organization
+    admins and owners hold `org.ledgers`, and they already hold every ledger permission.
+  - Verified: `just lint`, unit, integration (`TestAuthorizationEndToEnd` covers REST, GraphQL and
+    gRPC, two organizations with the same ledger name, viewer and operator, the key rule),
+    `just test-e2e` and `scripts/seed-demo.sh` against Keycloak in the second compose stack.
 
 A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
 owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the
