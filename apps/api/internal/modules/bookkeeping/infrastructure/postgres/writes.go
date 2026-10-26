@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/jackc/pgx/v5"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
@@ -16,20 +18,21 @@ import (
 
 func writeRecord(w gen.WriteRequest) domain.WriteRecord {
 	rec := domain.WriteRecord{
-		Ledger:      w.Ledger,
-		Key:         w.IdempotencyKey,
-		Operation:   domain.Operation(w.Operation),
-		Status:      domain.RequestStatus(w.Status),
-		BodyHash:    w.BodyHash,
-		Request:     w.Request,
-		TargetID:    platformpg.IDOf(w.TargetID),
-		TransferIDs: platformpg.IDsOf(w.TransferIds),
-		Response:    w.Response,
-		ProblemType: platformpg.StringOf(w.ProblemType),
-		RequestID:   platformpg.StringOf(w.RequestID),
-		Attempts:    int(w.Attempts),
-		CreatedAt:   platformpg.TimeOf(w.CreatedAt),
-		ResolvedAt:  platformpg.OptionalTime(w.ResolvedAt),
+		Organization: platformpg.IDOf(w.OrganizationID),
+		Ledger:       w.Ledger,
+		Key:          w.IdempotencyKey,
+		Operation:    domain.Operation(w.Operation),
+		Status:       domain.RequestStatus(w.Status),
+		BodyHash:     w.BodyHash,
+		Request:      w.Request,
+		TargetID:     platformpg.IDOf(w.TargetID),
+		TransferIDs:  platformpg.IDsOf(w.TransferIds),
+		Response:     w.Response,
+		ProblemType:  platformpg.StringOf(w.ProblemType),
+		RequestID:    platformpg.StringOf(w.RequestID),
+		Attempts:     int(w.Attempts),
+		CreatedAt:    platformpg.TimeOf(w.CreatedAt),
+		ResolvedAt:   platformpg.OptionalTime(w.ResolvedAt),
 	}
 	if w.ResponseStatus != nil {
 		rec.ResponseStatus = int(*w.ResponseStatus)
@@ -48,7 +51,12 @@ func writeRecords(ws []gen.WriteRequest) []domain.WriteRecord {
 
 // BeginWrite inserts a pending record, or returns the existing record for the key.
 func (s *Store) BeginWrite(ctx context.Context, rec domain.WriteRecord) (domain.WriteRecord, bool, error) {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return domain.WriteRecord{}, false, err
+	}
 	row, err := s.queries.InsertWrite(ctx, gen.InsertWriteParams{
+		OrganizationID: org,
 		Ledger:         rec.Ledger,
 		IdempotencyKey: rec.Key,
 		Operation:      string(rec.Operation),
@@ -75,7 +83,11 @@ func (s *Store) BeginWrite(ctx context.Context, rec domain.WriteRecord) (domain.
 
 // GetWrite returns a record by key.
 func (s *Store) GetWrite(ctx context.Context, ledgerName, key string) (domain.WriteRecord, error) {
-	row, err := s.queries.GetWrite(ctx, gen.GetWriteParams{Ledger: ledgerName, IdempotencyKey: key})
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return domain.WriteRecord{}, err
+	}
+	row, err := s.queries.GetWrite(ctx, gen.GetWriteParams{OrganizationID: org, Ledger: ledgerName, IdempotencyKey: key})
 	if err != nil {
 		return domain.WriteRecord{}, fmt.Errorf("postgres: get write: %w", mapError(err))
 	}
@@ -84,12 +96,17 @@ func (s *Store) GetWrite(ctx context.Context, ledgerName, key string) (domain.Wr
 
 // ListWrites returns records newest first.
 func (s *Store) ListWrites(ctx context.Context, ledgerName string, filter domain.WriteFilter, cursor domain.WriteCursor, limit int) ([]domain.WriteRecord, error) {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return nil, err
+	}
 	params := gen.ListWritesParams{
-		Ledger:    ledgerName,
-		Status:    platformpg.OptionalString(string(filter.Status)),
-		Operation: platformpg.OptionalString(string(filter.Operation)),
-		Search:    platformpg.OptionalString(filter.Search),
-		PageSize:  int32(limit),
+		OrganizationID: org,
+		Ledger:         ledgerName,
+		Status:         platformpg.OptionalString(string(filter.Status)),
+		Operation:      platformpg.OptionalString(string(filter.Operation)),
+		Search:         platformpg.OptionalString(filter.Search),
+		PageSize:       int32(limit),
 	}
 	if !cursor.CreatedAt.IsZero() {
 		params.CursorAt = platformpg.Timestamptz(cursor.CreatedAt)
@@ -104,15 +121,20 @@ func (s *Store) ListWrites(ctx context.Context, ledgerName string, filter domain
 
 // NoteAttempt counts a TigerBeetle submission.
 func (s *Store) NoteAttempt(ctx context.Context, ledgerName, key string) error {
-	if err := s.queries.NoteAttempt(ctx, gen.NoteAttemptParams{Ledger: ledgerName, IdempotencyKey: key}); err != nil {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return err
+	}
+	if err := s.queries.NoteAttempt(ctx, gen.NoteAttemptParams{OrganizationID: org, Ledger: ledgerName, IdempotencyKey: key}); err != nil {
 		return fmt.Errorf("postgres: note attempt: %w", mapError(err))
 	}
 	return nil
 }
 
-func resolveParams(o domain.WriteOutcome) gen.ResolveWriteParams {
+func resolveParams(org pgtype.UUID, o domain.WriteOutcome) gen.ResolveWriteParams {
 	status := int32(o.ResponseStatus)
 	return gen.ResolveWriteParams{
+		OrganizationID: org,
 		Ledger:         o.Ledger,
 		IdempotencyKey: o.Key,
 		Status:         string(o.Status),
@@ -126,8 +148,12 @@ func resolveParams(o domain.WriteOutcome) gen.ResolveWriteParams {
 // ResolveWrite records a declined or failed outcome. A record that is no longer pending was
 // resolved by a concurrent request or the reconciler; that is not an error.
 func (s *Store) ResolveWrite(ctx context.Context, ledgerName, key string, outcome domain.WriteOutcome) error {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return err
+	}
 	outcome.Ledger, outcome.Key = ledgerName, key
-	if _, err := s.queries.ResolveWrite(ctx, resolveParams(outcome)); err != nil {
+	if _, err := s.queries.ResolveWrite(ctx, resolveParams(org, outcome)); err != nil {
 		return fmt.Errorf("postgres: resolve write: %w", mapError(err))
 	}
 	return nil
@@ -136,13 +162,17 @@ func (s *Store) ResolveWrite(ctx context.Context, ledgerName, key string, outcom
 // commit resolves the record and runs insert in the same transaction. When the record was already
 // committed, by the reconciler for example, nothing is inserted twice.
 func (s *Store) commit(ctx context.Context, outcome domain.WriteOutcome, insert func(q *gen.Queries) error) error {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return err
+	}
 	return s.inTx(ctx, func(q *gen.Queries) error {
-		n, err := q.ResolveWrite(ctx, resolveParams(outcome))
+		n, err := q.ResolveWrite(ctx, resolveParams(org, outcome))
 		if err != nil {
 			return err
 		}
 		if n == 0 {
-			current, err := q.GetWrite(ctx, gen.GetWriteParams{Ledger: outcome.Ledger, IdempotencyKey: outcome.Key})
+			current, err := q.GetWrite(ctx, gen.GetWriteParams{OrganizationID: org, Ledger: outcome.Ledger, IdempotencyKey: outcome.Key})
 			if err != nil {
 				return err
 			}
@@ -157,6 +187,10 @@ func (s *Store) commit(ctx context.Context, outcome domain.WriteOutcome, insert 
 
 // CommitTransaction resolves the record and inserts the transaction with its postings.
 func (s *Store) CommitTransaction(ctx context.Context, outcome domain.WriteOutcome, tx domain.TransactionRow) error {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return err
+	}
 	metadata, err := platformpg.EncodeMetadata(tx.Metadata)
 	if err != nil {
 		return err
@@ -175,6 +209,7 @@ func (s *Store) CommitTransaction(ctx context.Context, outcome domain.WriteOutco
 	}
 	err = s.commit(ctx, outcome, func(q *gen.Queries) error {
 		if err := q.InsertTransaction(ctx, gen.InsertTransactionParams{
+			OrganizationID: org,
 			ID:             platformpg.UUIDOf(tx.ID),
 			Ledger:         tx.Ledger,
 			Reference:      platformpg.OptionalString(tx.Reference),
@@ -200,12 +235,17 @@ func (s *Store) CommitTransaction(ctx context.Context, outcome domain.WriteOutco
 
 // CommitHold resolves the record and inserts the hold.
 func (s *Store) CommitHold(ctx context.Context, outcome domain.WriteOutcome, hold domain.HoldRow) error {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return err
+	}
 	metadata, err := platformpg.EncodeMetadata(hold.Metadata)
 	if err != nil {
 		return err
 	}
 	err = s.commit(ctx, outcome, func(q *gen.Queries) error {
 		return q.InsertHold(ctx, gen.InsertHoldParams{
+			OrganizationID:     org,
 			ID:                 platformpg.UUIDOf(hold.ID),
 			Ledger:             hold.Ledger,
 			PendingTransferID:  platformpg.UUIDOf(hold.PendingTransferID),
@@ -230,8 +270,13 @@ func (s *Store) CommitHold(ctx context.Context, outcome domain.WriteOutcome, hol
 
 // CommitResolution resolves the record and the hold.
 func (s *Store) CommitResolution(ctx context.Context, outcome domain.WriteOutcome, r domain.HoldResolution) error {
-	err := s.commit(ctx, outcome, func(q *gen.Queries) error {
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return err
+	}
+	err = s.commit(ctx, outcome, func(q *gen.Queries) error {
 		_, err := q.ResolveHold(ctx, gen.ResolveHoldParams{
+			OrganizationID:       org,
 			Ledger:               r.Ledger,
 			ID:                   platformpg.UUIDOf(r.HoldID),
 			Status:               string(r.Status),
@@ -266,7 +311,11 @@ func (s *Store) CountPending(ctx context.Context, before time.Time) (pending, st
 
 // DeclinedSince groups declined and failed writes by problem type.
 func (s *Store) DeclinedSince(ctx context.Context, ledgerName string, since time.Time) ([]domain.ReasonCount, error) {
-	rows, err := s.queries.DeclinedSince(ctx, gen.DeclinedSinceParams{Ledger: ledgerName, Since: platformpg.Timestamptz(since)})
+	org, err := platformpg.TenantOf(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.queries.DeclinedSince(ctx, gen.DeclinedSinceParams{OrganizationID: org, Ledger: ledgerName, Since: platformpg.Timestamptz(since)})
 	if err != nil {
 		return nil, fmt.Errorf("postgres: declined writes: %w", mapError(err))
 	}

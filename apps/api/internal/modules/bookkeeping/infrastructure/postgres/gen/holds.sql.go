@@ -19,12 +19,13 @@ SELECT
     count(*) FILTER (WHERE status = 'expired' OR (status = 'open' AND timeout_seconds > 0
         AND created_at + make_interval(secs => timeout_seconds) <= $1::timestamptz))::bigint AS expired
 FROM holds
-WHERE ledger = $2
+WHERE organization_id = $2 AND ledger = $3
 `
 
 type CountHoldsParams struct {
-	Now    pgtype.Timestamptz
-	Ledger string
+	Now            pgtype.Timestamptz
+	OrganizationID pgtype.UUID
+	Ledger         string
 }
 
 type CountHoldsRow struct {
@@ -35,7 +36,7 @@ type CountHoldsRow struct {
 }
 
 func (q *Queries) CountHolds(ctx context.Context, arg CountHoldsParams) (CountHoldsRow, error) {
-	row := q.db.QueryRow(ctx, countHolds, arg.Now, arg.Ledger)
+	row := q.db.QueryRow(ctx, countHolds, arg.Now, arg.OrganizationID, arg.Ledger)
 	var i CountHoldsRow
 	err := row.Scan(
 		&i.Open,
@@ -50,18 +51,24 @@ const countOpenHoldsFrom = `-- name: CountOpenHoldsFrom :one
 SELECT count(*)::bigint
 FROM holds h
 JOIN accounts s ON s.id = h.source_account
-WHERE h.ledger = $1 AND s.address = $2::text AND h.status = 'open'
-    AND (h.timeout_seconds = 0 OR h.created_at + make_interval(secs => h.timeout_seconds) > $3::timestamptz)
+WHERE h.organization_id = $1 AND h.ledger = $2 AND s.address = $3::text AND h.status = 'open'
+    AND (h.timeout_seconds = 0 OR h.created_at + make_interval(secs => h.timeout_seconds) > $4::timestamptz)
 `
 
 type CountOpenHoldsFromParams struct {
-	Ledger  string
-	Address string
-	Now     pgtype.Timestamptz
+	OrganizationID pgtype.UUID
+	Ledger         string
+	Address        string
+	Now            pgtype.Timestamptz
 }
 
 func (q *Queries) CountOpenHoldsFrom(ctx context.Context, arg CountOpenHoldsFromParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countOpenHoldsFrom, arg.Ledger, arg.Address, arg.Now)
+	row := q.db.QueryRow(ctx, countOpenHoldsFrom,
+		arg.OrganizationID,
+		arg.Ledger,
+		arg.Address,
+		arg.Now,
+	)
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
@@ -70,16 +77,17 @@ func (q *Queries) CountOpenHoldsFrom(ctx context.Context, arg CountOpenHoldsFrom
 const getHold = `-- name: GetHold :one
 SELECT h.id, h.ledger, h.pending_transfer_id, h.reference, h.event_type, h.code, h.metadata, h.timeout_seconds,
     h.idempotency_key, h.request_id, h.created_at, h.tb_timestamp, h.status, h.resolution_transfer_id, h.resolved_at,
-    s.id, s.ledger, s.address, s.asset, s.tb_ledger, s.code, s.balance_limit, s.history, s.rule_pattern, s.created_at, d.id, d.ledger, d.address, d.asset, d.tb_ledger, d.code, d.balance_limit, d.history, d.rule_pattern, d.created_at
+    s.id, s.ledger, s.address, s.asset, s.tb_ledger, s.code, s.balance_limit, s.history, s.rule_pattern, s.created_at, s.organization_id, d.id, d.ledger, d.address, d.asset, d.tb_ledger, d.code, d.balance_limit, d.history, d.rule_pattern, d.created_at, d.organization_id
 FROM holds h
 JOIN accounts s ON s.id = h.source_account
 JOIN accounts d ON d.id = h.destination_account
-WHERE h.ledger = $1 AND h.id = $2
+WHERE h.organization_id = $3 AND h.ledger = $1 AND h.id = $2
 `
 
 type GetHoldParams struct {
-	Ledger string
-	ID     pgtype.UUID
+	Ledger         string
+	ID             pgtype.UUID
+	OrganizationID pgtype.UUID
 }
 
 type GetHoldRow struct {
@@ -103,7 +111,7 @@ type GetHoldRow struct {
 }
 
 func (q *Queries) GetHold(ctx context.Context, arg GetHoldParams) (GetHoldRow, error) {
-	row := q.db.QueryRow(ctx, getHold, arg.Ledger, arg.ID)
+	row := q.db.QueryRow(ctx, getHold, arg.Ledger, arg.ID, arg.OrganizationID)
 	var i GetHoldRow
 	err := row.Scan(
 		&i.ID,
@@ -131,6 +139,7 @@ func (q *Queries) GetHold(ctx context.Context, arg GetHoldParams) (GetHoldRow, e
 		&i.Account.History,
 		&i.Account.RulePattern,
 		&i.Account.CreatedAt,
+		&i.Account.OrganizationID,
 		&i.Account_2.ID,
 		&i.Account_2.Ledger,
 		&i.Account_2.Address,
@@ -141,15 +150,16 @@ func (q *Queries) GetHold(ctx context.Context, arg GetHoldParams) (GetHoldRow, e
 		&i.Account_2.History,
 		&i.Account_2.RulePattern,
 		&i.Account_2.CreatedAt,
+		&i.Account_2.OrganizationID,
 	)
 	return i, err
 }
 
 const insertHold = `-- name: InsertHold :exec
 
-INSERT INTO holds (id, ledger, pending_transfer_id, source_account, destination_account, reference, event_type, code,
+INSERT INTO holds (organization_id, id, ledger, pending_transfer_id, source_account, destination_account, reference, event_type, code,
     metadata, timeout_seconds, idempotency_key, request_id, created_at, tb_timestamp, status)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'open')
+VALUES ($15, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'open')
 ON CONFLICT (id) DO NOTHING
 `
 
@@ -168,6 +178,7 @@ type InsertHoldParams struct {
 	RequestID          *string
 	CreatedAt          pgtype.Timestamptz
 	TbTimestamp        int64
+	OrganizationID     pgtype.UUID
 }
 
 // A hold is expired once its timeout has passed on the clock passed as `now`, even while the row
@@ -188,6 +199,7 @@ func (q *Queries) InsertHold(ctx context.Context, arg InsertHoldParams) error {
 		arg.RequestID,
 		arg.CreatedAt,
 		arg.TbTimestamp,
+		arg.OrganizationID,
 	)
 	return err
 }
@@ -195,38 +207,39 @@ func (q *Queries) InsertHold(ctx context.Context, arg InsertHoldParams) error {
 const listHolds = `-- name: ListHolds :many
 SELECT h.id, h.ledger, h.pending_transfer_id, h.reference, h.event_type, h.code, h.metadata, h.timeout_seconds,
     h.idempotency_key, h.request_id, h.created_at, h.tb_timestamp, h.status, h.resolution_transfer_id, h.resolved_at,
-    s.id, s.ledger, s.address, s.asset, s.tb_ledger, s.code, s.balance_limit, s.history, s.rule_pattern, s.created_at, d.id, d.ledger, d.address, d.asset, d.tb_ledger, d.code, d.balance_limit, d.history, d.rule_pattern, d.created_at
+    s.id, s.ledger, s.address, s.asset, s.tb_ledger, s.code, s.balance_limit, s.history, s.rule_pattern, s.created_at, s.organization_id, d.id, d.ledger, d.address, d.asset, d.tb_ledger, d.code, d.balance_limit, d.history, d.rule_pattern, d.created_at, d.organization_id
 FROM holds h
 JOIN accounts s ON s.id = h.source_account
 JOIN accounts d ON d.id = h.destination_account
-WHERE h.ledger = $1
-    AND ($2::uuid IS NULL OR h.id < $2::uuid)
+WHERE h.organization_id = $1 AND h.ledger = $2
+    AND ($3::uuid IS NULL OR h.id < $3::uuid)
     AND (
-        $3::text IS NULL
-        OR ($3::text = 'open' AND h.status = 'open'
-            AND (h.timeout_seconds = 0 OR h.created_at + make_interval(secs => h.timeout_seconds) > $4::timestamptz))
-        OR ($3::text = 'expired' AND (h.status = 'expired' OR (h.status = 'open'
-            AND h.timeout_seconds > 0 AND h.created_at + make_interval(secs => h.timeout_seconds) <= $4::timestamptz)))
-        OR ($3::text IN ('captured', 'voided') AND h.status = $3::text)
+        $4::text IS NULL
+        OR ($4::text = 'open' AND h.status = 'open'
+            AND (h.timeout_seconds = 0 OR h.created_at + make_interval(secs => h.timeout_seconds) > $5::timestamptz))
+        OR ($4::text = 'expired' AND (h.status = 'expired' OR (h.status = 'open'
+            AND h.timeout_seconds > 0 AND h.created_at + make_interval(secs => h.timeout_seconds) <= $5::timestamptz)))
+        OR ($4::text IN ('captured', 'voided') AND h.status = $4::text)
     )
     AND (
-        $5::text IS NULL
-        OR s.address = $5::text
-        OR (s.address >= $5::text || ':' AND s.address < $5::text || ';')
-        OR d.address = $5::text
-        OR (d.address >= $5::text || ':' AND d.address < $5::text || ';')
+        $6::text IS NULL
+        OR s.address = $6::text
+        OR (s.address >= $6::text || ':' AND s.address < $6::text || ';')
+        OR d.address = $6::text
+        OR (d.address >= $6::text || ':' AND d.address < $6::text || ';')
     )
 ORDER BY h.id DESC
-LIMIT $6
+LIMIT $7
 `
 
 type ListHoldsParams struct {
-	Ledger   string
-	BeforeID pgtype.UUID
-	Status   *string
-	Now      pgtype.Timestamptz
-	Prefix   *string
-	PageSize int32
+	OrganizationID pgtype.UUID
+	Ledger         string
+	BeforeID       pgtype.UUID
+	Status         *string
+	Now            pgtype.Timestamptz
+	Prefix         *string
+	PageSize       int32
 }
 
 type ListHoldsRow struct {
@@ -251,6 +264,7 @@ type ListHoldsRow struct {
 
 func (q *Queries) ListHolds(ctx context.Context, arg ListHoldsParams) ([]ListHoldsRow, error) {
 	rows, err := q.db.Query(ctx, listHolds,
+		arg.OrganizationID,
 		arg.Ledger,
 		arg.BeforeID,
 		arg.Status,
@@ -291,6 +305,7 @@ func (q *Queries) ListHolds(ctx context.Context, arg ListHoldsParams) ([]ListHol
 			&i.Account.History,
 			&i.Account.RulePattern,
 			&i.Account.CreatedAt,
+			&i.Account.OrganizationID,
 			&i.Account_2.ID,
 			&i.Account_2.Ledger,
 			&i.Account_2.Address,
@@ -301,6 +316,7 @@ func (q *Queries) ListHolds(ctx context.Context, arg ListHoldsParams) ([]ListHol
 			&i.Account_2.History,
 			&i.Account_2.RulePattern,
 			&i.Account_2.CreatedAt,
+			&i.Account_2.OrganizationID,
 		); err != nil {
 			return nil, err
 		}
@@ -315,36 +331,38 @@ func (q *Queries) ListHolds(ctx context.Context, arg ListHoldsParams) ([]ListHol
 const markHoldExpired = `-- name: MarkHoldExpired :exec
 UPDATE holds
 SET status = 'expired'
-WHERE ledger = $1 AND id = $2 AND status = 'open'
+WHERE organization_id = $3 AND ledger = $1 AND id = $2 AND status = 'open'
 `
 
 type MarkHoldExpiredParams struct {
-	Ledger string
-	ID     pgtype.UUID
+	Ledger         string
+	ID             pgtype.UUID
+	OrganizationID pgtype.UUID
 }
 
 func (q *Queries) MarkHoldExpired(ctx context.Context, arg MarkHoldExpiredParams) error {
-	_, err := q.db.Exec(ctx, markHoldExpired, arg.Ledger, arg.ID)
+	_, err := q.db.Exec(ctx, markHoldExpired, arg.Ledger, arg.ID, arg.OrganizationID)
 	return err
 }
 
 const openHolds = `-- name: OpenHolds :many
 SELECT h.id, h.ledger, h.pending_transfer_id, h.reference, h.event_type, h.code, h.metadata, h.timeout_seconds,
     h.idempotency_key, h.request_id, h.created_at, h.tb_timestamp, h.status, h.resolution_transfer_id, h.resolved_at,
-    s.id, s.ledger, s.address, s.asset, s.tb_ledger, s.code, s.balance_limit, s.history, s.rule_pattern, s.created_at, d.id, d.ledger, d.address, d.asset, d.tb_ledger, d.code, d.balance_limit, d.history, d.rule_pattern, d.created_at
+    s.id, s.ledger, s.address, s.asset, s.tb_ledger, s.code, s.balance_limit, s.history, s.rule_pattern, s.created_at, s.organization_id, d.id, d.ledger, d.address, d.asset, d.tb_ledger, d.code, d.balance_limit, d.history, d.rule_pattern, d.created_at, d.organization_id
 FROM holds h
 JOIN accounts s ON s.id = h.source_account
 JOIN accounts d ON d.id = h.destination_account
-WHERE h.ledger = $1 AND h.status = 'open'
-    AND (h.timeout_seconds = 0 OR h.created_at + make_interval(secs => h.timeout_seconds) > $2::timestamptz)
+WHERE h.organization_id = $1 AND h.ledger = $2 AND h.status = 'open'
+    AND (h.timeout_seconds = 0 OR h.created_at + make_interval(secs => h.timeout_seconds) > $3::timestamptz)
 ORDER BY h.id DESC
-LIMIT $3
+LIMIT $4
 `
 
 type OpenHoldsParams struct {
-	Ledger  string
-	Now     pgtype.Timestamptz
-	MaxRows int32
+	OrganizationID pgtype.UUID
+	Ledger         string
+	Now            pgtype.Timestamptz
+	MaxRows        int32
 }
 
 type OpenHoldsRow struct {
@@ -368,7 +386,12 @@ type OpenHoldsRow struct {
 }
 
 func (q *Queries) OpenHolds(ctx context.Context, arg OpenHoldsParams) ([]OpenHoldsRow, error) {
-	rows, err := q.db.Query(ctx, openHolds, arg.Ledger, arg.Now, arg.MaxRows)
+	rows, err := q.db.Query(ctx, openHolds,
+		arg.OrganizationID,
+		arg.Ledger,
+		arg.Now,
+		arg.MaxRows,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -402,6 +425,7 @@ func (q *Queries) OpenHolds(ctx context.Context, arg OpenHoldsParams) ([]OpenHol
 			&i.Account.History,
 			&i.Account.RulePattern,
 			&i.Account.CreatedAt,
+			&i.Account.OrganizationID,
 			&i.Account_2.ID,
 			&i.Account_2.Ledger,
 			&i.Account_2.Address,
@@ -412,6 +436,7 @@ func (q *Queries) OpenHolds(ctx context.Context, arg OpenHoldsParams) ([]OpenHol
 			&i.Account_2.History,
 			&i.Account_2.RulePattern,
 			&i.Account_2.CreatedAt,
+			&i.Account_2.OrganizationID,
 		); err != nil {
 			return nil, err
 		}
@@ -426,7 +451,7 @@ func (q *Queries) OpenHolds(ctx context.Context, arg OpenHoldsParams) ([]OpenHol
 const resolveHold = `-- name: ResolveHold :execrows
 UPDATE holds
 SET status = $3, resolution_transfer_id = $4, resolved_at = $5
-WHERE ledger = $1 AND id = $2 AND status IN ('open', 'expired')
+WHERE organization_id = $6 AND ledger = $1 AND id = $2 AND status IN ('open', 'expired')
 `
 
 type ResolveHoldParams struct {
@@ -435,6 +460,7 @@ type ResolveHoldParams struct {
 	Status               string
 	ResolutionTransferID pgtype.UUID
 	ResolvedAt           pgtype.Timestamptz
+	OrganizationID       pgtype.UUID
 }
 
 func (q *Queries) ResolveHold(ctx context.Context, arg ResolveHoldParams) (int64, error) {
@@ -444,6 +470,7 @@ func (q *Queries) ResolveHold(ctx context.Context, arg ResolveHoldParams) (int64
 		arg.Status,
 		arg.ResolutionTransferID,
 		arg.ResolvedAt,
+		arg.OrganizationID,
 	)
 	if err != nil {
 		return 0, err

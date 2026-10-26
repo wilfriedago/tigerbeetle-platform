@@ -28,12 +28,59 @@ func startStore(t *testing.T) *Store {
 	if err := db.Migrate(ctx, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
 		t.Fatalf("Migrate: %v", err)
 	}
+	// A second organization next to the default one; the access module owns the table, so the
+	// test inserts the row directly.
+	if _, err := db.Pool().Exec(ctx, "INSERT INTO organizations (id, alias, name) VALUES ('00000000-0000-0000-0000-000000000002', 'globex', 'Globex')"); err != nil {
+		t.Fatal(err)
+	}
 	return NewStore(db)
+}
+
+// TestTenantIsolationIntegration gives two organizations a ledger with the same name and checks
+// that nothing crosses between them (ADR-0026).
+func TestTenantIsolationIntegration(t *testing.T) {
+	store := startStore(t)
+	acme := ledger.WithTenant(context.Background(), ledger.DefaultTenant)
+	globex := ledger.WithTenant(context.Background(), ledger.Tenant{ID: ledger.ID{15: 2}, Alias: "globex"})
+	now := time.Date(2026, 10, 26, 9, 0, 0, 0, time.UTC)
+
+	for _, ctx := range []context.Context{acme, globex} {
+		if _, err := store.CreateLedger(ctx, ledger.Ledger{Name: "payments", CreatedAt: now}); err != nil {
+			t.Fatalf("CreateLedger: %v", err)
+		}
+	}
+	if err := store.ReplaceLedgerMetadata(acme, "payments", map[string]string{"owner": "acme"}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := store.GetLedger(globex, "payments")
+	if err != nil || len(got.Metadata) != 0 {
+		t.Fatalf("GetLedger(globex) = %+v, %v; want the globex ledger without acme's metadata", got, err)
+	}
+	if _, err := store.PutRule(acme, "payments", ledger.Rule{Pattern: "users:*", Limit: ledger.LimitNone, Code: 7, UpdatedAt: now}); err != nil {
+		t.Fatal(err)
+	}
+	rules, err := store.ListRules(globex, "payments")
+	if err != nil || len(rules) != 0 {
+		t.Fatalf("ListRules(globex) = %+v, %v; want none", rules, err)
+	}
+	if _, err := store.CreateEventType(acme, "payments", "payout", 0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.GetEventType(globex, "payments", "payout"); !errors.Is(err, ledger.ErrNotFound) {
+		t.Fatalf("GetEventType(globex) error = %v, want ErrNotFound", err)
+	}
+	page, err := store.ListLedgers(globex, "", 10)
+	if err != nil || len(page) != 1 {
+		t.Fatalf("ListLedgers(globex) = %+v, %v; want only its own ledger", page, err)
+	}
+	if _, err := store.ListLedgers(context.Background(), "", 10); err == nil {
+		t.Fatal("ListLedgers without a tenant succeeded")
+	}
 }
 
 func TestStoreIntegration(t *testing.T) {
 	store := startStore(t)
-	ctx := context.Background()
+	ctx := ledger.WithTenant(context.Background(), ledger.DefaultTenant)
 	now := time.Date(2026, 10, 24, 10, 30, 0, 0, time.UTC)
 
 	want := ledger.Ledger{Name: "main", Metadata: map[string]string{"env": "test"}, CreatedAt: now}

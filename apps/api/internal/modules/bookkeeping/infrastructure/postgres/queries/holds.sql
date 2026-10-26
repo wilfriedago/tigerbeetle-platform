@@ -2,20 +2,20 @@
 -- still says open: TigerBeetle has released it (ADR-0010).
 
 -- name: InsertHold :exec
-INSERT INTO holds (id, ledger, pending_transfer_id, source_account, destination_account, reference, event_type, code,
+INSERT INTO holds (organization_id, id, ledger, pending_transfer_id, source_account, destination_account, reference, event_type, code,
     metadata, timeout_seconds, idempotency_key, request_id, created_at, tb_timestamp, status)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'open')
+VALUES ($15, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'open')
 ON CONFLICT (id) DO NOTHING;
 
 -- name: ResolveHold :execrows
 UPDATE holds
 SET status = $3, resolution_transfer_id = $4, resolved_at = $5
-WHERE ledger = $1 AND id = $2 AND status IN ('open', 'expired');
+WHERE organization_id = $6 AND ledger = $1 AND id = $2 AND status IN ('open', 'expired');
 
 -- name: MarkHoldExpired :exec
 UPDATE holds
 SET status = 'expired'
-WHERE ledger = $1 AND id = $2 AND status = 'open';
+WHERE organization_id = $3 AND ledger = $1 AND id = $2 AND status = 'open';
 
 -- name: GetHold :one
 SELECT h.id, h.ledger, h.pending_transfer_id, h.reference, h.event_type, h.code, h.metadata, h.timeout_seconds,
@@ -24,7 +24,7 @@ SELECT h.id, h.ledger, h.pending_transfer_id, h.reference, h.event_type, h.code,
 FROM holds h
 JOIN accounts s ON s.id = h.source_account
 JOIN accounts d ON d.id = h.destination_account
-WHERE h.ledger = $1 AND h.id = $2;
+WHERE h.organization_id = $3 AND h.ledger = $1 AND h.id = $2;
 
 -- name: ListHolds :many
 SELECT h.id, h.ledger, h.pending_transfer_id, h.reference, h.event_type, h.code, h.metadata, h.timeout_seconds,
@@ -33,7 +33,7 @@ SELECT h.id, h.ledger, h.pending_transfer_id, h.reference, h.event_type, h.code,
 FROM holds h
 JOIN accounts s ON s.id = h.source_account
 JOIN accounts d ON d.id = h.destination_account
-WHERE h.ledger = sqlc.arg(ledger)
+WHERE h.organization_id = sqlc.arg(organization_id) AND h.ledger = sqlc.arg(ledger)
     AND (sqlc.narg(before_id)::uuid IS NULL OR h.id < sqlc.narg(before_id)::uuid)
     AND (
         sqlc.narg(status)::text IS NULL
@@ -61,7 +61,7 @@ SELECT
     count(*) FILTER (WHERE status = 'expired' OR (status = 'open' AND timeout_seconds > 0
         AND created_at + make_interval(secs => timeout_seconds) <= sqlc.arg(now)::timestamptz))::bigint AS expired
 FROM holds
-WHERE ledger = sqlc.arg(ledger);
+WHERE organization_id = sqlc.arg(organization_id) AND ledger = sqlc.arg(ledger);
 
 -- name: OpenHolds :many
 SELECT h.id, h.ledger, h.pending_transfer_id, h.reference, h.event_type, h.code, h.metadata, h.timeout_seconds,
@@ -70,7 +70,7 @@ SELECT h.id, h.ledger, h.pending_transfer_id, h.reference, h.event_type, h.code,
 FROM holds h
 JOIN accounts s ON s.id = h.source_account
 JOIN accounts d ON d.id = h.destination_account
-WHERE h.ledger = sqlc.arg(ledger) AND h.status = 'open'
+WHERE h.organization_id = sqlc.arg(organization_id) AND h.ledger = sqlc.arg(ledger) AND h.status = 'open'
     AND (h.timeout_seconds = 0 OR h.created_at + make_interval(secs => h.timeout_seconds) > sqlc.arg(now)::timestamptz)
 ORDER BY h.id DESC
 LIMIT sqlc.arg(max_rows);
@@ -79,5 +79,5 @@ LIMIT sqlc.arg(max_rows);
 SELECT count(*)::bigint
 FROM holds h
 JOIN accounts s ON s.id = h.source_account
-WHERE h.ledger = sqlc.arg(ledger) AND s.address = sqlc.arg(address)::text AND h.status = 'open'
+WHERE h.organization_id = sqlc.arg(organization_id) AND h.ledger = sqlc.arg(ledger) AND s.address = sqlc.arg(address)::text AND h.status = 'open'
     AND (h.timeout_seconds = 0 OR h.created_at + make_interval(secs => h.timeout_seconds) > sqlc.arg(now)::timestamptz);

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/logging"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/requestid"
@@ -51,6 +52,9 @@ func requestID(base *slog.Logger) func(http.Handler) http.Handler {
 			ctx = logging.With(ctx, base.With(slog.String("request_id", id)))
 			// The escaped form, so instance stays a valid URI reference for a path such as /a%20b.
 			ctx = context.WithValue(ctx, pathKey{}, r.URL.EscapedPath())
+			// Every call acts for the default organization until authentication resolves the tenant
+			// from the credential (docs/plans/auth/plan.md, phase 2; ADR-0026).
+			ctx = ledger.WithTenant(ctx, ledger.DefaultTenant)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

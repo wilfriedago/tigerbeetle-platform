@@ -77,8 +77,9 @@ func (r *Reconciler) RunOnce(ctx context.Context) int {
 		if ctx.Err() != nil {
 			break
 		}
-		ok, err := r.settle(ctx, *rec)
-		id := rec.Ledger + "/" + rec.Key
+		// The record's tenant, so every read and write of the settlement stays in its organization.
+		ok, err := r.settle(ledger.WithTenant(ctx, ledger.Tenant{ID: rec.Organization}), *rec)
+		id := rec.Organization.String() + "/" + rec.Ledger + "/" + rec.Key
 		r.mu.Lock()
 		if ok {
 			settled++

@@ -9,40 +9,44 @@ import (
 )
 
 type Account struct {
-	ID           pgtype.UUID
-	Ledger       string
-	Address      string
-	Asset        string
-	TbLedger     int32
-	Code         int32
-	BalanceLimit string
-	History      bool
-	RulePattern  string
-	CreatedAt    pgtype.Timestamptz
+	ID             pgtype.UUID
+	Ledger         string
+	Address        string
+	Asset          string
+	TbLedger       int32
+	Code           int32
+	BalanceLimit   string
+	History        bool
+	RulePattern    string
+	CreatedAt      pgtype.Timestamptz
+	OrganizationID pgtype.UUID
 }
 
 type AccountRule struct {
-	Ledger       string
-	Pattern      string
-	BalanceLimit string
-	History      bool
-	Code         int32
-	CreatedAt    pgtype.Timestamptz
-	UpdatedAt    pgtype.Timestamptz
+	Ledger         string
+	Pattern        string
+	BalanceLimit   string
+	History        bool
+	Code           int32
+	CreatedAt      pgtype.Timestamptz
+	UpdatedAt      pgtype.Timestamptz
+	OrganizationID pgtype.UUID
 }
 
 type Address struct {
-	Ledger    string
-	Address   string
-	Metadata  []byte
-	CreatedAt pgtype.Timestamptz
+	Ledger         string
+	Address        string
+	Metadata       []byte
+	CreatedAt      pgtype.Timestamptz
+	OrganizationID pgtype.UUID
 }
 
 type EventType struct {
-	Ledger    string
-	Name      string
-	Code      int32
-	CreatedAt pgtype.Timestamptz
+	Ledger         string
+	Name           string
+	Code           int32
+	CreatedAt      pgtype.Timestamptz
+	OrganizationID pgtype.UUID
 }
 
 type Hold struct {
@@ -63,19 +67,31 @@ type Hold struct {
 	Status               string
 	ResolutionTransferID pgtype.UUID
 	ResolvedAt           pgtype.Timestamptz
+	OrganizationID       pgtype.UUID
 }
 
 type Ledger struct {
-	Name      string
-	Metadata  []byte
-	CreatedAt pgtype.Timestamptz
+	Name           string
+	Metadata       []byte
+	CreatedAt      pgtype.Timestamptz
+	OrganizationID pgtype.UUID
 }
 
 type LedgerAsset struct {
-	Ledger    string
-	Asset     string
-	TbLedger  *int32
-	CreatedAt pgtype.Timestamptz
+	Ledger         string
+	Asset          string
+	TbLedger       *int32
+	CreatedAt      pgtype.Timestamptz
+	OrganizationID pgtype.UUID
+}
+
+type Organization struct {
+	ID         pgtype.UUID
+	Alias      string
+	KeycloakID pgtype.UUID
+	Name       string
+	Status     string
+	CreatedAt  pgtype.Timestamptz
 }
 
 type Transaction struct {
@@ -91,6 +107,7 @@ type Transaction struct {
 	Reverts        pgtype.UUID
 	CommittedAt    pgtype.Timestamptz
 	TbTimestamp    int64
+	OrganizationID pgtype.UUID
 }
 
 type TransactionPosting struct {
@@ -117,4 +134,5 @@ type WriteRequest struct {
 	Attempts       int32
 	CreatedAt      pgtype.Timestamptz
 	ResolvedAt     pgtype.Timestamptz
+	OrganizationID pgtype.UUID
 }

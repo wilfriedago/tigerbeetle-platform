@@ -22,6 +22,7 @@ type CountPendingRow struct {
 	Stuck   int64
 }
 
+// tenant-free: the reconciler's own backlog, across organizations.
 func (q *Queries) CountPending(ctx context.Context, before pgtype.Timestamptz) (CountPendingRow, error) {
 	row := q.db.QueryRow(ctx, countPending, before)
 	var i CountPendingRow
@@ -32,14 +33,15 @@ func (q *Queries) CountPending(ctx context.Context, before pgtype.Timestamptz) (
 const declinedSince = `-- name: DeclinedSince :many
 SELECT COALESCE(problem_type, 'unknown')::text AS reason, count(*)::bigint AS occurrences
 FROM write_requests
-WHERE ledger = $1 AND status IN ('declined', 'failed') AND resolved_at >= $2
+WHERE organization_id = $2 AND ledger = $1 AND status IN ('declined', 'failed') AND resolved_at >= $3
 GROUP BY 1
 ORDER BY 2 DESC, 1
 `
 
 type DeclinedSinceParams struct {
-	Ledger string
-	Since  pgtype.Timestamptz
+	Ledger         string
+	OrganizationID pgtype.UUID
+	Since          pgtype.Timestamptz
 }
 
 type DeclinedSinceRow struct {
@@ -48,7 +50,7 @@ type DeclinedSinceRow struct {
 }
 
 func (q *Queries) DeclinedSince(ctx context.Context, arg DeclinedSinceParams) ([]DeclinedSinceRow, error) {
-	rows, err := q.db.Query(ctx, declinedSince, arg.Ledger, arg.Since)
+	rows, err := q.db.Query(ctx, declinedSince, arg.Ledger, arg.OrganizationID, arg.Since)
 	if err != nil {
 		return nil, err
 	}
@@ -69,18 +71,19 @@ func (q *Queries) DeclinedSince(ctx context.Context, arg DeclinedSinceParams) ([
 
 const getWrite = `-- name: GetWrite :one
 SELECT ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id
 FROM write_requests
-WHERE ledger = $1 AND idempotency_key = $2
+WHERE organization_id = $3 AND ledger = $1 AND idempotency_key = $2
 `
 
 type GetWriteParams struct {
 	Ledger         string
 	IdempotencyKey string
+	OrganizationID pgtype.UUID
 }
 
 func (q *Queries) GetWrite(ctx context.Context, arg GetWriteParams) (WriteRequest, error) {
-	row := q.db.QueryRow(ctx, getWrite, arg.Ledger, arg.IdempotencyKey)
+	row := q.db.QueryRow(ctx, getWrite, arg.Ledger, arg.IdempotencyKey, arg.OrganizationID)
 	var i WriteRequest
 	err := row.Scan(
 		&i.Ledger,
@@ -98,16 +101,17 @@ func (q *Queries) GetWrite(ctx context.Context, arg GetWriteParams) (WriteReques
 		&i.Attempts,
 		&i.CreatedAt,
 		&i.ResolvedAt,
+		&i.OrganizationID,
 	)
 	return i, err
 }
 
 const insertWrite = `-- name: InsertWrite :one
-INSERT INTO write_requests (ledger, idempotency_key, operation, body_hash, request, target_id, transfer_ids, request_id, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-ON CONFLICT (ledger, idempotency_key) DO NOTHING
+INSERT INTO write_requests (organization_id, ledger, idempotency_key, operation, body_hash, request, target_id, transfer_ids, request_id, created_at)
+VALUES ($10, $1, $2, $3, $4, $5, $6, $7, $8, $9)
+ON CONFLICT (organization_id, ledger, idempotency_key) DO NOTHING
 RETURNING ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id
 `
 
 type InsertWriteParams struct {
@@ -120,6 +124,7 @@ type InsertWriteParams struct {
 	TransferIds    []pgtype.UUID
 	RequestID      *string
 	CreatedAt      pgtype.Timestamptz
+	OrganizationID pgtype.UUID
 }
 
 func (q *Queries) InsertWrite(ctx context.Context, arg InsertWriteParams) (WriteRequest, error) {
@@ -133,6 +138,7 @@ func (q *Queries) InsertWrite(ctx context.Context, arg InsertWriteParams) (Write
 		arg.TransferIds,
 		arg.RequestID,
 		arg.CreatedAt,
+		arg.OrganizationID,
 	)
 	var i WriteRequest
 	err := row.Scan(
@@ -151,42 +157,45 @@ func (q *Queries) InsertWrite(ctx context.Context, arg InsertWriteParams) (Write
 		&i.Attempts,
 		&i.CreatedAt,
 		&i.ResolvedAt,
+		&i.OrganizationID,
 	)
 	return i, err
 }
 
 const listWrites = `-- name: ListWrites :many
 SELECT ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id
 FROM write_requests
-WHERE ledger = $1
-    AND ($2::text IS NULL OR status = $2::text)
-    AND ($3::text IS NULL OR operation = $3::text)
+WHERE organization_id = $1 AND ledger = $2
+    AND ($3::text IS NULL OR status = $3::text)
+    AND ($4::text IS NULL OR operation = $4::text)
     AND (
-        $4::text IS NULL
-        OR starts_with(idempotency_key, $4::text)
-        OR request_id = $4::text
+        $5::text IS NULL
+        OR starts_with(idempotency_key, $5::text)
+        OR request_id = $5::text
     )
     AND (
-        $5::timestamptz IS NULL
-        OR (created_at, idempotency_key) < ($5::timestamptz, $6::text)
+        $6::timestamptz IS NULL
+        OR (created_at, idempotency_key) < ($6::timestamptz, $7::text)
     )
 ORDER BY created_at DESC, idempotency_key DESC
-LIMIT $7
+LIMIT $8
 `
 
 type ListWritesParams struct {
-	Ledger    string
-	Status    *string
-	Operation *string
-	Search    *string
-	CursorAt  pgtype.Timestamptz
-	CursorKey *string
-	PageSize  int32
+	OrganizationID pgtype.UUID
+	Ledger         string
+	Status         *string
+	Operation      *string
+	Search         *string
+	CursorAt       pgtype.Timestamptz
+	CursorKey      *string
+	PageSize       int32
 }
 
 func (q *Queries) ListWrites(ctx context.Context, arg ListWritesParams) ([]WriteRequest, error) {
 	rows, err := q.db.Query(ctx, listWrites,
+		arg.OrganizationID,
 		arg.Ledger,
 		arg.Status,
 		arg.Operation,
@@ -218,6 +227,7 @@ func (q *Queries) ListWrites(ctx context.Context, arg ListWritesParams) ([]Write
 			&i.Attempts,
 			&i.CreatedAt,
 			&i.ResolvedAt,
+			&i.OrganizationID,
 		); err != nil {
 			return nil, err
 		}
@@ -232,22 +242,23 @@ func (q *Queries) ListWrites(ctx context.Context, arg ListWritesParams) ([]Write
 const noteAttempt = `-- name: NoteAttempt :exec
 UPDATE write_requests
 SET attempts = attempts + 1
-WHERE ledger = $1 AND idempotency_key = $2
+WHERE organization_id = $3 AND ledger = $1 AND idempotency_key = $2
 `
 
 type NoteAttemptParams struct {
 	Ledger         string
 	IdempotencyKey string
+	OrganizationID pgtype.UUID
 }
 
 func (q *Queries) NoteAttempt(ctx context.Context, arg NoteAttemptParams) error {
-	_, err := q.db.Exec(ctx, noteAttempt, arg.Ledger, arg.IdempotencyKey)
+	_, err := q.db.Exec(ctx, noteAttempt, arg.Ledger, arg.IdempotencyKey, arg.OrganizationID)
 	return err
 }
 
 const pendingWrites = `-- name: PendingWrites :many
 SELECT ledger, idempotency_key, operation, status, body_hash, request, target_id, transfer_ids,
-    response_status, response, problem_type, request_id, attempts, created_at, resolved_at
+    response_status, response, problem_type, request_id, attempts, created_at, resolved_at, organization_id
 FROM write_requests
 WHERE status = 'pending' AND created_at < $1
 ORDER BY created_at
@@ -259,6 +270,8 @@ type PendingWritesParams struct {
 	MaxRows int32
 }
 
+// tenant-free: the reconciler settles every organization's writes; each record carries its
+// organization, which the reconciler acts for.
 func (q *Queries) PendingWrites(ctx context.Context, arg PendingWritesParams) ([]WriteRequest, error) {
 	rows, err := q.db.Query(ctx, pendingWrites, arg.Before, arg.MaxRows)
 	if err != nil {
@@ -284,6 +297,7 @@ func (q *Queries) PendingWrites(ctx context.Context, arg PendingWritesParams) ([
 			&i.Attempts,
 			&i.CreatedAt,
 			&i.ResolvedAt,
+			&i.OrganizationID,
 		); err != nil {
 			return nil, err
 		}
@@ -298,7 +312,7 @@ func (q *Queries) PendingWrites(ctx context.Context, arg PendingWritesParams) ([
 const resolveWrite = `-- name: ResolveWrite :execrows
 UPDATE write_requests
 SET status = $3, response_status = $4, response = $5, problem_type = $6, resolved_at = $7
-WHERE ledger = $1 AND idempotency_key = $2 AND status = 'pending'
+WHERE organization_id = $8 AND ledger = $1 AND idempotency_key = $2 AND status = 'pending'
 `
 
 type ResolveWriteParams struct {
@@ -309,6 +323,7 @@ type ResolveWriteParams struct {
 	Response       []byte
 	ProblemType    *string
 	ResolvedAt     pgtype.Timestamptz
+	OrganizationID pgtype.UUID
 }
 
 func (q *Queries) ResolveWrite(ctx context.Context, arg ResolveWriteParams) (int64, error) {
@@ -320,6 +335,7 @@ func (q *Queries) ResolveWrite(ctx context.Context, arg ResolveWriteParams) (int
 		arg.Response,
 		arg.ProblemType,
 		arg.ResolvedAt,
+		arg.OrganizationID,
 	)
 	if err != nil {
 		return 0, err

@@ -68,6 +68,9 @@ func (d *Dispatcher) Answer(ctx context.Context, c Call) Answer {
 	}
 	ctx = requestid.With(ctx, id)
 	ctx = logging.With(ctx, d.logger.With(slog.String("request_id", id)))
+	// Every call acts for the default organization until authentication resolves the tenant from
+	// the credential (docs/plans/auth/plan.md, phase 2; ADR-0026).
+	ctx = ledger.WithTenant(ctx, ledger.DefaultTenant)
 
 	data, err := d.run(ctx, c, start)
 	reply := Reply{OK: err == nil, Data: data}

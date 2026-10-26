@@ -1,6 +1,6 @@
 -- name: InsertTransaction :exec
-INSERT INTO transactions (id, ledger, reference, event_type, code, business_time, metadata, idempotency_key, request_id, reverts, committed_at, tb_timestamp)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+INSERT INTO transactions (organization_id, id, ledger, reference, event_type, code, business_time, metadata, idempotency_key, request_id, reverts, committed_at, tb_timestamp)
+VALUES ($13, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 ON CONFLICT (id) DO NOTHING;
 
 -- name: InsertPostings :exec
@@ -18,14 +18,14 @@ SELECT t.id, t.ledger, t.reference, t.event_type, t.code, t.business_time, t.met
     t.request_id, t.reverts, t.committed_at, t.tb_timestamp,
     (SELECT r.id FROM transactions r WHERE r.reverts = t.id) AS reverted_by
 FROM transactions t
-WHERE t.ledger = $1 AND t.id = $2;
+WHERE t.organization_id = $3 AND t.ledger = $1 AND t.id = $2;
 
 -- name: ListTransactions :many
 SELECT t.id, t.ledger, t.reference, t.event_type, t.code, t.business_time, t.metadata, t.idempotency_key,
     t.request_id, t.reverts, t.committed_at, t.tb_timestamp,
     (SELECT r.id FROM transactions r WHERE r.reverts = t.id) AS reverted_by
 FROM transactions t
-WHERE t.ledger = sqlc.arg(ledger)
+WHERE t.organization_id = sqlc.arg(organization_id) AND t.ledger = sqlc.arg(ledger)
     AND (sqlc.narg(before_id)::uuid IS NULL OR t.id < sqlc.narg(before_id)::uuid)
     AND (sqlc.narg(reference)::text IS NULL OR t.reference = sqlc.narg(reference)::text)
     AND (sqlc.narg(event_type)::text IS NULL OR t.event_type = sqlc.narg(event_type)::text)
@@ -50,6 +50,7 @@ ORDER BY t.id DESC
 LIMIT sqlc.arg(page_size);
 
 -- name: TransactionPostings :many
+-- tenant-free: by transaction IDs the caller read inside its organization.
 SELECT p.transaction_id, p.position, p.transfer_id, sqlc.embed(s), sqlc.embed(d)
 FROM transaction_postings p
 JOIN accounts s ON s.id = p.source_account
@@ -60,14 +61,14 @@ ORDER BY p.transaction_id, p.position;
 -- name: ReplaceTransactionMetadata :execrows
 UPDATE transactions
 SET metadata = $3
-WHERE ledger = $1 AND id = $2;
+WHERE organization_id = $4 AND ledger = $1 AND id = $2;
 
 -- name: SearchTransactions :many
 SELECT t.id, t.ledger, t.reference, t.event_type, t.code, t.business_time, t.metadata, t.idempotency_key,
     t.request_id, t.reverts, t.committed_at, t.tb_timestamp,
     (SELECT r.id FROM transactions r WHERE r.reverts = t.id) AS reverted_by
 FROM transactions t
-WHERE t.ledger = sqlc.arg(ledger)
+WHERE t.organization_id = sqlc.arg(organization_id) AND t.ledger = sqlc.arg(ledger)
     AND (t.id = sqlc.narg(id)::uuid OR (t.reference IS NOT NULL AND starts_with(t.reference, sqlc.arg(text)::text)))
 ORDER BY t.id DESC
 LIMIT sqlc.arg(max_rows);
