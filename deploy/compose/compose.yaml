@@ -119,6 +119,8 @@ services:
       # The service account for Keycloak's admin API: organizations, members, invitations (ADR-0027).
       AUTH_ADMIN_CLIENT_ID: tbp-admin
       AUTH_ADMIN_CLIENT_SECRET: tbp-admin-dev-secret
+      # Keys the HMAC of API key secrets (ADR-0029); for this local stack only.
+      AUTH_API_KEY_PEPPER: ${AUTH_API_KEY_PEPPER:-ZGV2LW9ubHktYXBpLWtleS1wZXBwZXItMzItYnl0ZXMh}
     ports:
       - '${API_PORT:-8080}:8080'
       - '${GRPC_PORT:-9090}:9090'
