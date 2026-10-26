@@ -39,6 +39,15 @@ type Documents = {
     "\n  query Search($name: String!, $q: String!) {\n    ledger(name: $name) {\n      search(q: $q) {\n        query\n        accounts {\n          address\n          assets\n        }\n        transactions {\n          id\n          reference\n          committedAt\n        }\n        holds {\n          id\n          status\n        }\n        requests {\n          key\n          operation\n          status\n        }\n      }\n    }\n  }\n": typeof types.SearchDocument,
     "\n  mutation CreateLedger($input: CreateLedgerInput!) {\n    createLedger(input: $input) {\n      ...LedgerFields\n    }\n  }\n": typeof types.CreateLedgerDocument,
     "\n  mutation ReplaceLedgerMetadata($input: ReplaceLedgerMetadataInput!) {\n    replaceLedgerMetadata(input: $input) {\n      ...LedgerFields\n    }\n  }\n": typeof types.ReplaceLedgerMetadataDocument,
+    "\n  fragment MemberFields on Member {\n    subject\n    email\n    emailVerified\n    name\n    status\n    role\n    addedAt\n    addedBy\n    ledgers {\n      ledger\n      role\n      grantedAt\n      grantedBy\n    }\n    invitation {\n      id\n      sentAt\n      expiresAt\n      expired\n    }\n  }\n": typeof types.MemberFieldsFragmentDoc,
+    "\n  query Members {\n    members {\n      ...MemberFields\n    }\n  }\n": typeof types.MembersDocument,
+    "\n  mutation InviteMember($input: InviteMemberInput!) {\n    inviteMember(input: $input) {\n      ...MemberFields\n    }\n  }\n": typeof types.InviteMemberDocument,
+    "\n  mutation SetMemberRole($input: SetMemberRoleInput!) {\n    setMemberRole(input: $input)\n  }\n": typeof types.SetMemberRoleDocument,
+    "\n  mutation RemoveMember($input: MemberInput!) {\n    removeMember(input: $input)\n  }\n": typeof types.RemoveMemberDocument,
+    "\n  mutation SetLedgerRole($input: SetLedgerRoleInput!) {\n    setLedgerRole(input: $input)\n  }\n": typeof types.SetLedgerRoleDocument,
+    "\n  mutation RevokeLedgerRole($input: RevokeLedgerRoleInput!) {\n    revokeLedgerRole(input: $input)\n  }\n": typeof types.RevokeLedgerRoleDocument,
+    "\n  mutation ResendInvitation($input: InvitationInput!) {\n    resendInvitation(input: $input)\n  }\n": typeof types.ResendInvitationDocument,
+    "\n  mutation DeleteInvitation($input: InvitationInput!) {\n    deleteInvitation(input: $input)\n  }\n": typeof types.DeleteInvitationDocument,
     "\n  fragment WriteRequestFields on WriteRequest {\n    key\n    operation\n    status\n    createdAt\n    resolvedAt\n    targetId\n    problemType\n    responseStatus\n    requestId\n    bodyHash\n    attempts\n  }\n": typeof types.WriteRequestFieldsFragmentDoc,
     "\n  query WriteRequests($name: String!, $first: Int, $after: String, $status: RequestStatus, $operation: Operation, $search: String) {\n    ledger(name: $name) {\n      requests(first: $first, after: $after, status: $status, operation: $operation, search: $search) {\n        nodes {\n          ...WriteRequestFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n": typeof types.WriteRequestsDocument,
     "\n  query WriteRequest($name: String!, $key: String!) {\n    ledger(name: $name) {\n      request(key: $key) {\n        key\n        operation\n        status\n        createdAt\n        resolvedAt\n        targetId\n        problemType\n        responseStatus\n        requestId\n        bodyHash\n        attempts\n        request\n        response\n        transferIds\n      }\n    }\n  }\n": typeof types.WriteRequestDocument,
@@ -50,6 +59,11 @@ type Documents = {
     "\n  mutation PutRule($input: PutRuleInput!) {\n    putRule(input: $input) {\n      ...RuleFields\n    }\n  }\n": typeof types.PutRuleDocument,
     "\n  mutation DeleteRule($input: DeleteRuleInput!) {\n    deleteRule(input: $input)\n  }\n": typeof types.DeleteRuleDocument,
     "\n  mutation CreateEventType($input: CreateEventTypeInput!) {\n    createEventType(input: $input) {\n      ...EventTypeFields\n    }\n  }\n": typeof types.CreateEventTypeDocument,
+    "\n  fragment OrganizationFields on Organization {\n    id\n    keycloakId\n    alias\n    name\n    status\n    suspensionReason\n    createdAt\n    createdBy\n    owners {\n      subject\n      email\n      name\n      status\n      since\n    }\n    members\n    ledgers\n  }\n": typeof types.OrganizationFieldsFragmentDoc,
+    "\n  query Organizations($first: Int, $after: String) {\n    organizations(first: $first, after: $after) {\n      nodes {\n        ...OrganizationFields\n      }\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }\n": typeof types.OrganizationsDocument,
+    "\n  query Organization($alias: String!) {\n    organization(alias: $alias) {\n      ...OrganizationFields\n    }\n  }\n": typeof types.OrganizationDocument,
+    "\n  mutation CreateOrganization($input: CreateOrganizationInput!) {\n    createOrganization(input: $input) {\n      ...OrganizationFields\n    }\n  }\n": typeof types.CreateOrganizationDocument,
+    "\n  mutation UpdateOrganization($input: UpdateOrganizationInput!) {\n    updateOrganization(input: $input) {\n      ...OrganizationFields\n    }\n  }\n": typeof types.UpdateOrganizationDocument,
     "\n  fragment TransactionFields on Transaction {\n    id\n    ledger\n    postings {\n      source\n      destination\n      asset\n      amount\n      transferId\n      tbLedger\n    }\n    reference\n    eventType {\n      name\n      code\n    }\n    businessTime\n    metadata\n    committedAt\n    timestamp\n    reverts\n    revertedBy\n    idempotencyKey\n    requestId\n  }\n": typeof types.TransactionFieldsFragmentDoc,
     "\n  query Transactions(\n    $name: String!\n    $first: Int\n    $after: String\n    $address: String\n    $asset: String\n    $reference: String\n    $eventType: String\n    $committedAfter: DateTime\n    $committedBefore: DateTime\n  ) {\n    ledger(name: $name) {\n      transactions(\n        first: $first\n        after: $after\n        address: $address\n        asset: $asset\n        reference: $reference\n        eventType: $eventType\n        committedAfter: $committedAfter\n        committedBefore: $committedBefore\n      ) {\n        nodes {\n          ...TransactionFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n": typeof types.TransactionsDocument,
     "\n  query Transaction($name: String!, $id: U128!) {\n    ledger(name: $name) {\n      transaction(id: $id) {\n        ...TransactionFields\n      }\n    }\n  }\n": typeof types.TransactionDocument,
@@ -82,6 +96,15 @@ const documents: Documents = {
     "\n  query Search($name: String!, $q: String!) {\n    ledger(name: $name) {\n      search(q: $q) {\n        query\n        accounts {\n          address\n          assets\n        }\n        transactions {\n          id\n          reference\n          committedAt\n        }\n        holds {\n          id\n          status\n        }\n        requests {\n          key\n          operation\n          status\n        }\n      }\n    }\n  }\n": types.SearchDocument,
     "\n  mutation CreateLedger($input: CreateLedgerInput!) {\n    createLedger(input: $input) {\n      ...LedgerFields\n    }\n  }\n": types.CreateLedgerDocument,
     "\n  mutation ReplaceLedgerMetadata($input: ReplaceLedgerMetadataInput!) {\n    replaceLedgerMetadata(input: $input) {\n      ...LedgerFields\n    }\n  }\n": types.ReplaceLedgerMetadataDocument,
+    "\n  fragment MemberFields on Member {\n    subject\n    email\n    emailVerified\n    name\n    status\n    role\n    addedAt\n    addedBy\n    ledgers {\n      ledger\n      role\n      grantedAt\n      grantedBy\n    }\n    invitation {\n      id\n      sentAt\n      expiresAt\n      expired\n    }\n  }\n": types.MemberFieldsFragmentDoc,
+    "\n  query Members {\n    members {\n      ...MemberFields\n    }\n  }\n": types.MembersDocument,
+    "\n  mutation InviteMember($input: InviteMemberInput!) {\n    inviteMember(input: $input) {\n      ...MemberFields\n    }\n  }\n": types.InviteMemberDocument,
+    "\n  mutation SetMemberRole($input: SetMemberRoleInput!) {\n    setMemberRole(input: $input)\n  }\n": types.SetMemberRoleDocument,
+    "\n  mutation RemoveMember($input: MemberInput!) {\n    removeMember(input: $input)\n  }\n": types.RemoveMemberDocument,
+    "\n  mutation SetLedgerRole($input: SetLedgerRoleInput!) {\n    setLedgerRole(input: $input)\n  }\n": types.SetLedgerRoleDocument,
+    "\n  mutation RevokeLedgerRole($input: RevokeLedgerRoleInput!) {\n    revokeLedgerRole(input: $input)\n  }\n": types.RevokeLedgerRoleDocument,
+    "\n  mutation ResendInvitation($input: InvitationInput!) {\n    resendInvitation(input: $input)\n  }\n": types.ResendInvitationDocument,
+    "\n  mutation DeleteInvitation($input: InvitationInput!) {\n    deleteInvitation(input: $input)\n  }\n": types.DeleteInvitationDocument,
     "\n  fragment WriteRequestFields on WriteRequest {\n    key\n    operation\n    status\n    createdAt\n    resolvedAt\n    targetId\n    problemType\n    responseStatus\n    requestId\n    bodyHash\n    attempts\n  }\n": types.WriteRequestFieldsFragmentDoc,
     "\n  query WriteRequests($name: String!, $first: Int, $after: String, $status: RequestStatus, $operation: Operation, $search: String) {\n    ledger(name: $name) {\n      requests(first: $first, after: $after, status: $status, operation: $operation, search: $search) {\n        nodes {\n          ...WriteRequestFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n": types.WriteRequestsDocument,
     "\n  query WriteRequest($name: String!, $key: String!) {\n    ledger(name: $name) {\n      request(key: $key) {\n        key\n        operation\n        status\n        createdAt\n        resolvedAt\n        targetId\n        problemType\n        responseStatus\n        requestId\n        bodyHash\n        attempts\n        request\n        response\n        transferIds\n      }\n    }\n  }\n": types.WriteRequestDocument,
@@ -93,6 +116,11 @@ const documents: Documents = {
     "\n  mutation PutRule($input: PutRuleInput!) {\n    putRule(input: $input) {\n      ...RuleFields\n    }\n  }\n": types.PutRuleDocument,
     "\n  mutation DeleteRule($input: DeleteRuleInput!) {\n    deleteRule(input: $input)\n  }\n": types.DeleteRuleDocument,
     "\n  mutation CreateEventType($input: CreateEventTypeInput!) {\n    createEventType(input: $input) {\n      ...EventTypeFields\n    }\n  }\n": types.CreateEventTypeDocument,
+    "\n  fragment OrganizationFields on Organization {\n    id\n    keycloakId\n    alias\n    name\n    status\n    suspensionReason\n    createdAt\n    createdBy\n    owners {\n      subject\n      email\n      name\n      status\n      since\n    }\n    members\n    ledgers\n  }\n": types.OrganizationFieldsFragmentDoc,
+    "\n  query Organizations($first: Int, $after: String) {\n    organizations(first: $first, after: $after) {\n      nodes {\n        ...OrganizationFields\n      }\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }\n": types.OrganizationsDocument,
+    "\n  query Organization($alias: String!) {\n    organization(alias: $alias) {\n      ...OrganizationFields\n    }\n  }\n": types.OrganizationDocument,
+    "\n  mutation CreateOrganization($input: CreateOrganizationInput!) {\n    createOrganization(input: $input) {\n      ...OrganizationFields\n    }\n  }\n": types.CreateOrganizationDocument,
+    "\n  mutation UpdateOrganization($input: UpdateOrganizationInput!) {\n    updateOrganization(input: $input) {\n      ...OrganizationFields\n    }\n  }\n": types.UpdateOrganizationDocument,
     "\n  fragment TransactionFields on Transaction {\n    id\n    ledger\n    postings {\n      source\n      destination\n      asset\n      amount\n      transferId\n      tbLedger\n    }\n    reference\n    eventType {\n      name\n      code\n    }\n    businessTime\n    metadata\n    committedAt\n    timestamp\n    reverts\n    revertedBy\n    idempotencyKey\n    requestId\n  }\n": types.TransactionFieldsFragmentDoc,
     "\n  query Transactions(\n    $name: String!\n    $first: Int\n    $after: String\n    $address: String\n    $asset: String\n    $reference: String\n    $eventType: String\n    $committedAfter: DateTime\n    $committedBefore: DateTime\n  ) {\n    ledger(name: $name) {\n      transactions(\n        first: $first\n        after: $after\n        address: $address\n        asset: $asset\n        reference: $reference\n        eventType: $eventType\n        committedAfter: $committedAfter\n        committedBefore: $committedBefore\n      ) {\n        nodes {\n          ...TransactionFields\n        }\n        pageInfo {\n          endCursor\n        }\n      }\n    }\n  }\n": types.TransactionsDocument,
     "\n  query Transaction($name: String!, $id: U128!) {\n    ledger(name: $name) {\n      transaction(id: $id) {\n        ...TransactionFields\n      }\n    }\n  }\n": types.TransactionDocument,
@@ -200,6 +228,42 @@ export function graphql(source: "\n  mutation ReplaceLedgerMetadata($input: Repl
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
+export function graphql(source: "\n  fragment MemberFields on Member {\n    subject\n    email\n    emailVerified\n    name\n    status\n    role\n    addedAt\n    addedBy\n    ledgers {\n      ledger\n      role\n      grantedAt\n      grantedBy\n    }\n    invitation {\n      id\n      sentAt\n      expiresAt\n      expired\n    }\n  }\n"): typeof import('./graphql').MemberFieldsFragmentDoc;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Members {\n    members {\n      ...MemberFields\n    }\n  }\n"): typeof import('./graphql').MembersDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation InviteMember($input: InviteMemberInput!) {\n    inviteMember(input: $input) {\n      ...MemberFields\n    }\n  }\n"): typeof import('./graphql').InviteMemberDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation SetMemberRole($input: SetMemberRoleInput!) {\n    setMemberRole(input: $input)\n  }\n"): typeof import('./graphql').SetMemberRoleDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation RemoveMember($input: MemberInput!) {\n    removeMember(input: $input)\n  }\n"): typeof import('./graphql').RemoveMemberDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation SetLedgerRole($input: SetLedgerRoleInput!) {\n    setLedgerRole(input: $input)\n  }\n"): typeof import('./graphql').SetLedgerRoleDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation RevokeLedgerRole($input: RevokeLedgerRoleInput!) {\n    revokeLedgerRole(input: $input)\n  }\n"): typeof import('./graphql').RevokeLedgerRoleDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation ResendInvitation($input: InvitationInput!) {\n    resendInvitation(input: $input)\n  }\n"): typeof import('./graphql').ResendInvitationDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation DeleteInvitation($input: InvitationInput!) {\n    deleteInvitation(input: $input)\n  }\n"): typeof import('./graphql').DeleteInvitationDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
 export function graphql(source: "\n  fragment WriteRequestFields on WriteRequest {\n    key\n    operation\n    status\n    createdAt\n    resolvedAt\n    targetId\n    problemType\n    responseStatus\n    requestId\n    bodyHash\n    attempts\n  }\n"): typeof import('./graphql').WriteRequestFieldsFragmentDoc;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
@@ -241,6 +305,26 @@ export function graphql(source: "\n  mutation DeleteRule($input: DeleteRuleInput
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  mutation CreateEventType($input: CreateEventTypeInput!) {\n    createEventType(input: $input) {\n      ...EventTypeFields\n    }\n  }\n"): typeof import('./graphql').CreateEventTypeDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  fragment OrganizationFields on Organization {\n    id\n    keycloakId\n    alias\n    name\n    status\n    suspensionReason\n    createdAt\n    createdBy\n    owners {\n      subject\n      email\n      name\n      status\n      since\n    }\n    members\n    ledgers\n  }\n"): typeof import('./graphql').OrganizationFieldsFragmentDoc;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Organizations($first: Int, $after: String) {\n    organizations(first: $first, after: $after) {\n      nodes {\n        ...OrganizationFields\n      }\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }\n"): typeof import('./graphql').OrganizationsDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Organization($alias: String!) {\n    organization(alias: $alias) {\n      ...OrganizationFields\n    }\n  }\n"): typeof import('./graphql').OrganizationDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation CreateOrganization($input: CreateOrganizationInput!) {\n    createOrganization(input: $input) {\n      ...OrganizationFields\n    }\n  }\n"): typeof import('./graphql').CreateOrganizationDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation UpdateOrganization($input: UpdateOrganizationInput!) {\n    updateOrganization(input: $input) {\n      ...OrganizationFields\n    }\n  }\n"): typeof import('./graphql').UpdateOrganizationDocument;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

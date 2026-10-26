@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useParams } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useLocation, useParams } from '@tanstack/react-router'
 
 import { AppShell } from '~/components/layout/app-shell'
 import { AppSidebar } from '~/components/layout/app-sidebar'
@@ -25,17 +25,23 @@ export const Route = createFileRoute('/_console')({
 function ConsoleLayout() {
   // Ledger pages carry the organization and the ledger in the URL; Preferences keeps the last ones.
   const params = useParams({ strict: false })
-  const ledger = params.ledger ?? (params.org ? getLastLedger() : undefined)
+  // Staff pages act for no organization (ADR-0027): no organization or ledger to switch.
+  const staffPage = useLocation({ select: (l) => l.pathname.startsWith('/staff') })
+  const ledger = staffPage ? undefined : (params.ledger ?? (params.org ? getLastLedger() : undefined))
   return (
     <AppShell
       sidebar={(props) => (
         <AppSidebar
           ledger={ledger}
           switcher={
-            <>
-              <OrganizationSwitcher />
-              <LedgerSwitcher current={ledger} />
-            </>
+            staffPage ? (
+              <div className="flex h-9 items-center gap-2 px-2 text-small font-medium text-foreground">Platform staff</div>
+            ) : (
+              <>
+                <OrganizationSwitcher />
+                <LedgerSwitcher current={ledger} />
+              </>
+            )
           }
           versions={<VersionLine />}
           {...props}

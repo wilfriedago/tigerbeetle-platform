@@ -1,8 +1,9 @@
-import { Link, type LinkComponentProps } from '@tanstack/react-router'
+import { Link, type LinkComponentProps, useLocation } from '@tanstack/react-router'
 
 import {
   ActivityIcon,
   ArrowLeftRightIcon,
+  BuildingIcon,
   CoinsIcon,
   InboxIcon,
   LayoutDashboardIcon,
@@ -12,9 +13,12 @@ import {
   SettingsIcon,
   SlidersHorizontalIcon,
   TagIcon,
+  UserCheckIcon,
+  UsersIcon,
   WalletIcon
 } from 'lucide-react'
 
+import { useSession } from '~/lib/auth/use-session'
 import { useOrganization } from '~/lib/organization'
 import { cn } from '~/lib/utils'
 
@@ -53,6 +57,8 @@ interface AppSidebarProps {
 
 export function AppSidebar({ ledger, switcher, versions, className, onNavigate }: AppSidebarProps) {
   const org = useOrganization()
+  const session = useSession()
+  const staffPage = useLocation({ select: (l) => l.pathname.startsWith('/staff') })
   return (
     <nav
       aria-label="Console"
@@ -92,14 +98,26 @@ export function AppSidebar({ ledger, switcher, versions, className, onNavigate }
               />
               <NavItem icon={ListChecksIcon} label="Account rules" to="/$org/ledgers/$ledger/settings/rules" params={{ ledger, org }} />
               <NavItem icon={TagIcon} label="Event types" to="/$org/ledgers/$ledger/settings/event-types" params={{ ledger, org }} />
+              <NavItem icon={UserCheckIcon} label="Access" to="/$org/ledgers/$ledger/settings/access" params={{ ledger, org }} />
             </NavSection>
           </>
-        ) : (
+        ) : staffPage ? null : (
           <p className="px-2.5 pt-2 text-small text-muted-foreground">Pick or create a ledger to see its accounts and transactions.</p>
         )}
+        {org && !staffPage ? (
+          <NavSection label="Organization">
+            <NavItem icon={UsersIcon} label="Members" to="/$org/members" params={{ org }} />
+            <NavItem icon={SettingsIcon} label="Settings" to="/$org/settings" params={{ org }} />
+          </NavSection>
+        ) : null}
+        {session?.staff ? (
+          <NavSection label="Platform staff">
+            <NavItem icon={BuildingIcon} label="Organizations" to="/staff/organizations" />
+          </NavSection>
+        ) : null}
       </div>
       <div className="flex flex-col gap-0.5 border-t border-sidebar-border pt-2">
-        <NavItem icon={ActivityIcon} label="System" to="/$org/system" params={{ org }} />
+        {org && !staffPage ? <NavItem icon={ActivityIcon} label="System" to="/$org/system" params={{ org }} /> : null}
         <NavItem icon={SlidersHorizontalIcon} label="Preferences" to="/preferences" />
         {versions ? <div className="flex gap-3 px-0 pt-1 font-mono text-[11px] text-subtle-foreground">{versions}</div> : null}
       </div>

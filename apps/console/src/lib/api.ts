@@ -20,7 +20,7 @@ function baseUrl(): string {
 }
 
 /** Makes every later call act for the organization (ADR-0027); the $org route calls it. */
-export function actForOrganization(alias: string): void {
-  configureClient({ baseUrl: baseUrl(), organization: alias })
+export function actForOrganization(alias: string | undefined): void {
+  configureClient({ baseUrl: baseUrl(), ...(alias ? { organization: alias } : {}) })
   setGraphQLOrganization(alias)
 }

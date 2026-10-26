@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 
 import { BuildingIcon, CheckIcon, ChevronsUpDownIcon } from 'lucide-react'
@@ -11,14 +12,16 @@ import {
   DropdownMenuTrigger
 } from '~/components/ui/dropdown-menu'
 
-import { useSession } from '~/lib/auth/use-session'
+import { sessionQuery } from '~/lib/auth/session'
 import { useOrganization } from '~/lib/organization'
 
 // The organization the console acts for (ADR-0027), above the ledger switcher. Choosing another
 // one opens its ledgers; the URL carries the organization, so each tab keeps its own.
 export function OrganizationSwitcher() {
   const current = useOrganization()
-  const session = useSession()
+  // The list of organizations needs no organization: the session without one loads even when the
+  // current organization is suspended.
+  const session = useQuery(sessionQuery()).data
   const organizations = session?.organizations ?? []
   const name = organizations.find((o) => o.alias === current)?.name ?? current
   return (
@@ -37,6 +40,7 @@ export function OrganizationSwitcher() {
           {organizations.map((o) => (
             <DropdownMenuLinkItem key={o.alias} render={<Link to="/$org/ledgers" params={{ org: o.alias }} />}>
               <span className="flex-1 truncate">{o.name}</span>
+              {o.status === 'suspended' ? <span className="text-caption text-danger-fg">suspended</span> : null}
               <span className="font-mono text-small text-subtle-foreground">{o.alias}</span>
               {o.alias === current ? <CheckIcon className="text-primary-text" /> : null}
             </DropdownMenuLinkItem>

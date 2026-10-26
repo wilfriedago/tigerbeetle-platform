@@ -17,12 +17,23 @@ export function configureSession(baseUrl: string): void {
 export interface SessionOrganization {
   alias: string
   name: string
+  /** A suspended organization refuses every call in its name (ADR-0027). */
+  status: 'active' | 'suspended'
+  /** Why staff suspended it. */
+  suspensionReason?: string
+  /** The person's organization role there: member, admin or owner. */
+  role?: string
+  /** The person's ledger roles there, by ledger name. */
+  ledgers: Record<string, string>
 }
 
 /** The signed-in person, as GET /auth/session answers. */
 export interface Session {
   subject: string
   name: string
+  email?: string
+  /** Keycloak's page where the person manages their password, two-factor and sessions. */
+  accountUrl?: string
   /** Staff run the platform; they manage organizations and see no ledger without a grant. */
   staff: boolean
   organizations: SessionOrganization[]
@@ -122,4 +133,14 @@ export function can(session: Session | undefined, permission: Permission, ledger
 /** Whether the session may create ledgers in its organization. */
 export function canCreateLedgers(session: Session | undefined): boolean {
   return session?.role === 'admin' || session?.role === 'owner'
+}
+
+/** Whether the session may invite and remove members and change organization roles (org.members). */
+export function canManageMembers(session: Session | undefined): boolean {
+  return session?.role === 'admin' || session?.role === 'owner'
+}
+
+/** Whether the session may grant roles on a ledger (ledger.members). */
+export function canManageLedgerAccess(session: Session | undefined, ledger: string): boolean {
+  return canManageMembers(session) || session?.ledgers[ledger] === 'admin'
 }

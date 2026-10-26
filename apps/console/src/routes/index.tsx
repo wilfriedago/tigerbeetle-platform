@@ -10,9 +10,11 @@ export const Route = createFileRoute('/')({
   beforeLoad: async ({ context, location }) => {
     const session = await requireSession(context.queryClient, location.href)
     const last = getLastOrganization()
-    const org = session.organizations.find((o) => o.alias === last)?.alias ?? session.organizations[0]?.alias
+    // An active organization first: a suspended one would only show why it refuses every call.
+    const active = session.organizations.filter((o) => o.status === 'active')
+    const org = (active.find((o) => o.alias === last) ?? active[0] ?? session.organizations[0])?.alias
     if (!org) {
-      throw redirect({ replace: true, to: '/welcome' })
+      throw redirect({ replace: true, to: session.staff ? '/staff/organizations' : '/welcome' })
     }
     setActiveOrganization(org)
     const ledger = getLastLedger()

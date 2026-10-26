@@ -1,4 +1,6 @@
-import { LogOutIcon, UserIcon } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+
+import { BuildingIcon, CircleUserIcon, LogOutIcon, UserIcon } from 'lucide-react'
 
 import { Button } from '~/components/ui/button'
 import {
@@ -7,6 +9,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuLinkItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '~/components/ui/dropdown-menu'
@@ -30,6 +33,17 @@ export function UserMenu() {
             {session?.role ? <span className="block text-small text-muted-foreground">{session.role} of this organization</span> : null}
           </DropdownMenuLabel>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuLinkItem render={<Link to="/me" />}>
+          <CircleUserIcon />
+          Profile
+        </DropdownMenuLinkItem>
+        {session?.staff ? (
+          <DropdownMenuLinkItem render={<Link to="/staff/organizations" />}>
+            <BuildingIcon />
+            Platform staff
+          </DropdownMenuLinkItem>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => void signOut()}>
           <LogOutIcon />

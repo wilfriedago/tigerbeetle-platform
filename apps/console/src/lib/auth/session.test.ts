@@ -3,7 +3,13 @@ import { describe, expect, it } from 'vite-plus/test'
 import { can, canCreateLedgers, type Session } from './session'
 
 function session(role: string | undefined, ledgers: Record<string, string> = {}): Session {
-  const base: Session = { ledgers, name: 'Ada', organizations: [{ alias: 'acme', name: 'Acme' }], staff: false, subject: 'ada' }
+  const base: Session = {
+    ledgers,
+    name: 'Ada',
+    organizations: [{ alias: 'acme', ledgers: {}, name: 'Acme', status: 'active' }],
+    staff: false,
+    subject: 'ada'
+  }
   return role ? { ...base, role } : base
 }
 

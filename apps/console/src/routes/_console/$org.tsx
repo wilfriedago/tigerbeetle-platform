@@ -1,6 +1,7 @@
 import { createFileRoute, notFound, Outlet } from '@tanstack/react-router'
 
 import { OrganizationNotFound } from '~/features/organizations/organization-not-found'
+import { OrganizationSuspended } from '~/features/organizations/organization-suspended'
 
 import { actForOrganization } from '~/lib/api'
 import { sessionQuery } from '~/lib/auth/session'
@@ -12,8 +13,13 @@ import { activeOrganization, setActiveOrganization } from '~/lib/organization'
 export const Route = createFileRoute('/_console/$org')({
   beforeLoad: async ({ context, params }) => {
     const session = await context.queryClient.ensureQueryData(sessionQuery())
-    if (!session.organizations.some((o) => o.alias === params.org)) {
+    const organization = session.organizations.find((o) => o.alias === params.org)
+    if (!organization) {
       throw notFound()
+    }
+    if (organization.status === 'suspended') {
+      // Every call would answer 403 organization-suspended; the page says why instead.
+      return { suspended: organization }
     }
     if (activeOrganization() !== params.org) {
       context.queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== 'session' })
@@ -21,8 +27,14 @@ export const Route = createFileRoute('/_console/$org')({
     setActiveOrganization(params.org)
     actForOrganization(params.org)
     await context.queryClient.ensureQueryData(sessionQuery(params.org))
+    return { suspended: undefined }
   },
-  component: Outlet,
+  component: OrganizationLayout,
   notFoundComponent: OrganizationNotFound,
   staticData: { crumb: { label: (params) => params.org ?? '' } }
 })
+
+function OrganizationLayout() {
+  const { suspended } = Route.useRouteContext()
+  return suspended ? <OrganizationSuspended organization={suspended} /> : <Outlet />
+}
