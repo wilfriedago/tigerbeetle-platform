@@ -19,10 +19,11 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	pb "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/grpcapi/platformv1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/oidc/oidctest"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/rpc"
 )
 
-// testAuth is the in-process issuer a test's API trusts (ADR-0025), and the token of a person in
+// testAuth is the in-process issuer a test's API trusts (ADR-0026), and the token of a person in
 // the default organization, which every request of the tests sends unless it sends its own.
 type testAuth struct {
 	iss   *oidctest.Issuer
@@ -97,7 +98,7 @@ func (a testAuth) rpcHeaders(key string) rpc.Headers {
 }
 
 // TestAuthenticationEndToEnd checks that every transport refuses a call without a valid
-// credential, the same way, and that the health probes stay open (ADR-0025, ADR-0031).
+// credential, the same way, and that the health probes stay open (ADR-0026, ADR-0032).
 func TestAuthenticationEndToEnd(t *testing.T) {
 	h := newHarness(t)
 	h.expect(h.do(http.MethodPost, "/v1/ledgers/auth", "", map[string]any{}), http.StatusCreated, "create a ledger as the test person")
@@ -107,7 +108,7 @@ func TestAuthenticationEndToEnd(t *testing.T) {
 		if code != http.StatusUnauthorized || header.Get("WWW-Authenticate") == "" || header.Get("X-Request-Id") == "" {
 			t.Fatalf("status %d, headers %v, body %s", code, header, raw)
 		}
-		if !strings.Contains(string(raw), "/problems/unauthenticated") {
+		if !strings.Contains(string(raw), problem.TypeOf("unauthenticated")) {
 			t.Fatalf("body %s, want the unauthenticated problem", raw)
 		}
 	})
@@ -172,9 +173,9 @@ func organization(t *testing.T, postgresURL, alias string) {
 	}
 }
 
-// TestAuthorizationEndToEnd checks the grants of ADR-0027 and the tenant isolation of ADR-0026
+// TestAuthorizationEndToEnd checks the grants of ADR-0028 and the tenant isolation of ADR-0027
 // through the transports: two organizations with a ledger of the same name, a viewer, an
-// operator, a member without a role, and an Idempotency-Key used by two callers (ADR-0030).
+// operator, a member without a role, and an Idempotency-Key used by two callers (ADR-0031).
 func TestAuthorizationEndToEnd(t *testing.T) {
 	h := newHarness(t)
 	pg := h.cfgPostgresURL
@@ -214,7 +215,7 @@ func TestAuthorizationEndToEnd(t *testing.T) {
 		if code, raw := send(viewer, "default", http.MethodGet, "/v1/ledgers/payments", "", ""); code != http.StatusOK {
 			t.Fatalf("viewer reads: %d %s", code, raw)
 		}
-		if code, raw := send(viewer, "default", http.MethodPost, "/v1/ledgers/payments/transactions", payment, "vic-1"); code != http.StatusForbidden || !strings.Contains(raw, "/problems/forbidden") {
+		if code, raw := send(viewer, "default", http.MethodPost, "/v1/ledgers/payments/transactions", payment, "vic-1"); code != http.StatusForbidden || !strings.Contains(raw, problem.TypeOf("forbidden")) {
 			t.Fatalf("viewer writes over REST: %d %s", code, raw)
 		}
 		code, raw := send(viewer, "default", http.MethodPost, "/graphql",

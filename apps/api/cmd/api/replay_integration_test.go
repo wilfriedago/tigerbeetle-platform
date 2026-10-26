@@ -105,7 +105,7 @@ func TestReplayPinsTheWire(t *testing.T) {
 			headers:    map[string]string{"Idempotency-Key": "fund-0", "Content-Type": "application/x-www-form-urlencoded"},
 			wantStatus: 415,
 			wantProblem: &wireProblem{
-				Type: "/problems/unsupported-media-type", Title: "Unsupported media type", Status: 415,
+				Type: problem.TypeOf("unsupported-media-type"), Title: "Unsupported media type", Status: 415,
 				Detail: "send the body as application/json",
 			},
 		},
