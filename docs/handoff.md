@@ -132,8 +132,19 @@ in the main checkout stay untouched). ADR-0026 to ADR-0032 record the decisions.
   - Not done from the design: the identity provider and email domain panels, passkeys and active
     sessions (Keycloak's account console has them; the profile links to it), API key and machine
     client counts (phase 6), "last opened" in the organization chooser. The pages Keycloak itself
-    renders (sign-in, invitation, setup, emails) are designed in `.design/auth.pen` and are the
-    next step, as a Keycloakify theme (the owner's suggestion).
+    renders (sign-in, invitation, setup, emails) are the Keycloakify theme below.
+- The Keycloak theme is done, from e0ee199 (ADR-0033, the owner's suggestion):
+  - `packages/design-tokens` now holds the console's tokens; the console imports it, unchanged.
+  - `apps/keycloak-theme` (Keycloakify 11.16.1, theme `tbp`) draws the "Keycloak:" frames of
+    `.design/auth.pen`; other pages are Keycloakify's defaults in the same frame, styled through
+    Keycloak's class keys. `pnpm --filter keycloak-theme dev` previews any page with a mock.
+  - The compose Keycloak is now built by `deploy/compose/keycloak.Dockerfile` (Maven in a build
+    stage); the realm file sets `loginTheme: tbp`. An existing stack keeps its realm: set the
+    login theme in the admin console or rebuild Keycloak's database.
+  - Verified in the second stack: identity-first sign-in to the console, the account setup email
+    of a new invitee through verify, password and profile, and every designed page in the mock.
+  - Not done: Keycloak's emails keep Keycloak's look (an email theme is later work); Keycloak's
+    default user profile asks a new invitee for a last name when the invitation gave none.
 
 A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
 owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the
