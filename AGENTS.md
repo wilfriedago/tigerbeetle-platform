@@ -132,6 +132,10 @@ true; until then it describes the code as it is.
 - Console: amounts are integer strings and bigint, never `number`. Colours come from the
   tokens in `src/styles/globals.css`, never raw values. URL state goes in the route's search
   schema. Writes use `useIdempotencyKey` and renew the key only after a final answer.
+- Console sign-in is the API's backend-for-frontend (ADR-0029): `src/lib/auth` holds the session
+  query, `requireSession`, `useSession` and `useCan`; the console holds no token. Pages of an
+  organization are under `src/routes/_console/$org/`; links pass `org` from `useOrganization()`
+  (or `activeOrganization()` outside components), and the clients send it as `X-Organization`.
 - Adding a console page: a route file, a page in its feature folder, and in the feature's
   `api.ts` a `graphql()` document with query options that call `request()`; run
   `just generate`. Results go through `present()` so pages keep the REST types of

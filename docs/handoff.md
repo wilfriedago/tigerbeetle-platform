@@ -76,6 +76,27 @@ in the main checkout stay untouched). ADR-0025 to ADR-0031 record the decisions.
   - Verified: `just lint`, unit, integration (`TestAuthorizationEndToEnd` covers REST, GraphQL and
     gRPC, two organizations with the same ledger name, viewer and operator, the key rule),
     `just test-e2e` and `scripts/seed-demo.sh` against Keycloak in the second compose stack.
+- Phase 4 (console sign-in) is done, from 7314a77:
+  - The API's backend-for-frontend: `/auth/login`, `/auth/callback`, `/auth/logout`,
+    `/auth/session` in `access/interfaces/web`; sessions (migration 00012) keep only the hash of
+    the cookie's ID and the tokens sealed by `platform/sealed`. The middleware turns the cookie
+    into a bearer token, refreshes it before it expires (one refresh per session), and refuses a
+    cookie-authenticated write whose `Sec-Fetch-Site`/`Origin` is not the console's.
+  - Deviation: the person, their organizations and roles come from `GET /auth/session`, not from
+    a GraphQL `viewer` query. It needs no schema change and is the console's own route.
+  - The console: `_console` and `/` call `requireSession`; pages of an organization moved under
+    `src/routes/_console/$org/`; every link passes `org` (81 links in 26 files); switching
+    organizations drops the cached answers of the previous one; the organization switcher, the
+    account menu with sign-out, `useCan` and `canCreateLedgers` hide what a role cannot do; a 401
+    anywhere sends the browser to sign in. "Copy as curl" adds `Authorization: Bearer $TOKEN` and
+    `X-Organization`.
+  - Verified: Go unit and integration tests (`TestConsoleSignInEndToEnd` runs the code flow, the
+    cookie, the CSRF check, a refresh and sign-out against the test issuer), the console's tests,
+    and a real browser against Keycloak in the second stack: sign-in as carol, the Acme and Globex
+    ledger lists, every ledger page, a GraphQL write with the cookie, sign-out. The second stack's
+    console port needed its redirect URI added to the realm's client at run time.
+  - Note: agent-browser's clicks did not open the base-ui menus in that session (dispatched DOM
+    pointer events did); the main stack's menus opened with the same tool.
 
 A migration is under way, planned in `docs/plans/ddd-transports/plan.md` and approved by the
 owner on 2026-10-25: bounded-context modules, GraphQL, gRPC, AMQP RPC, NATS RPC and Kafka, the

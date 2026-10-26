@@ -18,10 +18,13 @@ example `ledgers/$ledger/transactions/index.tsx`), and the page is in `src/featu
 
 ## Layout
 
-The shell follows the usual ledger-console pattern: a ledger switcher, a sidebar scoped to the
-selected ledger, a page title with a one-line description, and overview cards. There is no
-organisation or workspace switcher, because authentication and tenancy are out of scope until
-decided (AGENTS.md).
+The shell follows the usual ledger-console pattern: an organization switcher, a ledger switcher, a
+sidebar scoped to the selected ledger, a page title with a one-line description, and overview
+cards. Every page needs a signed-in person (ADR-0029): without a session the browser goes to the
+identity provider's sign-in and comes back to the page it asked for. Pages of an organization live
+under `/$org/`, so each tab keeps its own organization (ADR-0026). The account menu shows the
+person and their role, and signs out. Actions the person's role does not allow are hidden, such
+as "New ledger" for a member; the API still checks every call (ADR-0027).
 
 Top bar:
 
@@ -42,7 +45,13 @@ Sidebar, scoped to the current ledger:
 ## Sitemap
 
 ```
-/                                      redirect: last-used ledger, else /ledgers
+/                                      redirect: last-used organization and ledger, else its ledgers,
+                                       else /welcome for a person in no organization
+/welcome                               Welcome (no organization yet)
+/preferences                           Preferences (no organization)
+
+Every path below is under /$org, the organization's alias, such as /acme/ledgers.
+
 /ledgers                               Ledgers
 /ledgers/$ledger                       Overview
 /ledgers/$ledger/transactions          Transactions
