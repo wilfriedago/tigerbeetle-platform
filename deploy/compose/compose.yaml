@@ -108,6 +108,14 @@ services:
       AUTH_ISSUER_URL: http://localhost:${KEYCLOAK_PORT:-18080}/realms/tbp
       AUTH_DISCOVERY_URL: http://keycloak:8080/realms/tbp
       AUTH_AUDIENCE: tbp-api
+      # The console's sign-in (ADR-0029). The secret and the session key are for this local stack
+      # only; generate your own anywhere else (openssl rand -base64 32).
+      AUTH_CLIENT_ID: tbp-console
+      AUTH_CLIENT_SECRET: tbp-console-dev-secret
+      AUTH_REDIRECT_URL: http://localhost:${CONSOLE_PORT:-5173}/api/auth/callback
+      AUTH_CONSOLE_ORIGIN: http://localhost:${CONSOLE_PORT:-5173}
+      AUTH_SESSION_KEY: ${AUTH_SESSION_KEY:-ZGV2LW9ubHktc2Vzc2lvbi1rZXktMzItYnl0ZXMtISE=}
+      AUTH_COOKIE_SECURE: 'false'
     ports:
       - '${API_PORT:-8080}:8080'
       - '${GRPC_PORT:-9090}:9090'
