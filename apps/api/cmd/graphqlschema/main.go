@@ -28,7 +28,6 @@ func main() {
 
 func run(out string) error {
 	sdl, err := build()
-
 	if err != nil {
 		return err
 	}
@@ -49,7 +48,6 @@ func build() ([]byte, error) {
 	s := graphqlschema.New()
 	schema.RegisterAll(s)
 	sdl, err := s.SDL()
-
 	if err != nil {
 		return nil, err
 	}

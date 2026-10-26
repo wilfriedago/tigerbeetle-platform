@@ -12,7 +12,6 @@ import (
 func TestBuild(t *testing.T) {
 	t.Parallel()
 	first, err := build()
-
 	if err != nil {
 		t.Fatalf("build: %v", err)
 	}

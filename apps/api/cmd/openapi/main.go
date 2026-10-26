@@ -26,7 +26,6 @@ func main() {
 
 func run(out string) error {
 	spec, err := build()
-
 	if err != nil {
 		return err
 	}
