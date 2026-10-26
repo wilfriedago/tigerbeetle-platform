@@ -26,6 +26,13 @@ func Register[I, O any](api huma.API, op huma.Operation, handler func(context.Co
 	register(api, op, handler)
 }
 
+// RegisterPlatform adds an operation that needs a bearer token but acts for no organization, such
+// as the staff's organization operations (ADR-0027): it documents no X-Organization header.
+func RegisterPlatform[I, O any](api huma.API, op huma.Operation, handler func(context.Context, *I) (*O, error)) {
+	op.Security = []map[string][]string{{SecurityScheme: {}}}
+	register(api, op, handler)
+}
+
 // RegisterPublic adds an operation that needs no credential: the health probes, which
 // orchestrators and load balancers call. The middleware's public paths must list its path too.
 func RegisterPublic[I, O any](api huma.API, op huma.Operation, handler func(context.Context, *I) (*O, error)) {

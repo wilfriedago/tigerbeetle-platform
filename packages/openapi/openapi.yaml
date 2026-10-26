@@ -335,6 +335,24 @@ components:
         metadata:
           $ref: "#/components/schemas/Metadata"
       type: object
+    CreateOrganizationRequest:
+      properties:
+        alias:
+          description: Lowercase letters, digits and dashes, 1 to 63 characters. It cannot change.
+          pattern: ^[a-z0-9][a-z0-9-]{0,62}$
+          type: string
+        name:
+          maxLength: 100
+          minLength: 1
+          type: string
+        owner:
+          $ref: "#/components/schemas/NewMember"
+          description: The first owner. A person without an account gets one and an email to set it up; a person with one gets an invitation.
+      required:
+        - alias
+        - name
+        - owner
+      type: object
     CreateTransactionRequest:
       properties:
         businessTime:
@@ -604,6 +622,50 @@ components:
         - version
         - dependencies
       type: object
+    Invitation:
+      properties:
+        expired:
+          description: An expired invitation can be resent.
+          type: boolean
+        expiresAt:
+          format: date-time
+          type: string
+        id:
+          type: string
+        sentAt:
+          format: date-time
+          type: string
+      required:
+        - id
+        - sentAt
+        - expiresAt
+        - expired
+      type: object
+    InviteMemberRequest:
+      properties:
+        email:
+          format: email
+          maxLength: 254
+          type: string
+        firstName:
+          description: Used when the person has no account yet.
+          maxLength: 100
+          type: string
+        lastName:
+          description: Used when the person has no account yet.
+          maxLength: 100
+          type: string
+        role:
+          default: member
+          description: Only an owner can invite an owner.
+          enum:
+            - member
+            - admin
+            - owner
+          type: string
+      required:
+        - email
+      type: object
     Ledger:
       properties:
         accounts:
@@ -647,6 +709,31 @@ components:
         - eu-payments
       pattern: ^[a-z0-9][a-z0-9_-]{0,62}$
       type: string
+    LedgerRole:
+      properties:
+        ledger:
+          type: string
+        role:
+          enum:
+            - viewer
+            - operator
+            - admin
+          type: string
+      required:
+        - ledger
+        - role
+      type: object
+    LedgerRoleRequest:
+      properties:
+        role:
+          enum:
+            - viewer
+            - operator
+            - admin
+          type: string
+      required:
+        - role
+      type: object
     LedgerStats:
       properties:
         accounts:
@@ -679,6 +766,52 @@ components:
       required:
         - status
       type: object
+    Member:
+      properties:
+        email:
+          type: string
+        invitation:
+          $ref: "#/components/schemas/Invitation"
+          description: Present while status is invited.
+        ledgers:
+          items:
+            $ref: "#/components/schemas/LedgerRole"
+          type: array
+        name:
+          type: string
+        role:
+          description: The organization role; absent when the person holds none.
+          enum:
+            - member
+            - admin
+            - owner
+          type: string
+        status:
+          description: "setup-pending: the platform created the account and the person has not yet set a password. invited: the person has not yet accepted the invitation."
+          enum:
+            - active
+            - setup-pending
+            - invited
+          type: string
+        subject:
+          description: "The identity provider's ID of the person: the subject of their tokens."
+          type: string
+      required:
+        - subject
+        - email
+        - name
+        - status
+        - ledgers
+      type: object
+    MemberList:
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/Member"
+          type: array
+      required:
+        - data
+      type: object
     Metadata:
       additionalProperties:
         maxLength: 512
@@ -687,6 +820,23 @@ components:
       maxProperties: 64
       propertyNames:
         pattern: ^[A-Za-z0-9_.:-]{1,64}$
+      type: object
+    NewMember:
+      properties:
+        email:
+          format: email
+          maxLength: 254
+          type: string
+        firstName:
+          description: Used when the person has no account yet.
+          maxLength: 100
+          type: string
+        lastName:
+          description: Used when the person has no account yet.
+          maxLength: 100
+          type: string
+      required:
+        - email
       type: object
     NotReady:
       properties:
@@ -703,6 +853,52 @@ components:
         - capture
         - void
       type: string
+    Organization:
+      properties:
+        alias:
+          description: "Unique and permanent: the value of X-Organization and the organization's URL segment."
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        name:
+          type: string
+        status:
+          description: A suspended organization answers 403 organization-suspended to every call made in its name.
+          enum:
+            - active
+            - suspended
+          type: string
+      required:
+        - alias
+        - name
+        - status
+        - createdAt
+      type: object
+    OrganizationList:
+      properties:
+        data:
+          items:
+            $ref: "#/components/schemas/Organization"
+          type: array
+        next:
+          description: The cursor of the next page; absent on the last one.
+          type: string
+      required:
+        - data
+      type: object
+    OrganizationRoleRequest:
+      properties:
+        role:
+          description: Only an owner can grant or take away owner; the last owner stays.
+          enum:
+            - member
+            - admin
+            - owner
+          type: string
+      required:
+        - role
+      type: object
     Posting:
       properties:
         amount:
@@ -1192,6 +1388,18 @@ components:
       required:
         - data
       type: object
+    UpdateOrganizationRequest:
+      properties:
+        name:
+          maxLength: 100
+          minLength: 1
+          type: string
+        status:
+          enum:
+            - active
+            - suspended
+          type: string
+      type: object
     WriteRequest:
       properties:
         attempts:
@@ -1452,6 +1660,82 @@ paths:
       summary: Reconciler status
       tags:
         - operations
+  /v1/invitations/{invitation}:
+    delete:
+      description: Withdraws the invitation and the roles waiting for the person. Needs `org.members`.
+      operationId: deleteInvitation
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The invitation's ID.
+          in: path
+          name: invitation
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: The invitation was withdrawn.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Withdraw an invitation
+      tags:
+        - members
+  /v1/invitations/{invitation}/resend:
+    post:
+      description: Sends the invitation again with a new expiry. Needs `org.members`.
+      operationId: resendInvitation
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The invitation's ID.
+          in: path
+          name: invitation
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: The invitation was sent again.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Resend an invitation
+      tags:
+        - members
   /v1/ledgers:
     get:
       description: Every ledger in name order, with its assets and account count.
@@ -2368,6 +2652,99 @@ paths:
       summary: Void a hold
       tags:
         - holds
+  /v1/ledgers/{ledger}/members/{subject}:
+    delete:
+      description: Removes the person's role on the ledger. Needs `ledger.members`.
+      operationId: revokeLedgerRole
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The ledger name.
+          in: path
+          name: ledger
+          required: true
+          schema:
+            $ref: "#/components/schemas/LedgerName"
+        - description: The identity provider's ID of the person.
+          in: path
+          name: subject
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: The role was revoked.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Revoke a ledger role
+      tags:
+        - members
+    put:
+      description: Gives a member of the organization a role on the ledger, replacing the one they held. Needs `ledger.members`.
+      operationId: setLedgerRole
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The ledger name.
+          in: path
+          name: ledger
+          required: true
+          schema:
+            $ref: "#/components/schemas/LedgerName"
+        - description: The identity provider's ID of the person.
+          in: path
+          name: subject
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LedgerRoleRequest"
+        required: true
+      responses:
+        "204":
+          description: The role was set.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Set a ledger role
+      tags:
+        - members
   /v1/ledgers/{ledger}/metadata:
     put:
       description: Replaces the metadata of the ledger with the given key/value pairs.
@@ -3147,6 +3524,336 @@ paths:
       summary: Revert a transaction
       tags:
         - transactions
+  /v1/members:
+    get:
+      description: |
+        The members of the organization and the people invited to it, in name order, with their
+        organization and ledger roles. Needs `org.members`.
+      operationId: listMembers
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberList"
+          description: The members.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: List members
+      tags:
+        - members
+    post:
+      description: |
+        Brings a person into the organization with an organization role. A person with an account
+        gets an invitation by email and becomes a member by following it; a person without one gets
+        an account and an email to verify the address and set a password. Inviting someone already
+        setting up their account sends that email again; a member who holds a role answers 409.
+        Needs `org.members`.
+      operationId: inviteMember
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteMemberRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+          description: The person was invited.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Invite a member
+      tags:
+        - members
+  /v1/members/{subject}:
+    delete:
+      description: |
+        Ends the membership and removes every role the person holds in the organization. Their
+        account and other organizations stay. Needs `org.members`; removing an owner needs an owner.
+      operationId: removeMember
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The identity provider's ID of the person.
+          in: path
+          name: subject
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: The member was removed.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Remove a member
+      tags:
+        - members
+  /v1/members/{subject}/role:
+    put:
+      description: Replaces the person's organization role. Needs `org.members`; owner changes need an owner.
+      operationId: setMemberRole
+      parameters:
+        - description: The alias of the organization the call acts for. A person sends it on every call about a ledger and must be a member of the organization; an organization that is not one of theirs answers 404. API keys and machine clients belong to one organization and need not send it.
+          in: header
+          name: X-Organization
+          schema:
+            maxLength: 63
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The identity provider's ID of the person.
+          in: path
+          name: subject
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationRoleRequest"
+        required: true
+      responses:
+        "204":
+          description: The role was set.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Set a member's organization role
+      tags:
+        - members
+  /v1/organizations:
+    get:
+      description: Every organization of the platform, in alias order. Staff only.
+      operationId: listOrganizations
+      parameters:
+        - description: The opaque `next` cursor of the previous page.
+          in: query
+          name: cursor
+          schema:
+            maxLength: 512
+            type: string
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: Page size.
+          in: query
+          name: limit
+          schema:
+            default: 25
+            maximum: 100
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationList"
+          description: A page of organizations.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: List organizations
+      tags:
+        - organizations
+    post:
+      description: |
+        Creates the organization in the identity provider and the platform, and invites its first
+        owner. Retrying with the same alias finishes an interrupted creation; an organization that
+        already has an owner answers 409. Staff only.
+      operationId: createOrganization
+      parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganizationRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+          description: The organization was created and its owner invited.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Create an organization
+      tags:
+        - organizations
+  /v1/organizations/{organization}:
+    get:
+      description: One organization. Staff only.
+      operationId: getOrganization
+      parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The organization's alias.
+          in: path
+          name: organization
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+          description: The organization.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Get an organization
+      tags:
+        - organizations
+    patch:
+      description: |
+        Changes the fields the body names. A suspended organization answers 403
+        `organization-suspended` to every call made in its name; its members can still sign in.
+        Staff only.
+      operationId: updateOrganization
+      parameters:
+        - description: Correlates the request with the service logs. Kept when it is 1 to 128 printable ASCII characters without spaces, replaced by a new ID otherwise, and returned in the X-Request-Id response header.
+          in: header
+          name: X-Request-Id
+          schema:
+            maxLength: 128
+            type: string
+        - description: The organization's alias.
+          in: path
+          name: organization
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrganizationRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+          description: The organization.
+          headers:
+            X-Request-Id:
+              description: "The request ID: the one the client sent when it was valid, a new one otherwise."
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+      security:
+        - bearerAuth: []
+      summary: Rename, suspend or reactivate an organization
+      tags:
+        - organizations
 security: []
 servers:
   - description: Local compose stack

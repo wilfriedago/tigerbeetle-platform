@@ -65,6 +65,17 @@ enum RequestStatus {
 type Query {
   "Service name and version, runtime versions, and the reachability of Postgres and TigerBeetle."
   serviceInfo: Info!
+  "Every organization in alias order. Staff only."
+  organizations(
+    "Page size, 1 to 100."
+    first: Int = 25
+    "The endCursor of the previous page."
+    after: String
+  ): OrganizationConnection!
+  "An organization by alias, or null. Staff only."
+  organization(alias: String!): Organization
+  "The members of the organization of the call and the people invited to it, in name order. Needs org.members."
+  members: [Member!]!
   "A ledger by name, or null when no ledger has that name."
   ledger(name: String!): Ledger
   "Every ledger in name order."
@@ -77,6 +88,24 @@ type Query {
 }
 
 type Mutation {
+  "Creates an organization and invites its first owner. Retrying with the same alias finishes an interrupted creation. Staff only."
+  createOrganization(input: CreateOrganizationInput!): Organization!
+  "Renames, suspends or reactivates an organization. Staff only."
+  updateOrganization(input: UpdateOrganizationInput!): Organization!
+  "Brings a person into the organization with an organization role: an invitation for a person with an account, an account and a setup email otherwise."
+  inviteMember(input: InviteMemberInput!): Member!
+  "Replaces a person's organization role. Owner changes need an owner; the last owner stays."
+  setMemberRole(input: SetMemberRoleInput!): Boolean!
+  "Ends a membership and removes the person's roles in the organization. Their account stays."
+  removeMember(input: MemberInput!): Boolean!
+  "Gives a member a role on one ledger. Needs ledger.members."
+  setLedgerRole(input: SetLedgerRoleInput!): Boolean!
+  "Removes a person's role on one ledger. Needs ledger.members."
+  revokeLedgerRole(input: RevokeLedgerRoleInput!): Boolean!
+  "Sends an invitation again with a new expiry."
+  resendInvitation(input: InvitationInput!): Boolean!
+  "Withdraws an invitation and the roles waiting for the person."
+  deleteInvitation(input: InvitationInput!): Boolean!
   "Creates a ledger. The name is permanent; a ledger cannot be deleted, because TigerBeetle accounts and transfers are permanent."
   createLedger(input: CreateLedgerInput!): Ledger!
   "Replaces the metadata of a ledger."
@@ -296,6 +325,15 @@ type Info {
   runtime: Runtime
 }
 
+"An invitation the person has not yet accepted."
+type Invitation {
+  id: String!
+  sentAt: DateTime!
+  expiresAt: DateTime!
+  "An expired invitation can be resent."
+  expired: Boolean!
+}
+
 "A ledger is a namespace for accounts and transactions. Money never crosses ledgers."
 type Ledger {
   name: String!
@@ -404,6 +442,12 @@ type LedgerConnection {
   pageInfo: PageInfo!
 }
 
+"A role on one ledger."
+type LedgerRole {
+  ledger: String!
+  role: String!
+}
+
 "The figures of the ledger overview."
 type LedgerStats {
   accounts: Int64!
@@ -412,6 +456,36 @@ type LedgerStats {
   assets: [AssetSummary!]!
   holds: HoldStats!
   declined: DeclinedStats!
+}
+
+"A person of the organization with the roles the platform gives them (ADR-0028)."
+type Member {
+  "The identity provider's ID of the person: the subject of their tokens."
+  subject: String!
+  email: String!
+  name: String!
+  "setup-pending: the platform created the account and the person has not yet set a password. invited: the person has not yet accepted the invitation."
+  status: String!
+  "The organization role; absent when the person holds none."
+  role: String
+  ledgers: [LedgerRole!]!
+  "Present while status is invited."
+  invitation: Invitation
+}
+
+"A tenant of the platform, as staff see it (ADR-0027)."
+type Organization {
+  "Unique and permanent: the value of X-Organization and the organization's URL segment."
+  alias: String!
+  name: String!
+  "A suspended organization answers 403 organization-suspended to every call made in its name."
+  status: String!
+  createdAt: DateTime!
+}
+
+type OrganizationConnection {
+  nodes: [Organization!]!
+  pageInfo: PageInfo!
 }
 
 type PageInfo {
@@ -625,6 +699,13 @@ input CreateLedgerInput {
   metadata: Metadata
 }
 
+input CreateOrganizationInput {
+  "Lowercase letters, digits and dashes, 1 to 63 characters. It cannot change."
+  alias: String!
+  name: String!
+  owner: NewMemberInput!
+}
+
 input CreateTransactionInput {
   ledger: String!
   "Makes the write safe to retry: the same key and input replay the first answer (ADR-0007)."
@@ -642,6 +723,28 @@ input CreateTransactionInput {
 input DeleteRuleInput {
   ledger: String!
   pattern: String!
+}
+
+input InvitationInput {
+  id: String!
+}
+
+input InviteMemberInput {
+  person: NewMemberInput!
+  "member, admin or owner; member when absent. Only an owner can invite an owner."
+  role: String
+}
+
+input MemberInput {
+  subject: String!
+}
+
+input NewMemberInput {
+  email: String!
+  "Used when the person has no account yet."
+  firstName: String
+  "Used when the person has no account yet."
+  lastName: String
 }
 
 input PostingInput {
@@ -686,6 +789,31 @@ input RevertTransactionInput {
   idempotencyKey: String!
   reference: String
   metadata: Metadata
+}
+
+input RevokeLedgerRoleInput {
+  subject: String!
+  ledger: String!
+}
+
+input SetLedgerRoleInput {
+  subject: String!
+  ledger: String!
+  "viewer, operator or admin."
+  role: String!
+}
+
+input SetMemberRoleInput {
+  subject: String!
+  "member, admin or owner."
+  role: String!
+}
+
+input UpdateOrganizationInput {
+  alias: String!
+  name: String
+  "active or suspended."
+  status: String
 }
 
 input VoidHoldInput {

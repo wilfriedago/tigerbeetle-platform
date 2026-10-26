@@ -266,6 +266,14 @@ The organization does not exist, or the caller is not one of its members (ADR-00
 
 The organization is suspended: no call can act for it until staff lift the suspension (ADR-0027).
 
+## last-owner
+
+- Type: `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#last-owner`
+- Title: Last owner
+- Status: 409 Conflict
+
+The change would leave the organization without an owner. Make another member an owner first (ADR-0028).
+
 ## unsupported-media-type
 
 - Type: `https://github.com/wilfriedago/tigerbeetle-platform/blob/develop/docs/problems.md#unsupported-media-type`

@@ -7,7 +7,58 @@ package gen
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const listOrganizations = `-- name: ListOrganizations :many
+SELECT id, alias, keycloak_id, name, status, created_at
+FROM organizations
+WHERE alias > $1
+ORDER BY alias
+LIMIT $2
+`
+
+type ListOrganizationsParams struct {
+	After   string
+	MaxRows int32
+}
+
+type ListOrganizationsRow struct {
+	ID         pgtype.UUID
+	Alias      string
+	KeycloakID pgtype.UUID
+	Name       string
+	Status     string
+	CreatedAt  pgtype.Timestamptz
+}
+
+func (q *Queries) ListOrganizations(ctx context.Context, arg ListOrganizationsParams) ([]ListOrganizationsRow, error) {
+	rows, err := q.db.Query(ctx, listOrganizations, arg.After, arg.MaxRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListOrganizationsRow{}
+	for rows.Next() {
+		var i ListOrganizationsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Alias,
+			&i.KeycloakID,
+			&i.Name,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const organizationByAlias = `-- name: OrganizationByAlias :one
 
@@ -16,10 +67,19 @@ FROM organizations
 WHERE alias = $1
 `
 
+type OrganizationByAliasRow struct {
+	ID         pgtype.UUID
+	Alias      string
+	KeycloakID pgtype.UUID
+	Name       string
+	Status     string
+	CreatedAt  pgtype.Timestamptz
+}
+
 // organizations is the access module's own table and the tenant itself, not a tenant table.
-func (q *Queries) OrganizationByAlias(ctx context.Context, alias string) (Organization, error) {
+func (q *Queries) OrganizationByAlias(ctx context.Context, alias string) (OrganizationByAliasRow, error) {
 	row := q.db.QueryRow(ctx, organizationByAlias, alias)
-	var i Organization
+	var i OrganizationByAliasRow
 	err := row.Scan(
 		&i.ID,
 		&i.Alias,
@@ -38,15 +98,24 @@ WHERE alias = ANY($1::text[])
 ORDER BY name
 `
 
-func (q *Queries) OrganizationsByAlias(ctx context.Context, aliases []string) ([]Organization, error) {
+type OrganizationsByAliasRow struct {
+	ID         pgtype.UUID
+	Alias      string
+	KeycloakID pgtype.UUID
+	Name       string
+	Status     string
+	CreatedAt  pgtype.Timestamptz
+}
+
+func (q *Queries) OrganizationsByAlias(ctx context.Context, aliases []string) ([]OrganizationsByAliasRow, error) {
 	rows, err := q.db.Query(ctx, organizationsByAlias, aliases)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Organization{}
+	items := []OrganizationsByAliasRow{}
 	for rows.Next() {
-		var i Organization
+		var i OrganizationsByAliasRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Alias,
@@ -63,4 +132,133 @@ func (q *Queries) OrganizationsByAlias(ctx context.Context, aliases []string) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const renameOrganization = `-- name: RenameOrganization :one
+UPDATE organizations SET name = $1
+WHERE alias = $2
+RETURNING id, alias, keycloak_id, name, status, created_at
+`
+
+type RenameOrganizationParams struct {
+	Name  string
+	Alias string
+}
+
+type RenameOrganizationRow struct {
+	ID         pgtype.UUID
+	Alias      string
+	KeycloakID pgtype.UUID
+	Name       string
+	Status     string
+	CreatedAt  pgtype.Timestamptz
+}
+
+func (q *Queries) RenameOrganization(ctx context.Context, arg RenameOrganizationParams) (RenameOrganizationRow, error) {
+	row := q.db.QueryRow(ctx, renameOrganization, arg.Name, arg.Alias)
+	var i RenameOrganizationRow
+	err := row.Scan(
+		&i.ID,
+		&i.Alias,
+		&i.KeycloakID,
+		&i.Name,
+		&i.Status,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const saveOrganization = `-- name: SaveOrganization :one
+INSERT INTO organizations (id, alias, keycloak_id, name, created_by_issuer, created_by_subject)
+VALUES (uuidv7(), $1, $2, $3, $4, $5)
+ON CONFLICT (alias) DO UPDATE SET keycloak_id = COALESCE(organizations.keycloak_id, EXCLUDED.keycloak_id)
+RETURNING id, alias, keycloak_id, name, status, created_at
+`
+
+type SaveOrganizationParams struct {
+	Alias            string
+	KeycloakID       pgtype.UUID
+	Name             string
+	CreatedByIssuer  *string
+	CreatedBySubject *string
+}
+
+type SaveOrganizationRow struct {
+	ID         pgtype.UUID
+	Alias      string
+	KeycloakID pgtype.UUID
+	Name       string
+	Status     string
+	CreatedAt  pgtype.Timestamptz
+}
+
+// Creates the organization, or completes the one with the same alias: a retried creation fills in
+// the Keycloak ID and returns the existing row. uuidv7() is time ordered (Postgres 18).
+func (q *Queries) SaveOrganization(ctx context.Context, arg SaveOrganizationParams) (SaveOrganizationRow, error) {
+	row := q.db.QueryRow(ctx, saveOrganization,
+		arg.Alias,
+		arg.KeycloakID,
+		arg.Name,
+		arg.CreatedByIssuer,
+		arg.CreatedBySubject,
+	)
+	var i SaveOrganizationRow
+	err := row.Scan(
+		&i.ID,
+		&i.Alias,
+		&i.KeycloakID,
+		&i.Name,
+		&i.Status,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const setOrganizationKeycloakID = `-- name: SetOrganizationKeycloakID :exec
+UPDATE organizations SET keycloak_id = $1
+WHERE alias = $2 AND keycloak_id IS NULL
+`
+
+type SetOrganizationKeycloakIDParams struct {
+	KeycloakID pgtype.UUID
+	Alias      string
+}
+
+func (q *Queries) SetOrganizationKeycloakID(ctx context.Context, arg SetOrganizationKeycloakIDParams) error {
+	_, err := q.db.Exec(ctx, setOrganizationKeycloakID, arg.KeycloakID, arg.Alias)
+	return err
+}
+
+const setOrganizationStatus = `-- name: SetOrganizationStatus :one
+UPDATE organizations SET status = $1
+WHERE alias = $2
+RETURNING id, alias, keycloak_id, name, status, created_at
+`
+
+type SetOrganizationStatusParams struct {
+	Status string
+	Alias  string
+}
+
+type SetOrganizationStatusRow struct {
+	ID         pgtype.UUID
+	Alias      string
+	KeycloakID pgtype.UUID
+	Name       string
+	Status     string
+	CreatedAt  pgtype.Timestamptz
+}
+
+func (q *Queries) SetOrganizationStatus(ctx context.Context, arg SetOrganizationStatusParams) (SetOrganizationStatusRow, error) {
+	row := q.db.QueryRow(ctx, setOrganizationStatus, arg.Status, arg.Alias)
+	var i SetOrganizationStatusRow
+	err := row.Scan(
+		&i.ID,
+		&i.Alias,
+		&i.KeycloakID,
+		&i.Name,
+		&i.Status,
+		&i.CreatedAt,
+	)
+	return i, err
 }

@@ -69,7 +69,10 @@ func Build(ctx context.Context, cfg config.Config, svc Service, logger *slog.Log
 	if err != nil {
 		return nil, err
 	}
-	m := buildModules(r, cfg, logger, o)
+	m, err := buildModules(r, cfg, logger, o)
+	if err != nil {
+		return nil, err
+	}
 	auth, verifier, err := authenticator(ctx, cfg, m)
 	if err != nil {
 		return nil, err

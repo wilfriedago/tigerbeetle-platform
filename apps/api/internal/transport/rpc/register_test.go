@@ -13,7 +13,10 @@ import (
 )
 
 // TestEveryRESTOperationHasAMethod: the methods are v1.<operationId>, one per REST operation
-// (plan section 11.2), read from the REST registrations so neither list can drift.
+// (plan section 11.2), read from the REST registrations so neither list can drift. The access
+// module's operations are the exception: broker RPC serves the platform's own services, and
+// organizations and members are managed by people through REST and GraphQL (auth plan, sections
+// 5.6 and 7.1).
 func TestEveryRESTOperationHasAMethod(t *testing.T) {
 	t.Parallel()
 	api := restapi.NewAPI(http.NewServeMux())
@@ -21,7 +24,7 @@ func TestEveryRESTOperationHasAMethod(t *testing.T) {
 	var want []string
 	for _, item := range api.OpenAPI().Paths {
 		for _, op := range []*huma.Operation{item.Get, item.Post, item.Put, item.Delete, item.Patch} {
-			if op != nil {
+			if op != nil && !slices.Contains(op.Tags, "organizations") && !slices.Contains(op.Tags, "members") {
 				want = append(want, "v1."+op.OperationID)
 			}
 		}

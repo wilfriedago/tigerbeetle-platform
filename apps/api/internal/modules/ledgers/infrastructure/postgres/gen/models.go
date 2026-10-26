@@ -97,12 +97,14 @@ type LedgerAsset struct {
 }
 
 type Organization struct {
-	ID         pgtype.UUID
-	Alias      string
-	KeycloakID pgtype.UUID
-	Name       string
-	Status     string
-	CreatedAt  pgtype.Timestamptz
+	ID               pgtype.UUID
+	Alias            string
+	KeycloakID       pgtype.UUID
+	Name             string
+	Status           string
+	CreatedAt        pgtype.Timestamptz
+	CreatedByIssuer  *string
+	CreatedBySubject *string
 }
 
 type Session struct {

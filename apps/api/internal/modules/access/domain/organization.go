@@ -34,6 +34,15 @@ type Organization struct {
 	CreatedAt  time.Time
 }
 
+// NewOrganization is what staff give to create an organization.
+type NewOrganization struct {
+	Alias      string
+	Name       string
+	KeycloakID string
+	// CreatedBy is the staff member who created it.
+	CreatedBy ledger.Principal
+}
+
 // Tenant returns the organization as the tenant of a call.
 func (o Organization) Tenant() ledger.Tenant {
 	return ledger.Tenant{ID: o.ID, Alias: o.Alias}
@@ -45,4 +54,15 @@ type OrganizationRepository interface {
 	OrganizationByAlias(ctx context.Context, alias string) (Organization, error)
 	// OrganizationsByAlias returns the known organizations among the aliases, in name order.
 	OrganizationsByAlias(ctx context.Context, aliases []string) ([]Organization, error)
+	// ListOrganizations returns up to limit organizations after the alias, in alias order.
+	ListOrganizations(ctx context.Context, after string, limit int) ([]Organization, error)
+	// SaveOrganization records a new organization, or returns the one with the same alias after
+	// filling in its Keycloak ID when it had none, so a retried creation finishes the job.
+	SaveOrganization(ctx context.Context, o NewOrganization) (Organization, error)
+	// SetKeycloakID records the Keycloak ID of an organization that had none.
+	SetKeycloakID(ctx context.Context, alias, keycloakID string) error
+	// RenameOrganization changes the name of the organization with the alias.
+	RenameOrganization(ctx context.Context, alias, name string) (Organization, error)
+	// SetOrganizationStatus suspends or reactivates the organization with the alias.
+	SetOrganizationStatus(ctx context.Context, alias string, status OrganizationStatus) (Organization, error)
 }

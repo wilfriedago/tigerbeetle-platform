@@ -110,6 +110,12 @@ type Config struct {
 	AuthSessionKey string `env:"AUTH_SESSION_KEY"`
 	// AuthCookieSecure marks the cookies Secure; false only for plain-HTTP development.
 	AuthCookieSecure bool `env:"AUTH_COOKIE_SECURE" envDefault:"true"`
+
+	// AuthAdminClientID and AuthAdminClientSecret are the service account the API uses for
+	// Keycloak's admin API: organizations, members and invitations (ADR-0027). Without them those
+	// calls answer 503 and the rest of the API runs.
+	AuthAdminClientID     string `env:"AUTH_ADMIN_CLIENT_ID"`
+	AuthAdminClientSecret string `env:"AUTH_ADMIN_CLIENT_SECRET"`
 }
 
 // Load reads the process environment.
@@ -155,6 +161,9 @@ func (c *Config) validate() error {
 	}
 	if c.AuthClientID != "" && (c.AuthClientSecret == "" || c.AuthRedirectURL == "" || c.AuthConsoleOrigin == "" || c.AuthSessionKey == "") {
 		return fmt.Errorf("config: AUTH_CLIENT_ID needs AUTH_CLIENT_SECRET, AUTH_REDIRECT_URL, AUTH_CONSOLE_ORIGIN and AUTH_SESSION_KEY")
+	}
+	if (c.AuthAdminClientID == "") != (c.AuthAdminClientSecret == "") {
+		return fmt.Errorf("config: AUTH_ADMIN_CLIENT_ID and AUTH_ADMIN_CLIENT_SECRET go together")
 	}
 	if c.ShutdownTimeout <= 0 || c.ReadinessTimeout <= 0 || c.TigerBeetleTimeout <= 0 {
 		return fmt.Errorf("config: SHUTDOWN_TIMEOUT, READINESS_TIMEOUT and TIGERBEETLE_TIMEOUT must be positive")

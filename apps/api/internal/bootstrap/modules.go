@@ -2,10 +2,13 @@ package bootstrap
 
 import (
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
 	accessapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/application"
+	accessdomain "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/domain"
+	accesskc "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/infrastructure/keycloak"
 	accesspg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/infrastructure/postgres"
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
 	bookkeepingdomain "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
@@ -14,6 +17,7 @@ import (
 	ledgersapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/application"
 	ledgerspg "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/infrastructure/postgres"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/keycloak"
 )
 
 // modules holds the use cases of every module.
@@ -32,16 +36,20 @@ type modules struct {
 // the directory and policies of ledgers come first, then bookkeeping, then the rest of ledgers,
 // which uses bookkeeping's footprint queries. Each value passed to a port that another module
 // declares is checked by the compiler on the line that passes it.
-func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options) modules {
+func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options) (modules, error) {
 	clock := ledger.ClockFunc(time.Now)
 
 	// Access comes first: every other module checks its permissions through it (ADR-0028).
 	accessStore := accesspg.NewStore(r.db)
-	accessDeps := accessapp.Deps{Organizations: accessStore, Grants: accessStore, Sessions: accessStore, Clock: clock}
+	dir, err := directory(cfg, o)
+	if err != nil {
+		return modules{}, err
+	}
+	accessDeps := accessapp.Deps{Organizations: accessStore, Grants: accessStore, Sessions: accessStore, Directory: dir, Clock: clock}
 	ac := accessapp.New(accessDeps)
 
 	ledgerStore := ledgerspg.NewStore(r.db)
-	directory := ledgersapp.NewDirectory(ledgerStore)
+	ledgerDirectory := ledgersapp.NewDirectory(ledgerStore)
 	policies := ledgersapp.NewPolicyQueries(ledgerStore, ledgerStore)
 
 	bookStore := bookkeepingpg.NewStore(r.db)
@@ -54,7 +62,7 @@ func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options
 		Ledger:             o.wrapLedgerStore(tbStore),
 		IDs:                tbStore,
 		Clock:              clock,
-		Ledgers:            directory,
+		Ledgers:            ledgerDirectory,
 		Policies:           policies,
 		EventTypes:         policies,
 		GracePeriod:        cfg.ReconcilerGracePeriod,
@@ -67,12 +75,38 @@ func buildModules(r resources, cfg config.Config, logger *slog.Logger, o options
 		Ledgers:    ledgerStore,
 		Rules:      ledgerStore,
 		EventTypes: ledgerStore,
-		Directory:  directory,
+		Directory:  ledgerDirectory,
 		Footprints: bk.Footprints,
 		Usage:      bk.Footprints,
 		Addresses:  bk.Footprints,
 		Clock:      clock,
 		Authorizer: ac.Authorizer,
 	})
-	return modules{access: ac, accessDeps: accessDeps, ledgers: lg, bookkeeping: bk, bookkeepingAccounts: bookStore}
+	return modules{access: ac, accessDeps: accessDeps, ledgers: lg, bookkeeping: bk, bookkeepingAccounts: bookStore}, nil
+}
+
+// directory is Keycloak's admin API for the access module, nil without AUTH_ADMIN_CLIENT_ID. It
+// reaches Keycloak where the API reads discovery (AUTH_DISCOVERY_URL), and the console's client
+// owns the pages after the account setup email.
+func directory(cfg config.Config, o options) (accessdomain.Directory, error) {
+	if o.directory != nil {
+		return o.directory, nil
+	}
+	if cfg.AuthAdminClientID == "" {
+		return nil, nil
+	}
+	realm := cfg.AuthDiscoveryURL
+	if realm == "" {
+		realm = cfg.AuthIssuerURL
+	}
+	admin, err := keycloak.New(keycloak.Config{
+		RealmURL:      strings.TrimSuffix(strings.TrimSuffix(realm, "/"), "/.well-known/openid-configuration"),
+		ClientID:      cfg.AuthAdminClientID,
+		ClientSecret:  cfg.AuthAdminClientSecret,
+		SetupClientID: cfg.AuthClientID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return accesskc.New(admin, cfg.AuthIssuerURL), nil
 }

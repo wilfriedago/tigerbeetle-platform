@@ -172,6 +172,10 @@ var catalog = []Definition{
 		"The organization is suspended: no call can act for it until staff lift the suspension (ADR-0027).",
 	},
 	{
+		"last-owner", "Last owner", http.StatusConflict,
+		"The change would leave the organization without an owner. Make another member an owner first (ADR-0028).",
+	},
+	{
 		"unsupported-media-type", "Unsupported media type", http.StatusUnsupportedMediaType,
 		"The request body is not sent as `application/json` (ADR-0032).",
 	},

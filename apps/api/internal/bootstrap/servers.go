@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	accessv1 "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/rest/v1"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/web"
 	bookkeepingapp "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/application"
 	bookkeepingkafka "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/infrastructure/kafka"
@@ -55,6 +56,10 @@ func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *
 	rest.RegisterHealth(api, health)
 	if cfg.RESTEnabled {
 		rest.RegisterModules(api, rest.Handlers{
+			Access: accessv1.Deps{
+				PlatformOrganizations: m.access.PlatformOrganizations,
+				Members:               m.access.Members,
+			},
 			Ledgers: ledgersv1.Deps{
 				LedgerCommands:   m.ledgers.LedgerCommands,
 				LedgerQueries:    m.ledgers.LedgerQueries,
@@ -76,6 +81,7 @@ func httpHandler(health healthdto.Source, m modules, cfg config.Config, logger *
 	}
 	if cfg.GraphQLEnabled {
 		mux.Handle("POST /graphql", graphqltransport.NewHandler(graphqltransport.NewResolver(graphqltransport.Modules{
+			Access:      m.access,
 			Health:      health,
 			Ledgers:     m.ledgers,
 			Bookkeeping: m.bookkeeping,

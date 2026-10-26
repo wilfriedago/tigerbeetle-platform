@@ -19,6 +19,7 @@ import (
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/bootstrap"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/devstack"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/kernel/ledger"
+	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/application/directorytest"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/domain"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/config"
 	"github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/platform/problem"
@@ -49,6 +50,8 @@ type harness struct {
 	app    *bootstrap.App
 	faults *faultyLedger
 	auth   testAuth
+	// dir stands in for Keycloak's admin API: organizations, accounts and invitations.
+	dir *directorytest.Directory
 	// cfgPostgresURL is the database of the harness, for tests that seed grants.
 	cfgPostgresURL string
 }
@@ -69,8 +72,11 @@ func newHarness(t *testing.T) *harness {
 	}
 	h := &harness{t: t}
 	h.auth = trustTestIssuer(t, &cfg)
+	h.dir = directorytest.New(h.auth.iss.URL)
+	h.dir.AddOrganization("default")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	built, err := bootstrap.Build(context.Background(), cfg, bootstrap.Service{Name: serviceName, Version: version}, logger,
+		bootstrap.WithDirectory(h.dir),
 		bootstrap.WithLedgerStore(func(s domain.LedgerStore) domain.LedgerStore {
 			h.faults = &faultyLedger{LedgerStore: s}
 			return h.faults

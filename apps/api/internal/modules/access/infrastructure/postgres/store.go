@@ -49,7 +49,9 @@ func (s *Store) OrganizationByAlias(ctx context.Context, alias string) (domain.O
 	return organizationOf(row), nil
 }
 
-func organizationOf(row gen.Organization) domain.Organization {
+// organizationOf converts a row. Every organization query selects the same columns, so sqlc's
+// row types share one shape and convert to OrganizationByAliasRow.
+func organizationOf(row gen.OrganizationByAliasRow) domain.Organization {
 	org := domain.Organization{
 		ID:        platformpg.IDOf(row.ID),
 		Alias:     row.Alias,

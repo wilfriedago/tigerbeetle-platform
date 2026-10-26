@@ -4,6 +4,7 @@
 package schema
 
 import (
+	accessgql "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/access/interfaces/graphql"
 	bookkeepinggql "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/bookkeeping/interfaces/graphql"
 	healthgql "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/health/interfaces/graphql"
 	ledgersgql "github.com/wilfriedago/tigerbeetle-platform/apps/api/internal/modules/ledgers/interfaces/graphql"
@@ -26,6 +27,7 @@ func RegisterAll(s *graphqlschema.Schema) {
 	graphqlschema.Describe[scalar.DependencyStatus](s, "Whether a dependency answered its probe.")
 
 	healthgql.Register(s)
+	accessgql.Register(s)
 	ledgersgql.Register(s)
 	bookkeepinggql.Register(s)
 }

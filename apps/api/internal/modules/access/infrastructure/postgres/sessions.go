@@ -59,7 +59,7 @@ func (s *Store) OrganizationsByAlias(ctx context.Context, aliases []string) ([]d
 	}
 	out := make([]domain.Organization, len(rows))
 	for i := range rows {
-		out[i] = organizationOf(rows[i])
+		out[i] = organizationOf(gen.OrganizationByAliasRow(rows[i]))
 	}
 	return out, nil
 }

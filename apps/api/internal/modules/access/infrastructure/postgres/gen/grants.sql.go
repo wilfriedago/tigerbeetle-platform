@@ -11,6 +11,59 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countOwners = `-- name: CountOwners :one
+SELECT count(*)
+FROM grants
+WHERE organization_id = $1 AND ledger IS NULL AND role = 'owner'
+`
+
+func (q *Queries) CountOwners(ctx context.Context, organizationID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countOwners, organizationID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const grantsIn = `-- name: GrantsIn :many
+SELECT issuer, subject, ledger, role
+FROM grants
+WHERE organization_id = $1
+ORDER BY issuer, subject, ledger NULLS FIRST
+`
+
+type GrantsInRow struct {
+	Issuer  string
+	Subject string
+	Ledger  *string
+	Role    string
+}
+
+// Every grant in one organization, the organization role of each holder before its ledger roles.
+func (q *Queries) GrantsIn(ctx context.Context, organizationID pgtype.UUID) ([]GrantsInRow, error) {
+	rows, err := q.db.Query(ctx, grantsIn, organizationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GrantsInRow{}
+	for rows.Next() {
+		var i GrantsInRow
+		if err := rows.Scan(
+			&i.Issuer,
+			&i.Subject,
+			&i.Ledger,
+			&i.Role,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const grantsOf = `-- name: GrantsOf :many
 SELECT ledger, role
 FROM grants
@@ -48,4 +101,77 @@ func (q *Queries) GrantsOf(ctx context.Context, arg GrantsOfParams) ([]GrantsOfR
 		return nil, err
 	}
 	return items, nil
+}
+
+const putGrant = `-- name: PutGrant :exec
+INSERT INTO grants (organization_id, issuer, subject, ledger, role, granted_by_issuer, granted_by_subject)
+VALUES ($1, $2, $3, $5, $4, $6, $7)
+ON CONFLICT (organization_id, issuer, subject, COALESCE(ledger, '')) DO UPDATE
+SET role = EXCLUDED.role, granted_by_issuer = EXCLUDED.granted_by_issuer,
+    granted_by_subject = EXCLUDED.granted_by_subject, created_at = now()
+`
+
+type PutGrantParams struct {
+	OrganizationID   pgtype.UUID
+	Issuer           string
+	Subject          string
+	Role             string
+	Ledger           *string
+	GrantedByIssuer  *string
+	GrantedBySubject *string
+}
+
+// One role per holder in the organization and one per ledger: a new role replaces the old one.
+func (q *Queries) PutGrant(ctx context.Context, arg PutGrantParams) error {
+	_, err := q.db.Exec(ctx, putGrant,
+		arg.OrganizationID,
+		arg.Issuer,
+		arg.Subject,
+		arg.Role,
+		arg.Ledger,
+		arg.GrantedByIssuer,
+		arg.GrantedBySubject,
+	)
+	return err
+}
+
+const revokeGrant = `-- name: RevokeGrant :execrows
+DELETE FROM grants
+WHERE organization_id = $1 AND issuer = $2 AND subject = $3 AND COALESCE(ledger, '') = $4
+`
+
+type RevokeGrantParams struct {
+	OrganizationID pgtype.UUID
+	Issuer         string
+	Subject        string
+	Ledger         *string
+}
+
+func (q *Queries) RevokeGrant(ctx context.Context, arg RevokeGrantParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeGrant,
+		arg.OrganizationID,
+		arg.Issuer,
+		arg.Subject,
+		arg.Ledger,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const revokeGrants = `-- name: RevokeGrants :exec
+DELETE FROM grants
+WHERE organization_id = $1 AND issuer = $2 AND subject = $3
+`
+
+type RevokeGrantsParams struct {
+	OrganizationID pgtype.UUID
+	Issuer         string
+	Subject        string
+}
+
+func (q *Queries) RevokeGrants(ctx context.Context, arg RevokeGrantsParams) error {
+	_, err := q.db.Exec(ctx, revokeGrants, arg.OrganizationID, arg.Issuer, arg.Subject)
+	return err
 }
