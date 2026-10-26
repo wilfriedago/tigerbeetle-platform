@@ -14,7 +14,13 @@ const { useI18n, ofTypeI18n } = i18nBuilder
       passwordNew: 'New password',
       doContinue: 'Continue',
       noPublicSignUp: 'No account? Accounts are created when an organization invites you. There is no public sign-up.',
-      signInHint: 'Use your work email. If your organization uses single sign-on, you continue there.'
+      signInHint: 'Use your work email. If your organization uses single sign-on, you continue there.',
+      backToApplication: 'Back to the application',
+      // The steps listed on the account setup page.
+      'requiredAction.CONFIGURE_TOTP': 'Set up two-factor',
+      'requiredAction.UPDATE_PASSWORD': 'Set a password',
+      'requiredAction.UPDATE_PROFILE': 'Complete your profile',
+      'requiredAction.VERIFY_EMAIL': 'Verify your email'
     }
   })
   .build()
