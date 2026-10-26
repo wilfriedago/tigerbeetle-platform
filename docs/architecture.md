@@ -256,13 +256,17 @@ Cursor pagination orders by the stored big-endian ID, which is time order.
 
 - `GET /healthz` is liveness only: a liveness failure restarts the process, which does not help
   when a dependency is down. `GET /readyz` probes Postgres and TigerBeetle concurrently with a
-  2 second timeout each (`READINESS_TIMEOUT`) and answers 503 when either is down. With a broker
+  2 second timeout each (`READINESS_TIMEOUT`) and answers a 503 `not-ready` problem, with
+  `dependencies` as an extension member, when either is down. With a broker
   transport enabled it probes that broker too, but a broker outage only makes the status
   `degraded`, still 200: readiness gates HTTP traffic, which no broker carries. `GET /v1/_info`
   always answers 200 with the dependency state as payload. The runtime image has no shell, so
   `/app/api -probe http://127.0.0.1:8080/readyz` is the container healthcheck.
-- Every error path answers `application/problem+json`, including unknown routes, binding errors
-  and recovered panics. Domain problems carry stable `type` URIs under `/problems/`.
+- Every error path answers `application/problem+json` (RFC 9457, ADR-0025), including unknown
+  routes, binding errors, oversized bodies, a body on `/graphql` that is no GraphQL request, and
+  recovered panics. Domain problems carry an absolute `type`, the same in every deployment: the
+  URL of their entry in [docs/problems.md](problems.md), which `cmd/problemdocs` generates.
+  Problems the status describes on its own are `about:blank` with the status phrase as title.
 - `X-Request-Id` is kept when the client sends a short printable one, generated otherwise, echoed
   in the response and the problem body, and attached to every JSON log line of that request.
 - The TigerBeetle Go client is a cgo binding around a static C library that links `libdl` and

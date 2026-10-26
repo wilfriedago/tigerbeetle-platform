@@ -413,6 +413,11 @@ Earlier, during the console work, the owner approved these on 2026-10-24; the AD
 - **The console is a TanStack Router single-page app, not TanStack Start** (ADR-0014): it has no
   data of its own and must stay deployable as static files behind any proxy.
 
+On 2026-10-26 the owner chose, for RFC 9457 (ADR-0025), absolute problem types that point at the
+generated catalogue on GitHub (`docs/problems.md#<reason>`, the same in every deployment), a
+`not-ready` problem for the 503 of `/readyz`, and an `errors` member for the input errors Huma
+raises. ADR-0013, 0018 and 0021 carry the amended status.
+
 ## Code map
 
 API (`apps/api`):

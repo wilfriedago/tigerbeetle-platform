@@ -329,8 +329,9 @@ case (ADR-0006).
   32 lowercase hex characters (ADR-0004).
 - Time: the TigerBeetle timestamp is the authoritative time; business time is always labelled
   separately.
-- Errors: one panel for `application/problem+json` answers, with title, detail and a copyable
-  request ID.
+- Errors: one panel for `application/problem+json` answers, with title, detail, the problem's
+  reason linked to its entry in `docs/problems.md` (ADR-0025) and a copyable request ID. Code
+  compares problems by reason (`ApiError.reason`, `problemReason`), never by parsing `type`.
 - Writes: one `useIdempotentMutation` hook. It creates the Idempotency-Key when a form opens,
   reuses it on retry, renews it when the body changes, and surfaces the "a declined key stays
   declined" rule (ADR-0007).

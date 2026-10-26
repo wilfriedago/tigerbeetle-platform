@@ -92,7 +92,9 @@ GraphQL schema the console uses (ADR-0020). The gRPC contract is written by hand
    response, and a handler from a typed input struct (path, query and header fields, `Body`) to
    an output struct; shared answer types go in `interfaces/dto`. Struct tags document constraints
    for the spec; Huma does not enforce them, the domain does. Return errors as Go errors;
-   `internal/platform/problem` maps them to problem+json.
+   `internal/platform/problem` maps them to problem+json. A new problem reason gets its
+   definition (title, status, description) in `internal/platform/problem/catalog.go`;
+   `just generate` adds its entry to `docs/problems.md`, which its type URI points at (ADR-0025).
 3. Add the operationId to the `registered` table in `internal/transport/rest/register_test.go`
    and raise the operation count in `cmd/openapi/main_test.go`.
 4. When the console needs it, register the GraphQL side in the module's `interfaces/graphql`:
